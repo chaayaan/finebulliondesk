@@ -356,10 +356,6 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     }
     .list-header > button.btn span { display: none; }
 
-    .chart-card { padding: 0.75rem 0.75rem 0.4rem; border-radius: 10px; }
-    .chart-wrap { height: 220px; }
-    .chart-legend { font-size: 0.75rem; gap: 0.75rem; }
-
     /* Summary cards mobile adjustment */
     .summary-card { padding: 0.65rem 0.75rem; }
     .summary-card span.text-muted { font-size: 0.68rem !important; }
@@ -409,8 +405,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </button>
     </div>
 
-    <!-- CHART -->
-    <div class="chart-card mb-4">
+    <!-- CHART (HIDDEN ON MOBILE VIEW: d-none d-md-block) -->
+    <div class="chart-card mb-4 d-none d-md-block">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <div class="chart-legend" id="chartLegend"></div>
             <select id="chartYear" class="form-select form-select-sm" style="width:auto;"></select>
@@ -420,7 +416,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
     </div>
 
-    <!-- SUMMARY CARDS AFTER GRAPH (SIDE-BY-SIDE ON ALL SCREENS INCL. MOBILE) -->
+    <!-- SUMMARY CARDS -->
     <div class="row g-2 g-md-3 mb-4">
         <div class="col-6">
             <div class="summary-card">
@@ -744,7 +740,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 document.getElementById('totalCount').textContent = res.totalRows;
                 document.getElementById('totalSum').textContent   = fmtAmount(res.sumAmount);
 
-                // Update summary cards after the graph
+                // Update summary cards
                 const summaryCount = document.getElementById('summaryTotalCount');
                 const summarySum   = document.getElementById('summaryTotalSum');
                 if (summaryCount) summaryCount.textContent = res.totalRows;

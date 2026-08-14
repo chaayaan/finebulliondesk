@@ -248,6 +248,16 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .form-label .text-danger { font-weight: 700; }
 .form-control:focus { border-color: var(--fb-gold); box-shadow: 0 0 0 0.2rem rgba(220,173,65,0.18); }
 
+/* ---- label-left / input-right field rows (add & edit customer) ---- */
+.field-row { display: flex; align-items: center; gap: 0.75rem; }
+.field-row .field-label { flex: 0 0 130px; max-width: 130px; margin-bottom: 0; padding-right: 0.25rem; }
+.field-row .field-input { flex: 1 1 auto; min-width: 0; }
+.field-row .field-input .d-flex { flex-wrap: wrap; }
+@media (max-width: 575.98px) {
+    .field-row { align-items: flex-start; }
+    .field-row .field-label { flex-basis: 92px; max-width: 92px; font-size: 0.85rem; padding-top: 0.4rem; }
+}
+
 /* ---------------------------------------------------------------
    Mobile compaction
 --------------------------------------------------------------- */
@@ -308,7 +318,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </button>
         </div>
         <button type="button" class="btn btn-gold btn-sm d-md-none" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomerMobile">
-            <i class="bi bi-plus-lg"></i> <span>Add Customer</span>
+            <i class="bi bi-plus-lg me-1"></i><span>Add</span>
         </button>
     </div>
 
@@ -379,33 +389,45 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
           <input type="hidden" name="action" value="save">
           <input type="hidden" name="id" id="customerId" value="0">
           <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label">Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="name" name="name" maxlength="150">
+            <div class="col-12 field-row">
+              <label class="form-label field-label">Name <span class="text-danger">*</span></label>
+              <div class="field-input">
+                <input type="text" class="form-control" id="name" name="name" maxlength="150">
+              </div>
             </div>
-            <div class="col-12">
-              <label class="form-label">Phone <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="phone" name="phone" maxlength="20">
+            <div class="col-12 field-row">
+              <label class="form-label field-label">Phone <span class="text-danger">*</span></label>
+              <div class="field-input">
+                <input type="text" class="form-control" id="phone" name="phone" maxlength="20">
+              </div>
             </div>
-            <div class="col-12">
-              <label class="form-label">Address <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="address" name="address" maxlength="255">
+            <div class="col-12 field-row">
+              <label class="form-label field-label">Address <span class="text-danger">*</span></label>
+              <div class="field-input">
+                <input type="text" class="form-control" id="address" name="address" maxlength="255">
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Nid</label>
-              <input type="text" class="form-control" id="nid" name="nid" maxlength="30">
+            <div class="col-md-6 field-row">
+              <label class="form-label field-label">Nid</label>
+              <div class="field-input">
+                <input type="text" class="form-control" id="nid" name="nid" maxlength="30">
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Email</label>
-              <input type="email" class="form-control" id="email" name="email" maxlength="150">
+            <div class="col-md-6 field-row">
+              <label class="form-label field-label">Email</label>
+              <div class="field-input">
+                <input type="email" class="form-control" id="email" name="email" maxlength="150">
+              </div>
             </div>
-            <div class="col-12">
-              <label class="form-label">Note</label>
-              <textarea class="form-control" id="note" name="note" rows="2"></textarea>
+            <div class="col-12 field-row">
+              <label class="form-label field-label">Note</label>
+              <div class="field-input">
+                <textarea class="form-control" id="note" name="note" rows="2"></textarea>
+              </div>
             </div>
-            <div class="col-12">
-              <label class="form-label">Photo</label>
-              <div class="d-flex align-items-center gap-3">
+            <div class="col-12 field-row">
+              <label class="form-label field-label">Photo</label>
+              <div class="field-input d-flex align-items-center gap-3">
                 <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
                 <img id="photoPreview" src="" alt="Preview" class="photo-preview d-none">
               </div>

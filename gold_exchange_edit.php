@@ -36,7 +36,7 @@ function grams_to_trad(float $g): array {
 
 function fmt_trad(float $g): string {
     $t = grams_to_trad($g);
-    return "{$t['v']} Vori {$t['a']} Ana {$t['r']} Roti {$t['p']} Point";
+    return "{$t['v']} V {$t['a']} A {$t['r']} R {$t['p']} P";
 }
 
 function trad_to_grams(int $v, int $a, int $r, int $p): float {
@@ -332,24 +332,130 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 .btn-gold { background:var(--fb-gold); border-color:var(--fb-gold); color:#1a1a1a; font-weight:600; }
 .btn-gold:hover { background:#c99a2f; border-color:#c99a2f; color:#1a1a1a; }
 
-/* edit modal item card */
+/* edit modal item card — matches gold_exchange.php "gold-item-card" pattern */
 .edit-item-card {
-    border:1px solid #dee2e6; border-radius:8px;
-    padding:.9rem 1rem 0.7rem; margin-bottom:.85rem;
-    background:#fafafa; position:relative;
+    border:1px solid #e2e5ea; border-radius:10px;
+    padding:1rem 1.1rem; margin-bottom:1rem;
+    background:#fff; position:relative;
 }
 .edit-item-badge {
-    position:absolute; top:-9px; left:12px;
+    position:absolute; top:-10px; left:14px;
     background:var(--fb-green); color:#fff;
-    font-size:.68rem; font-weight:700;
-    padding:.08rem .55rem; border-radius:8px;
+    font-size:.72rem; font-weight:700;
+    padding:.1rem .6rem; border-radius:10px;
 }
 .item-pure-preview {
-    font-size:.82rem; color:var(--fb-green);
-    font-weight:600; margin-top:.5rem;
-    padding:.3rem .5rem;
-    background:#f4f9f6; border-radius:5px;
-    border:1px dashed #bcd9c9;
+    background:#f4f9f6; border:1px dashed #bcd9c9;
+    border-radius:8px; padding:.5rem .8rem;
+    font-size:.88rem; color:var(--fb-green); font-weight:600;
+}
+
+/* Vori / Ana / Roti / Point always in ONE row (4 equal columns),
+   Karat as its own full-width row underneath — mirrors gold_exchange.php */
+.item-fields-row {
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:.5rem;
+}
+.item-fields-row .field-col label {
+    display:block; font-size:.72rem;
+    margin-bottom:.15rem; color:#6c757d; white-space:nowrap;
+}
+.item-fields-row .field-col input {
+    text-align:center; padding-left:.25rem; padding-right:.25rem;
+}
+.item-fields-row input.form-control.is-valid,
+.item-fields-row input.form-control.is-invalid,
+.karat-row input.form-control.is-valid,
+.karat-row input.form-control.is-invalid {
+    background-image:none !important;
+    padding-right:.25rem !important;
+}
+.karat-row { margin-top:.6rem; }
+.karat-row label {
+    display:block; font-size:.72rem;
+    margin-bottom:.15rem; color:#6c757d;
+}
+
+/* ---------------------------------------------------------------
+   Mobile — compact single-screen layout (no scroll), structured
+   like the reference: tight header, stacked customer/date block,
+   compact items table, compact summary table — all visible without
+   scrolling. Note card is hidden on mobile to fit everything.
+--------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    html, body { height:100%; overflow:hidden; }
+    .page-content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+    .page-content .container-fluid {
+        padding:.45rem .5rem !important; display:flex; flex-direction:column;
+        gap:.45rem; flex:1; min-height:0; overflow:hidden;
+    }
+
+    /* alerts collapse tightly if present */
+    .container-fluid > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
+
+    /* header bar */
+    .exchange-header { padding:.55rem .75rem; border-radius:8px; margin-bottom:0!important; }
+    .exchange-header h5 { font-size:1rem; }
+    .exchange-header h5 i { display:none; }
+    .exchange-header small { display:none; }
+    .exchange-header .text-end { display:none; } /* created-by folded into detail card on mobile */
+    .exchange-header .btn-outline-light { padding:.15rem .42rem; font-size:.8rem; }
+
+    /* customer + detail card */
+    .detail-card-wrap { margin-bottom:0!important; }
+    .detail-card-wrap .card-header { padding:.4rem .6rem; }
+    .detail-card-wrap .card-header.fw-semibold,
+    .detail-card-wrap .card-header { font-size:.85rem; }
+    .detail-card { padding:.55rem .7rem; }
+    .detail-card .row.g-0 { display:flex; flex-wrap:wrap; }
+    .detail-card .col-md-7,
+    .detail-card .col-md-4 { flex:1 1 100%; max-width:100%; padding:0!important; }
+    .detail-card .col-md-1 { display:none!important; }
+    .detail-card hr { margin:.35rem 0!important; }
+    .detail-card .row.g-2 { row-gap:.1rem!important; }
+    .detail-label { font-size:.74rem; flex:0 0 auto; }
+    .detail-val { font-size:.85rem; }
+    .detail-card .row.g-2 > .col-12 {
+        display:flex; align-items:baseline; gap:.3rem; flex-wrap:nowrap;
+    }
+    .detail-val[style*="font-weight:400"] {
+        flex:1 1 auto; overflow:hidden; text-overflow:ellipsis;
+        white-space:nowrap; min-width:0;
+    }
+
+    /* items table card */
+    .card { border-radius:8px; margin-bottom:0!important; }
+    .card-header { padding:.4rem .6rem; }
+    .card-header .fw-semibold { font-size:.85rem; }
+    .card-header .badge { font-size:.68rem; }
+    .card-header .btn-sm { padding:.15rem .45rem; font-size:.74rem; }
+    .card-header .btn-sm i { margin-right:.2rem!important; }
+
+    table.table { font-size:.8rem; margin-bottom:0; }
+    table.table th, table.table td { padding:.32rem .38rem; }
+    .badge-old, .badge-karat, .badge-pure { font-size:.74rem; padding:.32em .52em; }
+
+    /* summary ledger */
+    .ledger td { padding:.38rem .6rem; font-size:.8rem; }
+    .l-label { font-size:.76rem; }
+    .l-rate { font-size:.66rem; }
+    .l-val { font-size:.85rem; }
+    .l-final .l-val { font-size:.92rem; }
+
+    /* hide note card on mobile to keep everything on one screen */
+    .card.note-card { display:none!important; }
+
+    /* tighten vertical rhythm so header+customer+items+summary fit one screen */
+    .exchange-header, .detail-card-wrap, .card { flex:0 0 auto; }
+    .card:last-of-type { margin-bottom:0!important; }
+
+    /* edit modal item cards — same compaction pattern as gold_exchange.php */
+    .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:8px; }
+    .edit-item-badge { top:-9px; left:12px; font-size:.65rem; padding:.08rem .5rem; }
+    .edit-item-card .form-control-sm { font-size:.82rem; padding:.28rem .4rem; }
+    .item-fields-row { gap:.4rem; }
+    .item-pure-preview { padding:.35rem .6rem; font-size:.76rem; margin-top:.5rem!important; }
 }
 </style>
 </head>
@@ -406,14 +512,19 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <!-- ================================================================
      CUSTOMER + DETAIL — two-column layout
 ================================================================ -->
-<div class="detail-card mb-4">
+<div class="card shadow-sm mb-4 detail-card-wrap">
+    <div class="card-header bg-white fw-semibold d-md-none">
+        <i class="bi bi-person-fill me-1" style="color:var(--fb-green);"></i>
+        Customer
+    </div>
+    <div class="detail-card">
     <div class="row g-0">
 
         <!-- Left: customer info -->
         <div class="col-md-7 pe-md-4">
             <div class="row g-2">
                 <div class="col-12">
-                    <span class="detail-label">Customer Name:</span>
+                    <span class="detail-label">Name:</span>
                     <span class="detail-val ms-1"><?= h($ex['customer_name']) ?></span>
                 </div>
                 <div class="col-12">
@@ -451,7 +562,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                 </div>
                 <?php if ($ex['updated_at'] && $ex['updated_at'] !== $ex['created_at']): ?>
                 <div class="col-12">
-                    <span class="detail-label">Last Updated:</span>
+                    <span class="detail-label">Modified At:</span>
                     <span class="ms-1" style="font-size:.88rem;color:#888;">
                         <?= h(fmt_dt($ex['updated_at'])) ?>
                     </span>
@@ -461,7 +572,8 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         </div>
 
     </div>
-</div>
+    </div><!-- /detail-card -->
+</div><!-- /detail-card-wrap -->
 
 <!-- ================================================================
      GOLD ITEMS TABLE
@@ -548,7 +660,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <!-- ================================================================
      NOTE
 ================================================================ -->
-<div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4 note-card">
     <div class="card-header bg-white fw-semibold">
         <i class="bi bi-pencil-square me-1" style="color:var(--fb-green);"></i>
         Note / Remarks
@@ -621,58 +733,53 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                             <input type="hidden"
                                    name="items[<?= $idx ?>][id]"
                                    value="<?= (int)$it['id'] ?>">
-                            <div class="row g-2 mt-1 align-items-end">
-                                <div class="col-6 col-sm-4 col-md-2">
-                                    <label class="form-label small mb-1">Vori</label>
+                            <div class="item-fields-row mt-2">
+                                <div class="field-col">
+                                    <label>Vori</label>
                                     <input type="number"
                                            name="items[<?= $idx ?>][vori]"
                                            class="form-control form-control-sm"
-                                           min="0" step="1"
+                                           min="0" step="1" inputmode="numeric"
                                            value="<?= $trad['v'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                                <div class="col-6 col-sm-4 col-md-2">
-                                    <label class="form-label small mb-1">
-                                        Ana <small class="text-muted">0–15</small>
-                                    </label>
+                                <div class="field-col">
+                                    <label>Ana</label>
                                     <input type="number"
                                            name="items[<?= $idx ?>][ana]"
                                            class="form-control form-control-sm"
-                                           min="0" max="15" step="1"
+                                           min="0" max="15" step="1" inputmode="numeric"
                                            value="<?= $trad['a'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                                <div class="col-6 col-sm-4 col-md-2">
-                                    <label class="form-label small mb-1">
-                                        Roti <small class="text-muted">0–5</small>
-                                    </label>
+                                <div class="field-col">
+                                    <label>Roti</label>
                                     <input type="number"
                                            name="items[<?= $idx ?>][roti]"
                                            class="form-control form-control-sm"
-                                           min="0" max="5" step="1"
+                                           min="0" max="5" step="1" inputmode="numeric"
                                            value="<?= $trad['r'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                                <div class="col-6 col-sm-4 col-md-2">
-                                    <label class="form-label small mb-1">
-                                        Point <small class="text-muted">0–9</small>
-                                    </label>
+                                <div class="field-col">
+                                    <label>Point</label>
                                     <input type="number"
                                            name="items[<?= $idx ?>][point]"
                                            class="form-control form-control-sm"
-                                           min="0" max="9" step="1"
+                                           min="0" max="9" step="1" inputmode="numeric"
                                            value="<?= $trad['p'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                                <div class="col-6 col-sm-4 col-md-2">
-                                    <label class="form-label small mb-1">Karat</label>
-                                    <input type="number"
-                                           name="items[<?= $idx ?>][karat]"
-                                           class="form-control form-control-sm"
-                                           min="0.01" max="24" step="0.01"
-                                           value="<?= h($karat) ?>"
-                                           oninput="recalcItem(<?= $idx ?>)">
-                                </div>
+                            </div>
+                            <div class="karat-row">
+                                <label>Karat</label>
+                                <input type="number"
+                                       name="items[<?= $idx ?>][karat]"
+                                       class="form-control form-control-sm"
+                                       min="0.01" max="24" step="0.01"
+                                       placeholder="e.g. 19.00"
+                                       value="<?= h($karat) ?>"
+                                       oninput="recalcItem(<?= $idx ?>)">
                             </div>
                             <div class="item-pure-preview" id="itemPreview_<?= $idx ?>">
                                 Pure Gold: <?= h(fmt_trad((float)$it['pure_gold_weight'])) ?>
@@ -748,7 +855,7 @@ function tradToGrams(v,a,r,p){
 }
 function fmtTrad(g) {
     const t = gramsToTrad(g);
-    return `${t.v} Vori ${t.a} Ana ${t.r} Roti ${t.p} Point`;
+    return `${t.v} V ${t.a} A ${t.r} R ${t.p} P`;
 }
 
 function getItemInputs(idx) {
@@ -782,7 +889,7 @@ function recalcSummary() {
     const finalPure      = Math.max(0, totalPure - lossGrams);
 
     document.getElementById('previewTotal').textContent    = fmtTrad(totalPure);
-    document.getElementById('previewLossRate').textContent = `(${lossPointsCeil} Point @ ${lossRate} Pt/Vori)`;
+    document.getElementById('previewLossRate').textContent = `(${lossPointsCeil} Point @ ${lossRate} Pt/V=)`;
     document.getElementById('previewLoss').textContent     = fmtTrad(lossGrams);
     document.getElementById('previewFinal').textContent    = fmtTrad(finalPure);
 }

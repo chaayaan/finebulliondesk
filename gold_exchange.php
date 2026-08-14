@@ -398,6 +398,92 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     font-weight: 600;
 }
 .btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
+
+/* ---------------------------------------------------------------
+   Item fields — Vori / Ana / Roti / Point always in ONE row
+   (4 equal columns), Karat as its own full-width row underneath.
+   This mirrors the compact mobile layout regardless of card width.
+--------------------------------------------------------------- */
+.item-fields-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+.item-fields-row .field-col label {
+    display: block;
+    font-size: 0.72rem;
+    margin-bottom: 0.15rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+.item-fields-row .field-col input {
+    text-align: center;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+/* Remove Bootstrap's built-in valid/invalid checkmark & X icons on weight inputs */
+.item-fields-row input.form-control.is-valid,
+.item-fields-row input.form-control.is-invalid,
+.karat-row input.form-control.is-valid,
+.karat-row input.form-control.is-invalid {
+    background-image: none !important;
+    padding-right: 0.25rem !important;
+}
+.karat-row {
+    margin-top: 0.6rem;
+}
+.karat-row label {
+    display: block;
+    font-size: 0.72rem;
+    margin-bottom: 0.15rem;
+    color: #6c757d;
+}
+
+/* ---------------------------------------------------------------
+   Mobile compaction — keep the whole form (header, customer,
+   one gold item, summary, save button) visible without scrolling
+   on a typical phone viewport for a single item.
+--------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+
+    .exchange-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
+    .exchange-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
+    .exchange-header small { font-size: 0.7rem; }
+    .exchange-header .btn { padding: 0.2rem 0.5rem; font-size: 0.72rem; }
+
+    .row.g-4 { --bs-gutter-y: 0.6rem; }
+
+    .card { margin-bottom: 0.6rem !important; border-radius: 8px; }
+    .card-header { padding: 0.45rem 0.75rem; font-size: 0.82rem; }
+    .card-body { padding: 0.6rem 0.75rem; }
+
+    #customerSearch { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
+    .selected-customer-card { padding: 0.5rem 0.7rem; }
+
+    .gold-item-card { padding: 0.75rem 0.75rem 0.6rem; margin-bottom: 0; border-radius: 8px; }
+    .gold-item-card .item-index { top: -9px; left: 12px; font-size: 0.65rem; padding: 0.08rem 0.5rem; }
+    .gold-item-card .btn-remove-item { top: 6px; right: 6px; padding: 0.15rem 0.4rem; }
+    .gold-item-card .form-control-sm { font-size: 0.82rem; padding: 0.28rem 0.4rem; }
+    .item-fields-row { gap: 0.4rem; }
+    .item-pure-result { padding: 0.35rem 0.6rem; font-size: 0.76rem; margin-top: 0.5rem !important; }
+
+    #note { min-height: 44px; }
+
+    .summary-card { padding: 0.75rem 0.9rem; border-radius: 10px; }
+    .summary-card h6 { font-size: 0.72rem; margin-bottom: 0.5rem !important; }
+    .summary-row { padding: 0.3rem 0; }
+    .summary-row .label { font-size: 0.75rem; }
+    .summary-row .value { font-size: 0.88rem; }
+    .summary-row.final .value { font-size: 1.05rem; }
+    .summary-row .sub { font-size: 0.68rem; }
+    .loss-rate-input { width: 55px !important; padding: 0.2rem 0.35rem; }
+
+    #btnSave { padding: 0.5rem; font-size: 0.9rem; margin-top: 0.6rem !important; }
+
+    /* Note / Remarks is skipped entirely on mobile */
+    #noteCard { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -409,10 +495,14 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
     <div class="exchange-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-            <h4 class="mb-1"><i class="bi bi-arrow-left-right me-2"></i>New Gold Exchange</h4>
-            <small>Convert old / impure gold into pure gold for a customer</small>
+            <h4 class="mb-1">
+                <i class="bi bi-arrow-left-right me-2 d-none d-md-inline"></i>
+                <span class="d-none d-md-inline">New Gold Exchange</span>
+                <span class="d-md-none">Gold Exchange</span>
+            </h4>
+            <small class="d-none d-md-inline">Convert old / impure gold into pure gold for a customer</small>
         </div>
-        <a href="gold_exchange_list.php" class="btn btn-outline-light btn-sm">
+        <a href="gold_exchange_list.php" class="btn btn-outline-light btn-sm d-none d-md-inline-flex align-items-center">
             <i class="bi bi-list-ul me-1"></i> Exchange History
         </a>
     </div>
@@ -460,7 +550,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 </div>
 
                 <!-- Note -->
-                <div class="card shadow-sm mb-4">
+                <div class="card shadow-sm mb-4" id="noteCard">
                     <div class="card-header bg-white fw-semibold">
                         <i class="bi bi-pencil-square me-1"></i> Note / Remarks
                     </div>
@@ -520,32 +610,32 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-remove>
             <i class="bi bi-trash3"></i>
         </button>
-        <div class="row g-2 mt-1">
-            <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Vori <small class="text-muted">(≥0)</small></label>
+        <div class="item-fields-row mt-2">
+            <div class="field-col">
+                <label>Vori</label>
                 <input type="number" min="0" step="1" class="form-control form-control-sm" data-field="vori" value="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="vori"></div>
             </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Ana <small class="text-muted">(0–15)</small></label>
+            <div class="field-col">
+                <label>Ana</label>
                 <input type="number" min="0" max="15" step="1" class="form-control form-control-sm" data-field="ana" value="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="ana"></div>
             </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Roti <small class="text-muted">(0–5)</small></label>
+            <div class="field-col">
+                <label>Roti</label>
                 <input type="number" min="0" max="5" step="1" class="form-control form-control-sm" data-field="roti" value="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="roti"></div>
             </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Point <small class="text-muted">(0–9)</small></label>
+            <div class="field-col">
+                <label>Point</label>
                 <input type="number" min="0" max="9" step="1" class="form-control form-control-sm" data-field="point" value="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="point"></div>
             </div>
-            <div class="col-6 col-md-3">
-                <label class="form-label small mb-1">Karat</label>
-                <input type="number" min="0.01" max="24" step="0.01" class="form-control form-control-sm" data-field="karat" value="22" placeholder="e.g. 19.00">
-                <div class="invalid-feedback" data-error="karat"></div>
-            </div>
+        </div>
+        <div class="karat-row">
+            <label>Karat</label>
+            <input type="number" min="0.01" max="24" step="0.01" class="form-control form-control-sm" data-field="karat" value="22" placeholder="e.g. 19.00">
+            <div class="invalid-feedback" data-error="karat"></div>
         </div>
         <div class="item-pure-result mt-2" data-pure-result>
             Pure Gold: 0 Vori 0 Ana 0 Roti 0 Point
@@ -834,8 +924,7 @@ function renderItem(card) {
     const oldTrad   = { vori: v.vori, ana: v.ana, roti: v.roti, point: v.point };
 
     card.querySelector('[data-pure-result]').innerHTML =
-        `<span class="me-2">Weight: <strong>${formatTraditional(oldTrad)}</strong></span>`
-      + `<span>Pure Gold: <strong>${formatTraditional(pureTrad)}</strong></span>`;
+        `<span>Pure Gold: <strong>${formatTraditional(pureTrad)}</strong></span>`;
 }
 
 document.getElementById('btnAddItem').addEventListener('click', addItem);

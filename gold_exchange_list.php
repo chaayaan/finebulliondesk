@@ -144,6 +144,17 @@ if ($isAjax || $action !== null) {
 }
 body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
+/* ---- page header bar ---- */
+.list-header {
+    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+}
+.list-header h4 { color: #fff; }
+.list-header small { color: rgba(255,255,255,0.75); }
+
 /* ---- table weight badges ---- */
 .badge-pure  { background: #eaf5ee; color: var(--fb-green); font-weight: 600; font-size: 0.82rem; }
 .badge-loss  { background: #fdf1e0; color: #96660c;         font-weight: 600; font-size: 0.82rem; }
@@ -181,6 +192,57 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .ledger-final .ledger-label    { color: rgba(255,255,255,0.85); font-weight: 600; }
 .ledger-final .ledger-vorp     { color: #fff; font-size: 1.05rem; }
 .ledger-final .ledger-rate     { color: rgba(255,255,255,0.6); }
+
+/* ---------------------------------------------------------------
+   Mobile "Exchange Gold Info" combined cell (Total / Loss / Final
+   stacked as label–value rows), shown instead of the separate
+   Total / Loss / Final / Date / By desktop columns.
+--------------------------------------------------------------- */
+.exchange-info-cell { min-width: 150px; }
+.exchange-info-cell .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    white-space: nowrap;
+}
+.exchange-info-cell .info-label { color: #6c757d; }
+.exchange-info-cell .info-value { font-weight: 600; color: #1a1a1a; }
+
+/* ---------------------------------------------------------------
+   Mobile compaction
+--------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+
+    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
+    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
+    .list-header h4 i { display: none; }
+    .list-header small { display: none; }
+    .list-header > a.btn {
+        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    }
+    .list-header > a.btn span { display: none; }
+
+    .card { border-radius: 8px; }
+    .card-header { padding: 0.5rem 0.6rem; }
+    .card-header .fw-semibold { font-size: 0.82rem; }
+    .card-header .input-group { max-width: 100% !important; width: 100%; }
+
+    table.table { font-size: 0.78rem; }
+    table.table th, table.table td { padding: 0.5rem 0.4rem; }
+
+    .badge-pure, .badge-loss, .badge-final { font-size: 0.7rem; }
+
+    .btn-actions { flex-direction: column; gap: 4px; }
+    .btn-actions .btn { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+
+    .card-footer { padding: 0.5rem 0.6rem; }
+    .card-footer small { font-size: 0.7rem; }
+    .pagination-sm .page-link { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+}
 </style>
 </head>
 <body>
@@ -190,13 +252,17 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <div class="page-content">
 <div class="container-fluid py-4">
 
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="list-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-            <h4 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Gold Exchange History</h4>
-            <small class="text-muted">FineBullion Desk</small>
+            <h4 class="mb-0">
+                <i class="bi bi-arrow-left-right me-2"></i>
+                <span class="d-none d-md-inline">Gold Exchange History</span>
+                <span class="d-md-none">Gold Exchange List</span>
+            </h4>
+            <small>FineBullion Desk</small>
         </div>
-        <a href="gold_exchange.php" class="btn btn-gold btn-sm">
-            <i class="bi bi-plus-lg me-1"></i> New Exchange
+        <a href="gold_exchange.php" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> <span>New Exchange</span>
         </a>
     </div>
 
@@ -216,16 +282,17 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                         <tr>
                             <th style="width:60px;">#</th>
                             <th>Customer</th>
-                            <th>Total Pure Gold</th>
-                            <th>Loss</th>
-                            <th>Final Pure Gold</th>
-                            <th style="width:130px;">Date</th>
-                            <th style="width:110px;">By</th>
-                            <th style="width:100px;" class="text-center">Actions</th>
+                            <th class="d-none d-md-table-cell">Total Pure Gold</th>
+                            <th class="d-none d-md-table-cell">Loss</th>
+                            <th class="d-none d-md-table-cell">Final Pure Gold</th>
+                            <th class="d-md-none">Exchange Gold Info</th>
+                            <th class="d-none d-md-table-cell" style="width:130px;">Date</th>
+                            <th class="d-none d-md-table-cell" style="width:110px;">By</th>
+                            <th style="width:100px;" class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        <tr><td colspan="8" class="text-center text-muted py-4">Loading…</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -304,7 +371,7 @@ function gramsToTraditional(grams) {
 /** Full long-form: "2 Vori 3 Ana 1 Roti 5 Point" */
 function fmtTrad(grams) {
     const t = gramsToTraditional(parseFloat(grams) || 0);
-    return `${t.vori} Vori ${t.ana} Ana ${t.roti} Roti ${t.point} Point`;
+    return `${t.vori} V ${t.ana} A ${t.roti} R ${t.point} P`;
 }
 
 /** Loss stored as grams → recover ceiled point count for display */
@@ -332,7 +399,7 @@ let searchTimer   = null;
 async function loadList(page = 1) {
     currentPage = page;
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>';
 
     try {
         const params = new URLSearchParams({ action: 'list', page, search: currentSearch });
@@ -342,25 +409,36 @@ async function loadList(page = 1) {
         const data = await res.json();
 
         if (!data.success) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">${escHtml(data.message || 'Failed to load.')}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">${escHtml(data.message || 'Failed to load.')}</td></tr>`;
             return;
         }
 
         if (data.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No exchanges found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No exchanges found.</td></tr>';
         } else {
-            tbody.innerHTML = data.data.map(row => `
+            tbody.innerHTML = data.data.map(row => {
+                const lossRate = row.loss_rate_points_per_vori !== undefined
+                                  ? parseFloat(row.loss_rate_points_per_vori) : 1;
+                return `
                 <tr>
-                    <td class="text-muted small">#${row.id}</td>
+                    <td class="text-muted small">
+                        <div>#${row.id}</div>
+                        <div class="d-md-none text-muted" style="font-size:0.68rem;">${fmtDate(row.created_at)}</div>
+                    </td>
                     <td>
                         <div class="fw-semibold">${escHtml(row.customer_name)}</div>
                         <small class="text-muted">${escHtml(row.customer_phone || '')}</small>
                     </td>
-                    <td><span class="badge badge-pure">${fmtTrad(row.total_pure_gold)}</span></td>
-                    <td><span class="badge badge-loss">${lossPoints(row.loss)} Point</span></td>
-                    <td><span class="badge badge-final">${fmtTrad(row.final_pure_gold)}</span></td>
-                    <td class="small">${fmtDate(row.created_at)}</td>
-                    <td class="small">${escHtml(row.created_by_username || '—')}</td>
+                    <td class="d-none d-md-table-cell"><span class="badge badge-pure">${fmtTrad(row.total_pure_gold)}</span></td>
+                    <td class="d-none d-md-table-cell"><span class="badge badge-loss">${lossPoints(row.loss)} Point</span></td>
+                    <td class="d-none d-md-table-cell"><span class="badge badge-final">${fmtTrad(row.final_pure_gold)}</span></td>
+                    <td class="d-md-none exchange-info-cell">
+                        <div class="info-row"><span class="info-label">Total Pure Gold</span><span class="info-value">${fmtTrad(row.total_pure_gold)}</span></div>
+                        <div class="info-row"><span class="info-label">Point ( ${lossRate}Pt/V)</span><span class="info-value">${lossPoints(row.loss)} P</span></div>
+                        <div class="info-row"><span class="info-label">Final Pure Gold</span><span class="info-value">${fmtTrad(row.final_pure_gold)}</span></div>
+                    </td>
+                    <td class="small d-none d-md-table-cell">${fmtDate(row.created_at)}</td>
+                    <td class="small d-none d-md-table-cell">${escHtml(row.created_by_username || '—')}</td>
                     <td>
                         <div class="btn-actions">
                             <button class="btn btn-sm btn-outline-secondary btn-view" title="Quick view" data-id="${row.id}">
@@ -372,7 +450,8 @@ async function loadList(page = 1) {
                         </div>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         document.getElementById('paginationInfo').textContent =

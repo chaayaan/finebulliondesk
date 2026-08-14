@@ -257,6 +257,28 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .chart-legend .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:5px; }
 .chart-wrap { position: relative; height: 260px; }
 
+/* ---- total summary cards after graph ---- */
+.summary-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #eef0f3;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+.summary-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
 /* ---- total strip ---- */
 .total-strip {
     background: #eaf5ee;
@@ -338,6 +360,12 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     .chart-wrap { height: 220px; }
     .chart-legend { font-size: 0.75rem; gap: 0.75rem; }
 
+    /* Summary cards mobile adjustment */
+    .summary-card { padding: 0.65rem 0.75rem; }
+    .summary-card span.text-muted { font-size: 0.68rem !important; }
+    .summary-card h3 { font-size: 1.15rem !important; }
+    .summary-card-icon { width: 34px; height: 34px; font-size: 1rem; }
+
     .card { border-radius: 10px; }
     .filter-bar { padding: 0.6rem 0.7rem; gap: 0.5rem; }
     .filter-bar .filter-field { flex: 1 1 45%; }
@@ -389,6 +417,32 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
         <div class="chart-wrap">
             <canvas id="expenseChart"></canvas>
+        </div>
+    </div>
+
+    <!-- SUMMARY CARDS AFTER GRAPH (SIDE-BY-SIDE ON ALL SCREENS INCL. MOBILE) -->
+    <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6">
+            <div class="summary-card">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Total Transaction</span>
+                    <h3 class="mb-0 fw-bold text-dark" id="summaryTotalCount">0</h3>
+                </div>
+                <div class="summary-card-icon bg-light text-primary">
+                    <i class="bi bi-receipt"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="summary-card">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Total Expenses</span>
+                    <h3 class="mb-0 fw-bold text-success" id="summaryTotalSum">৳0</h3>
+                </div>
+                <div class="summary-card-icon bg-light text-success">
+                    <i class="bi bi-wallet-fill"></i>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -686,8 +740,16 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                     mobileList.innerHTML = '<div class="text-center py-4 text-danger">Failed to load.</div>';
                     return;
                 }
+                // Update table total strip
                 document.getElementById('totalCount').textContent = res.totalRows;
                 document.getElementById('totalSum').textContent   = fmtAmount(res.sumAmount);
+
+                // Update summary cards after the graph
+                const summaryCount = document.getElementById('summaryTotalCount');
+                const summarySum   = document.getElementById('summaryTotalSum');
+                if (summaryCount) summaryCount.textContent = res.totalRows;
+                if (summarySum)   summarySum.textContent   = fmtAmount(res.sumAmount);
+
                 // keep filter inputs synced with server-resolved defaults
                 document.getElementById('filterFrom').value = res.from;
                 document.getElementById('filterTo').value   = res.to;

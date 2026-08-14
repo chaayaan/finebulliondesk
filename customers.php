@@ -84,7 +84,7 @@ if ($isAjax || $action !== null) {
         ]);
     }
 
-    // ---- GET single ----------------------------------------------------
+    // ---- GET single ------------------------------------------------------
     if ($action === 'get' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) json_out(['success' => false, 'message' => 'Invalid ID.'], 400);
@@ -103,7 +103,7 @@ if ($isAjax || $action !== null) {
         json_out(['success' => true, 'data' => $row]);
     }
 
-    // ---- SAVE (add or update) ------------------------------------------
+    // ---- SAVE (add or update) --------------------------------------------
     if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $id      = (int)($_POST['id'] ?? 0);
         $name    = trim($_POST['name'] ?? '');
@@ -167,10 +167,120 @@ if ($isAjax || $action !== null) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
+:root {
+    --fb-green: #0B412A;
+    --fb-gold:  #DCAD41;
+}
 body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+
+/* ---- page header bar ---- */
+.list-header {
+    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+}
+.list-header h4 { color: #fff; }
+.list-header small { color: rgba(255,255,255,0.75); }
+
+/* ---- gold accent button (matches gold_exchange list) ---- */
+.btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
+.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
+
+/* ---- total count strip ---- */
+.total-strip {
+    background: #eaf5ee;
+    color: var(--fb-green);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid #e1ece5;
+}
+
+/* ---- customer avatar ---- */
+.customer-avatar {
+    width: 44px; height: 44px; object-fit: cover; border-radius: 50%;
+    border: 2px solid #eaf5ee; flex-shrink: 0;
+}
+.view-photo { width: 130px; height: 130px; object-fit: cover; border-radius: 10px; border: 1px solid #dee2e6; }
+.photo-preview { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; }
+
+/* ---- customer list row (card-like, image-1 style) ---- */
+.customer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #eef0f3;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.12s ease;
+}
+.customer-row:last-child { border-bottom: none; }
+.customer-row:hover { background: #f8faf9; }
+
+.customer-row .cr-info { flex: 1; min-width: 0; }
+.customer-row .cr-name { font-weight: 600; font-size: 0.92rem; color: #1a1a1a; margin-bottom: 1px; }
+.customer-row .cr-phone { font-size: 0.8rem; color: #6c757d; }
+.customer-row .cr-address { font-size: 0.78rem; color: #8a8f98; }
+
+.customer-row .cr-meta { text-align: right; flex-shrink: 0; }
+.customer-row .cr-date { font-size: 0.72rem; color: #9aa0a6; white-space: nowrap; }
+
+.cr-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.cr-actions .btn {
+    width: 32px; height: 32px; padding: 0; display: inline-flex;
+    align-items: center; justify-content: center; border-radius: 7px; font-size: 0.85rem;
+}
+
+/* ---- desktop table (kept for md+ screens) ---- */
 .customer-photo-thumb { width:42px; height:42px; object-fit:cover; border-radius:50%; border:1px solid #dee2e6; }
-.photo-preview { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6; }
-.view-photo    { width:150px; height:150px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6; }
+
+/* ---- search bar ---- */
+.search-wrap .input-group-text { background: #fff; border-right: 0; }
+.search-wrap .form-control { border-left: 0; }
+.search-wrap .form-control:focus { box-shadow: none; border-color: #ced4da; }
+
+/* ---- modal form styling ---- */
+.modal-header.fb-modal-header { background: var(--fb-green); color: #fff; }
+.modal-header.fb-modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+.form-label .text-danger { font-weight: 700; }
+.form-control:focus { border-color: var(--fb-gold); box-shadow: 0 0 0 0.2rem rgba(220,173,65,0.18); }
+
+/* ---------------------------------------------------------------
+   Mobile compaction
+--------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+
+    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
+    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
+    .list-header h4 i { display: none; }
+    .list-header small { display: none; }
+    .list-header > button.btn {
+        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    }
+    .list-header > button.btn span { display: none; }
+
+    .card { border-radius: 10px; }
+    .card-header { padding: 0.5rem 0.6rem; }
+    .card-header .fw-semibold { font-size: 0.82rem; }
+    .card-header .input-group { max-width: 100% !important; width: 100%; }
+
+    .total-strip { font-size: 0.78rem; padding: 0.45rem 0.85rem; }
+
+    .customer-row { padding: 0.6rem 0.75rem; gap: 0.6rem; }
+    .customer-avatar { width: 40px; height: 40px; }
+    .customer-row .cr-name { font-size: 0.86rem; }
+    .customer-row .cr-phone, .customer-row .cr-address { font-size: 0.74rem; }
+    .cr-actions .btn { width: 28px; height: 28px; font-size: 0.75rem; }
+
+    .card-footer { padding: 0.5rem 0.6rem; }
+    .card-footer small { font-size: 0.7rem; }
+    .pagination-sm .page-link { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+}
 </style>
 </head>
 <body>
@@ -179,32 +289,54 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
 <div class="page-content">
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+
+    <div class="list-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
-            <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i>Customer Management</h4>
-            <small class="text-muted">FineBullion Desk</small>
+            <h4 class="mb-0">
+                <i class="bi bi-people-fill me-2"></i>
+                <span class="d-none d-md-inline">Customer Management</span>
+                <span class="d-md-none">Customer</span>
+            </h4>
+            <small>FineBullion Desk</small>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-none d-md-flex gap-2">
             <?php if (is_admin()): ?>
-            <a href="users.php" class="btn btn-outline-secondary btn-sm"><i class="bi bi-person-gear me-1"></i>Users</a>
+            <a href="users.php" class="btn btn-outline-light btn-sm"><i class="bi bi-person-gear me-1"></i>Users</a>
             <?php endif; ?>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomer">
-                <i class="bi bi-person-plus-fill me-1"></i> Add Customer
+            <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomer">
+                <i class="bi bi-plus-lg me-1"></i> Add Customer
             </button>
         </div>
+        <button type="button" class="btn btn-gold btn-sm d-md-none" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomerMobile">
+            <i class="bi bi-plus-lg"></i> <span>Add Customer</span>
+        </button>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Customer List</span>
-            <div class="input-group" style="max-width:300px;">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" id="searchInput" class="form-control" placeholder="Search name, phone, NID…">
+            <div class="input-group search-wrap" style="max-width:300px;">
+                <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by name or phone">
                 <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
         </div>
+
+        <div class="total-strip">
+            Total : <span id="totalCount">0</span> customer
+        </div>
+
         <div class="card-body p-0">
-            <div class="table-responsive">
+
+            <!-- ============ MOBILE LIST (card rows) ============ -->
+            <div id="customerListMobile" class="d-md-none">
+                <div class="text-center py-4 text-muted">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Loading…
+                </div>
+            </div>
+
+            <!-- ============ DESKTOP TABLE ============ -->
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -223,6 +355,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                     </tbody>
                 </table>
             </div>
+
         </div>
         <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <small class="text-muted" id="paginationInfo">&nbsp;</small>
@@ -237,7 +370,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <form id="customerForm" enctype="multipart/form-data">
-        <div class="modal-header">
+        <div class="modal-header fb-modal-header">
           <h5 class="modal-title" id="customerModalLabel"><i class="bi bi-person-plus-fill me-1"></i> Add Customer</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
@@ -246,44 +379,44 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
           <input type="hidden" name="action" value="save">
           <input type="hidden" name="id" id="customerId" value="0">
           <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-12">
               <label class="form-label">Name <span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="name" name="name" maxlength="150">
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label class="form-label">Phone <span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="phone" name="phone" maxlength="20">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Address <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="address" name="address" maxlength="255">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nid</label>
+              <input type="text" class="form-control" id="nid" name="nid" maxlength="30">
             </div>
             <div class="col-md-6">
               <label class="form-label">Email</label>
               <input type="email" class="form-control" id="email" name="email" maxlength="150">
             </div>
-            <div class="col-md-6">
-              <label class="form-label">NID</label>
-              <input type="text" class="form-control" id="nid" name="nid" maxlength="30">
-            </div>
-            <div class="col-12">
-              <label class="form-label">Address</label>
-              <input type="text" class="form-control" id="address" name="address" maxlength="255">
-            </div>
             <div class="col-12">
               <label class="form-label">Note</label>
-              <textarea class="form-control" id="note" name="note" rows="3"></textarea>
+              <textarea class="form-control" id="note" name="note" rows="2"></textarea>
             </div>
-            <div class="col-md-8">
+            <div class="col-12">
               <label class="form-label">Photo</label>
-              <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
-            </div>
-            <div class="col-md-4 d-flex align-items-end">
-              <img id="photoPreview" src="" alt="Preview" class="photo-preview d-none">
+              <div class="d-flex align-items-center gap-3">
+                <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                <img id="photoPreview" src="" alt="Preview" class="photo-preview d-none">
+              </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="saveCustomerBtn">
+          <button type="submit" class="btn btn-gold" id="saveCustomerBtn">
             <span class="spinner-border spinner-border-sm d-none me-1" id="saveSpinner"></span>
-            <i class="bi bi-check-lg me-1"></i> Save Customer
+            <i class="bi bi-check-lg me-1"></i> Add Customer
           </button>
         </div>
       </form>
@@ -295,7 +428,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <div class="modal fade" id="viewCustomerModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header fb-modal-header">
         <h5 class="modal-title"><i class="bi bi-person-lines-fill me-1"></i> Customer Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
@@ -322,7 +455,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" id="editFromViewBtn"><i class="bi bi-pencil-fill me-1"></i> Edit</button>
+        <button type="button" class="btn btn-gold" id="editFromViewBtn"><i class="bi bi-pencil-fill me-1"></i> Edit</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -366,9 +499,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     function avatarSvg() {
         return 'data:image/svg+xml;utf8,' + encodeURIComponent(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-            '<circle cx="12" cy="12" r="12" fill="%23e9ecef"/>' +
-            '<circle cx="12" cy="9" r="4" fill="%23adb5bd"/>' +
-            '<path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="%23adb5bd"/></svg>'
+            '<circle cx="12" cy="12" r="12" fill="%23eaf5ee"/>' +
+            '<circle cx="12" cy="9" r="4" fill="%230B412A" fill-opacity="0.55"/>' +
+            '<path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="%230B412A" fill-opacity="0.55"/></svg>'
         );
     }
 
@@ -383,7 +516,10 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     // ── Load list ──────────────────────────────────────────────────────
     function loadCustomers(page) {
         state.page = page || 1;
+
+        const mobileList = document.getElementById('customerListMobile');
         const tbody = document.getElementById('customersTableBody');
+        mobileList.innerHTML = '<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>';
         tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">' +
             '<span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>';
 
@@ -391,13 +527,23 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         fetch('customers.php?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.json())
             .then(res => {
-                if (!res.success) { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load.</td></tr>'; return; }
+                if (!res.success) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load.</td></tr>';
+                    mobileList.innerHTML = '<div class="text-center py-4 text-danger">Failed to load.</div>';
+                    return;
+                }
+                document.getElementById('totalCount').textContent = res.totalRows;
                 renderTable(res.data);
+                renderMobileList(res.data);
                 renderPagination(res.page, res.totalPages, res.totalRows, res.data.length);
             })
-            .catch(() => { tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Network error.</td></tr>'; });
+            .catch(() => {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Network error.</td></tr>';
+                mobileList.innerHTML = '<div class="text-center py-4 text-danger">Network error.</div>';
+            });
     }
 
+    // ── Desktop table ─────────────────────────────────────────────────
     function renderTable(rows) {
         const tbody = document.getElementById('customersTableBody');
         if (!rows || !rows.length) {
@@ -418,6 +564,31 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                     <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
                 </td>
             </tr>`).join('');
+    }
+
+    // ── Mobile card-row list (image-1 style) ────────────────────────────
+    function renderMobileList(rows) {
+        const wrap = document.getElementById('customerListMobile');
+        if (!rows || !rows.length) {
+            wrap.innerHTML = '<div class="text-center py-4 text-muted">No customers found.</div>';
+            return;
+        }
+        wrap.innerHTML = rows.map(c => `
+            <div class="customer-row">
+                <img src="${esc(photoUrl(c.photo_path))}" class="customer-avatar" alt="">
+                <div class="cr-info">
+                    <div class="cr-name">${esc(c.name)}</div>
+                    <div class="cr-phone">${esc(c.phone)}</div>
+                    ${c.address ? `<div class="cr-address">${esc(c.address)}</div>` : ''}
+                </div>
+                <div class="cr-meta">
+                    <div class="cr-date mb-1">${esc(fmtDate(c.created_at))}</div>
+                    <div class="cr-actions">
+                        <button class="btn btn-outline-secondary btn-view" data-id="${c.id}" title="View"><i class="bi bi-eye-fill"></i></button>
+                        <button class="btn btn-outline-primary btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                    </div>
+                </div>
+            </div>`).join('');
     }
 
     function renderPagination(page, totalPages, totalRows, onPage) {
@@ -463,9 +634,12 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         document.getElementById('photoPreview').classList.add('d-none');
         document.getElementById('photoPreview').src = '';
         document.getElementById('customerModalLabel').innerHTML = '<i class="bi bi-person-plus-fill me-1"></i> Add Customer';
+        document.getElementById('saveCustomerBtn').innerHTML =
+            '<span class="spinner-border spinner-border-sm d-none me-1" id="saveSpinner"></span><i class="bi bi-check-lg me-1"></i> Add Customer';
     }
 
     document.getElementById('btnAddCustomer').addEventListener('click', resetForm);
+    document.getElementById('btnAddCustomerMobile').addEventListener('click', resetForm);
 
     document.getElementById('photo').addEventListener('change', function () {
         const file = this.files && this.files[0];
@@ -486,6 +660,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 resetForm();
                 const c = res.data;
                 document.getElementById('customerModalLabel').innerHTML = '<i class="bi bi-pencil-fill me-1"></i> Edit Customer';
+                document.getElementById('saveCustomerBtn').innerHTML =
+                    '<span class="spinner-border spinner-border-sm d-none me-1" id="saveSpinner"></span><i class="bi bi-check-lg me-1"></i> Save Customer';
                 document.getElementById('customerId').value        = c.id;
                 document.getElementById('name').value             = c.name || '';
                 document.getElementById('phone').value            = c.phone || '';
@@ -530,12 +706,15 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         setTimeout(() => openEdit(viewedId), 200);
     });
 
-    document.getElementById('customersTableBody').addEventListener('click', e => {
+    // Delegate clicks for both desktop table and mobile list
+    function handleListClick(e) {
         const vBtn = e.target.closest('.btn-view');
         const eBtn = e.target.closest('.btn-edit');
         if (vBtn) openView(vBtn.dataset.id);
         if (eBtn) openEdit(eBtn.dataset.id);
-    });
+    }
+    document.getElementById('customersTableBody').addEventListener('click', handleListClick);
+    document.getElementById('customerListMobile').addEventListener('click', handleListClick);
 
     // ── Save submit ────────────────────────────────────────────────────
     document.getElementById('customerForm').addEventListener('submit', function (e) {
@@ -570,8 +749,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         })
         .finally(() => {
             saveBtn.disabled = false;
-            spinner.classList.add('d-none');
-            label.classList.remove('d-none');
+            document.getElementById('saveSpinner').classList.add('d-none');
         });
     });
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * login.php
+ * index.php
  * FineBullion Desk — Authentication page
  *
  * NOTE: This page does NOT include auth.php (auth.php requires login and
@@ -228,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="login.php" id="loginForm" novalidate>
+    <form method="POST" action="index.php" id="loginForm" novalidate>
 
         <div class="mb-3">
             <label for="username" class="form-label">Username</label>

@@ -69,7 +69,7 @@ function auth_deny(string $message, int $status = 401): void
         echo json_encode(['success' => false, 'message' => $message]);
         exit;
     }
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 

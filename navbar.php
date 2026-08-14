@@ -2,24 +2,8 @@
 /**
  * navbar.php
  * FineBullion Desk — Shared sidebar navigation
- *
- * Include this at the top of every protected page, AFTER session_start()
- * and config.php have already run, e.g.:
- *
- *   <?php
- *   session_start();
- *   require_once __DIR__ . '/config.php';
- *   if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
- *   require_once __DIR__ . '/navbar.php';
- *   ?>
- *   <!DOCTYPE html> ... rest of the page, wrapping content in .page-content
- *
- * This file only outputs the <aside> sidebar + mobile topbar markup and its
- * own <style>/<script>. It does not open <html>/<body> — the host page does.
  */
 
-// Fetch the current user's display info (name / role / photo) if not
-// already loaded by the host page. Fails quietly to session-only data.
 if (!isset($navUser)) {
     $navUser = [
         'username'   => $_SESSION['username'] ?? 'User',
@@ -44,15 +28,9 @@ if (!isset($navUser)) {
 
 $navCurrentPage = basename($_SERVER['SCRIPT_NAME']);
 
-$navLinks = [
-    ['href' => 'dashboard.php',       'icon' => 'bi-grid-1x2-fill',   'label' => 'Dashboard'],
-    ['href' => 'customers.php',       'icon' => 'bi-person-fill',     'label' => 'Customer'],
-    ['href' => 'gold_exchange.php',        'icon' => 'bi-arrow-left-right','label' => 'Exchange'],
-    ['href' => 'sale.php',            'icon' => 'bi-cash-coin',       'label' => 'Sale'],
-    ['href' => 'buy.php',             'icon' => 'bi-cart-fill',       'label' => 'Buy'],
-    ['href' => 'expenses.php',        'icon' => 'bi-wallet2',         'label' => 'Expenses'],
-    ['href' => 'users.php',           'icon' => 'bi-people-fill',     'label' => 'Users'],
-];
+// Array of exchange sub-items
+$exchangePages = ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php'];
+$isExchangeActive = in_array($navCurrentPage, $exchangePages);
 
 function nav_is_active(string $href, string $current): bool
 {
@@ -100,17 +78,13 @@ function nav_is_active(string $href, string $current): bool
         border-bottom: 1px solid var(--nav-border);
     }
 
-    .nav-brand-icon {
+    /* Logo Image Style */
+    .nav-brand-logo {
         width: 36px;
         height: 36px;
-        border-radius: 9px;
-        background: linear-gradient(135deg, var(--nav-gold-soft) 0%, var(--nav-gold) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.05rem;
-        color: #1a1a1a;
+        object-fit: contain;
         flex-shrink: 0;
+        border-radius: 6px;
     }
 
     .nav-brand-text {
@@ -157,6 +131,13 @@ function nav_is_active(string $href, string $current): bool
         border-left: 3px solid transparent;
         transition: background 0.15s, color 0.15s;
         white-space: nowrap;
+        cursor: pointer;
+        background: none;
+        border-top: none;
+        border-right: none;
+        border-bottom: none;
+        width: 100%;
+        text-align: left;
     }
 
     .nav-link-item i {
@@ -178,8 +159,36 @@ function nav_is_active(string $href, string $current): bool
         color: var(--nav-gold);
     }
 
-    .nav-link-item.active i {
-        color: var(--nav-gold);
+    /* Collapsible Submenu Styles */
+    .nav-dropdown-toggle {
+        justify-content: space-between;
+    }
+
+    .nav-dropdown-toggle .chevron-icon {
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+        margin-left: auto;
+    }
+
+    .nav-dropdown-toggle.open .chevron-icon {
+        transform: rotate(90deg);
+    }
+
+    .nav-sub-menu {
+        display: none;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding-left: 1.25rem;
+        margin-top: 0.15rem;
+    }
+
+    .nav-sub-menu.show {
+        display: flex;
+    }
+
+    .nav-sub-item {
+        font-size: 0.82rem;
+        padding: 0.5rem 0.75rem;
     }
 
     .nav-footer {
@@ -281,10 +290,9 @@ function nav_is_active(string $href, string $current): bool
         font-size: 0.95rem;
     }
 
-    .nav-topbar-brand .nav-brand-icon {
+    .nav-topbar-brand .nav-brand-logo {
         width: 28px;
         height: 28px;
-        font-size: 0.85rem;
     }
 
     .nav-toggle-btn {
@@ -339,7 +347,8 @@ function nav_is_active(string $href, string $current): bool
         <i class="bi bi-list"></i>
     </button>
     <div class="nav-topbar-brand">
-        <div class="nav-brand-icon"><i class="bi bi-gem"></i></div>
+        <!-- Replacing icon with logo image in topbar -->
+        <img src="assets/images/logo.png" alt="Logo" class="nav-brand-logo">
         <span>FineBullion Desk</span>
     </div>
 </div>
@@ -349,7 +358,8 @@ function nav_is_active(string $href, string $current): bool
 <aside class="app-sidebar" id="appSidebar">
 
     <div class="nav-brand">
-        <div class="nav-brand-icon"><i class="bi bi-gem"></i></div>
+        <!-- Replacing icon with logo image in sidebar -->
+        <img src="fine bullion desk logo.png" alt="Logo" class="nav-brand-logo">
         <div class="nav-brand-text">
             <div class="nav-brand-name">FineBullion Desk</div>
             <div class="nav-brand-sub">Artisan Gold Trade &amp; Pure-Weight Ledger</div>
@@ -357,13 +367,61 @@ function nav_is_active(string $href, string $current): bool
     </div>
 
     <nav class="nav-links">
-        <?php foreach ($navLinks as $link): ?>
-            <a href="<?= htmlspecialchars($link['href']) ?>"
-               class="nav-link-item<?= nav_is_active($link['href'], $navCurrentPage) ? ' active' : '' ?>">
-                <i class="bi <?= htmlspecialchars($link['icon']) ?>"></i>
-                <span><?= htmlspecialchars($link['label']) ?></span>
-            </a>
-        <?php endforeach; ?>
+        <a href="dashboard.php" class="nav-link-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-grid-1x2-fill"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="customers.php" class="nav-link-item<?= nav_is_active('customers.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-person-fill"></i>
+            <span>Customer</span>
+        </a>
+
+        <!-- Collapsible Exchange Menu -->
+        <div class="nav-dropdown">
+            <button type="button" class="nav-link-item nav-dropdown-toggle<?= $isExchangeActive ? ' open' : '' ?>" id="exchangeToggle">
+                <div style="display:flex; align-items:center; gap:0.7rem;">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Exchange</span>
+                </div>
+                <i class="bi bi-chevron-right chevron-icon"></i>
+            </button>
+            <div class="nav-sub-menu<?= $isExchangeActive ? ' show' : '' ?>" id="exchangeSubMenu">
+                <a href="gold_exchange.php" class="nav-link-item nav-sub-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <span>Gold Exchange</span>
+                </a>
+                <a href="gold_exchange_list.php" class="nav-link-item nav-sub-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <span>Gold Exchange List</span>
+                </a>
+                
+                <!-- Shown strictly when user is currently on the edit page -->
+                <?php if ($navCurrentPage === 'gold_exchange_edit.php'): ?>
+                    <a href="gold_exchange_edit.php" class="nav-link-item nav-sub-item active">
+                        <span>Gold Exchange Edit</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <a href="sale.php" class="nav-link-item<?= nav_is_active('sale.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-cash-coin"></i>
+            <span>Sale</span>
+        </a>
+
+        <a href="buy.php" class="nav-link-item<?= nav_is_active('buy.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-cart-fill"></i>
+            <span>Buy</span>
+        </a>
+
+        <a href="expenses.php" class="nav-link-item<?= nav_is_active('expenses.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-wallet2"></i>
+            <span>Expenses</span>
+        </a>
+
+        <a href="users.php" class="nav-link-item<?= nav_is_active('users.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-people-fill"></i>
+            <span>Users</span>
+        </a>
     </nav>
 
     <div class="nav-footer">
@@ -407,9 +465,20 @@ function nav_is_active(string $href, string $current): bool
 
         backdrop.addEventListener('click', closeNav);
 
-        // Close drawer automatically if resized up to desktop width
         window.addEventListener('resize', function () {
             if (window.innerWidth > 991.98) closeNav();
         });
+
+        // Exchange Accordion Toggle
+        const exchangeToggle = document.getElementById('exchangeToggle');
+        const exchangeSubMenu = document.getElementById('exchangeSubMenu');
+
+        if (exchangeToggle && exchangeSubMenu) {
+            exchangeToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                exchangeToggle.classList.toggle('open');
+                exchangeSubMenu.classList.toggle('show');
+            });
+        }
     })();
 </script>

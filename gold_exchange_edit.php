@@ -1,0 +1,801 @@
+<?php
+/**
+ * gold_exchange_edit.php
+ * FineBullion Desk — Gold Exchange detail & edit
+ *
+ * Pure PHP + mysqli. No AJAX. Page-load renders everything.
+ * POST → PRG (Post/Redirect/Get) to prevent duplicate submit on refresh.
+ * Admin: edit existing items only (no add/remove).
+ */
+
+require_once __DIR__ . '/auth.php';
+
+// -----------------------------------------------------------------------
+// Conversion helpers
+// -----------------------------------------------------------------------
+define('G_VORI',  11.664);
+define('G_ANA',    0.729);
+define('G_ROTI',   0.1215);
+define('G_POINT',  0.01215);
+
+function grams_to_trad(float $g): array {
+    $g = max(0.0, $g);
+    $EPS = 1e-9;
+    $tv = $g / G_VORI;
+    $v  = (int) floor($tv + $EPS);
+    $ta = max(0.0, $tv - $v) * 16;
+    $a  = (int) floor($ta + $EPS);
+    $tr = max(0.0, $ta - $a) * 6;
+    $r  = (int) floor($tr + $EPS);
+    $p  = (int) round(max(0.0, $tr - $r) * 10);
+    if ($p >= 10) { $p -= 10; $r++; }
+    if ($r >= 6)  { $r -= 6;  $a++; }
+    if ($a >= 16) { $a -= 16; $v++; }
+    return ['v' => $v, 'a' => $a, 'r' => $r, 'p' => $p];
+}
+
+function fmt_trad(float $g): string {
+    $t = grams_to_trad($g);
+    return "{$t['v']} Vori {$t['a']} Ana {$t['r']} Roti {$t['p']} Point";
+}
+
+function trad_to_grams(int $v, int $a, int $r, int $p): float {
+    return ($v * G_VORI) + ($a * G_ANA) + ($r * G_ROTI) + ($p * G_POINT);
+}
+
+function loss_points(float $lossGrams): int {
+    return (int) round($lossGrams / G_POINT);
+}
+
+function fmt_dt(?string $s): string {
+    if (!$s) return '—';
+    return (new DateTime($s))->format('d M Y, g:i A');
+}
+
+function h(mixed $s): string {
+    return htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
+// -----------------------------------------------------------------------
+// Require valid ID
+// -----------------------------------------------------------------------
+$exchangeId = (int)($_GET['id'] ?? 0);
+if ($exchangeId <= 0) {
+    header('Location: gold_exchange_list.php');
+    exit;
+}
+
+$isAdmin = is_admin();
+
+// -----------------------------------------------------------------------
+// POST → process → PRG redirect (prevents duplicate on F5)
+// -----------------------------------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = trim($_POST['action'] ?? '');
+
+    // CSRF token check
+    $token = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+        $_SESSION['flash_error'] = 'Invalid request. Please try again.';
+        header("Location: gold_exchange_edit.php?id={$exchangeId}");
+        exit;
+    }
+
+    // ---- Save note (any logged-in user) ---------------------------------
+    if ($action === 'save_note') {
+        $note = trim($_POST['note'] ?? '') ?: null;
+        $stmt = mysqli_prepare($conn,
+            "UPDATE gold_exchanges SET note = ?, updated_at = NOW() WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, 'si', $note, $exchangeId);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        $_SESSION['flash_success'] = 'Note updated successfully.';
+        header("Location: gold_exchange_edit.php?id={$exchangeId}");
+        exit;
+    }
+
+    // ---- Save items (admin only) ----------------------------------------
+    if ($action === 'save_items' && $isAdmin) {
+        $rawItems = $_POST['items'] ?? [];
+        $lossRate = isset($_POST['loss_rate']) && $_POST['loss_rate'] !== ''
+                    ? max(0.0, (float)$_POST['loss_rate']) : 1.0;
+
+        $errors    = [];
+        $calcItems = [];
+        $totalPure = 0.0;
+
+        foreach ($rawItems as $i => $item) {
+            $n     = $i + 1;
+            $itemId = (int)($item['id'] ?? 0);
+
+            // Each submitted item must map to a real existing item for THIS exchange
+            if ($itemId <= 0) {
+                $errors[] = "Item $n: missing ID.";
+                continue;
+            }
+
+            $vori  = (int)($item['vori']  ?? 0);
+            $ana   = (int)($item['ana']   ?? 0);
+            $roti  = (int)($item['roti']  ?? 0);
+            $point = (int)($item['point'] ?? 0);
+            $karat = (float)($item['karat'] ?? 0);
+
+            if ($vori < 0)               $errors[] = "Item $n: Vori cannot be negative.";
+            if ($ana  < 0 || $ana  > 15) $errors[] = "Item $n: Ana must be 0–15.";
+            if ($roti < 0 || $roti > 5)  $errors[] = "Item $n: Roti must be 0–5.";
+            if ($point < 0 || $point > 9) $errors[] = "Item $n: Point must be 0–9.";
+            if ($karat < 0.01 || $karat > 24) $errors[] = "Item $n: Karat must be 0.01–24.";
+
+            $grams = trad_to_grams($vori, $ana, $roti, $point);
+            if ($grams <= 0) $errors[] = "Item $n: Weight must be greater than zero.";
+
+            $calcItems[] = [
+                'id'               => $itemId,
+                'old_gold_weight'  => $grams,
+                'old_gold_purity'  => ($karat / 24) * 100,
+                'pure_gold_weight' => $grams * ($karat / 24),
+            ];
+            $totalPure += $grams * ($karat / 24);
+        }
+
+        if (empty($calcItems) && empty($errors)) {
+            $errors[] = 'No items to save.';
+        }
+
+        if (empty($errors)) {
+            // Re-calculate summary
+            $lossPointsCeil = (int) ceil(($totalPure / G_VORI) * $lossRate);
+            $lossGrams      = $lossPointsCeil * G_POINT;
+            $finalPure      = max(0.0, $totalPure - $lossGrams);
+
+            mysqli_begin_transaction($conn);
+            try {
+                // Verify every submitted item ID actually belongs to this exchange
+                // before touching anything
+                $ids = array_column($calcItems, 'id');
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $chk = mysqli_prepare($conn,
+                    "SELECT COUNT(*) FROM gold_exchange_items
+                     WHERE gold_exchange_id = ? AND id IN ($placeholders)");
+                $bindTypes = 'i' . str_repeat('i', count($ids));
+                $bindArgs  = array_merge([$exchangeId], $ids);
+                mysqli_stmt_bind_param($chk, $bindTypes, ...$bindArgs);
+                mysqli_stmt_execute($chk);
+                mysqli_stmt_bind_result($chk, $matchCount);
+                mysqli_stmt_fetch($chk);
+                mysqli_stmt_close($chk);
+
+                if ((int)$matchCount !== count($ids)) {
+                    throw new \RuntimeException('Item ID mismatch — possible tamper attempt.');
+                }
+
+                // Update each item (UPDATE, not DELETE+INSERT → safe on duplicate submit)
+                $updItem = mysqli_prepare($conn,
+                    "UPDATE gold_exchange_items
+                     SET old_gold_weight = ?, old_gold_purity = ?, pure_gold_weight = ?
+                     WHERE id = ? AND gold_exchange_id = ?");
+
+                foreach ($calcItems as $ci) {
+                    mysqli_stmt_bind_param($updItem, 'dddii',
+                        $ci['old_gold_weight'],
+                        $ci['old_gold_purity'],
+                        $ci['pure_gold_weight'],
+                        $ci['id'],
+                        $exchangeId);
+                    mysqli_stmt_execute($updItem);
+                }
+                mysqli_stmt_close($updItem);
+
+                // Update exchange summary
+                $updEx = mysqli_prepare($conn,
+                    "UPDATE gold_exchanges
+                     SET total_pure_gold = ?, loss = ?, final_pure_gold = ?,
+                         loss_rate_points_per_vori = ?, updated_at = NOW()
+                     WHERE id = ?");
+                mysqli_stmt_bind_param($updEx, 'ddddi',
+                    $totalPure, $lossGrams, $finalPure, $lossRate, $exchangeId);
+                mysqli_stmt_execute($updEx);
+                mysqli_stmt_close($updEx);
+
+                mysqli_commit($conn);
+                $_SESSION['flash_success'] = 'Items updated successfully.';
+            } catch (\Throwable $e) {
+                mysqli_rollback($conn);
+                $_SESSION['flash_error'] = 'Failed to save: ' . h($e->getMessage());
+            }
+        } else {
+            $_SESSION['flash_error'] = implode('<br>', $errors);
+        }
+
+        header("Location: gold_exchange_edit.php?id={$exchangeId}");
+        exit;
+    }
+
+    // Fallback — unknown action
+    header("Location: gold_exchange_edit.php?id={$exchangeId}");
+    exit;
+}
+
+// -----------------------------------------------------------------------
+// Generate CSRF token for GET requests
+// -----------------------------------------------------------------------
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['csrf_token'];
+
+// -----------------------------------------------------------------------
+// Flash messages (set before redirect, consumed here)
+// -----------------------------------------------------------------------
+$postSuccess = $_SESSION['flash_success'] ?? '';
+$postError   = $_SESSION['flash_error']   ?? '';
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+// -----------------------------------------------------------------------
+// Fetch exchange
+// -----------------------------------------------------------------------
+$stmt = mysqli_prepare($conn,
+    "SELECT ge.id, ge.customer_id,
+            c.name    AS customer_name,
+            c.phone   AS customer_phone,
+            c.address AS customer_address,
+            ge.total_pure_gold, ge.loss, ge.final_pure_gold,
+            ge.loss_rate_points_per_vori, ge.note,
+            ge.created_at, ge.updated_at,
+            u.username AS created_by_username
+     FROM   gold_exchanges ge
+     JOIN   customers      c ON c.id = ge.customer_id
+     LEFT   JOIN users     u ON u.id = ge.created_by
+     WHERE  ge.id = ?
+     LIMIT  1");
+if (!$stmt) { die('DB error: ' . mysqli_error($conn)); }
+mysqli_stmt_bind_param($stmt, 'i', $exchangeId);
+mysqli_stmt_execute($stmt);
+$ex = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+
+if (!$ex) {
+    header('Location: gold_exchange_list.php');
+    exit;
+}
+
+// Fetch items
+$iStmt = mysqli_prepare($conn,
+    "SELECT id, old_gold_weight, old_gold_purity, pure_gold_weight
+     FROM   gold_exchange_items
+     WHERE  gold_exchange_id = ?
+     ORDER  BY id ASC");
+mysqli_stmt_bind_param($iStmt, 'i', $exchangeId);
+mysqli_stmt_execute($iStmt);
+$items = mysqli_fetch_all(mysqli_stmt_get_result($iStmt), MYSQLI_ASSOC);
+mysqli_stmt_close($iStmt);
+
+$lossRate      = (float)$ex['loss_rate_points_per_vori'];
+$lossPointsVal = loss_points((float)$ex['loss']);
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exchange #<?= $exchangeId ?> — FineBullion Desk</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root { --fb-green:#0B412A; --fb-gold:#DCAD41; }
+body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
+
+/* header */
+.exchange-header {
+    background:linear-gradient(135deg,var(--fb-green) 0%,#0e5636 100%);
+    color:#fff; border-radius:10px; padding:1.2rem 1.5rem;
+}
+.exchange-header small { color:rgba(255,255,255,.72); }
+
+/* customer / detail card */
+.detail-card {
+    background:#fff; border:1px solid #e2e5ea;
+    border-radius:10px; padding:1.25rem 1.5rem;
+}
+.detail-label {
+    font-size:.78rem; color:#888; font-weight:500;
+    white-space:nowrap;
+}
+.detail-val {
+    font-size:.97rem; font-weight:600; color:#1a1a1a;
+    word-break:break-word;
+}
+
+/* item table badges */
+.badge-old   { background:#eaf5ee; color:var(--fb-green); font-weight:600; font-size:.82rem; }
+.badge-karat { background:#f0f0f0; color:#444;            font-weight:600; font-size:.82rem; }
+.badge-pure  { background:var(--fb-green); color:#fff;    font-weight:600; font-size:.82rem; }
+
+/* ledger */
+.ledger { border:1px solid #dee2e6; border-radius:8px; overflow:hidden; }
+.ledger td { padding:.6rem .9rem; border-bottom:1px solid #eee; vertical-align:middle; }
+.ledger tr:last-child td { border-bottom:none; }
+.l-label { font-size:.83rem; color:#555; width:1%; white-space:nowrap; }
+.l-rate  { color:#aaa; font-size:.77rem; }
+.l-val   { font-weight:700; font-size:.95rem; text-align:right; }
+.l-total td  { background:#eaf5ee!important; }
+.l-total .l-label,.l-total .l-val { color:var(--fb-green); }
+.l-loss  td  { background:#fdf6ec!important; }
+.l-loss  .l-label { color:#8a5e0a; font-weight:600; }
+.l-loss  .l-val   { color:#96660c; }
+.l-final td  { background:var(--fb-green)!important; border-bottom:none; }
+.l-final .l-label { color:rgba(255,255,255,.85); font-weight:600; }
+.l-final .l-val   { color:#fff; font-size:1.05rem; }
+.l-final .l-rate  { color:rgba(255,255,255,.55); }
+
+/* buttons */
+.btn-gold { background:var(--fb-gold); border-color:var(--fb-gold); color:#1a1a1a; font-weight:600; }
+.btn-gold:hover { background:#c99a2f; border-color:#c99a2f; color:#1a1a1a; }
+
+/* edit modal item card */
+.edit-item-card {
+    border:1px solid #dee2e6; border-radius:8px;
+    padding:.9rem 1rem 0.7rem; margin-bottom:.85rem;
+    background:#fafafa; position:relative;
+}
+.edit-item-badge {
+    position:absolute; top:-9px; left:12px;
+    background:var(--fb-green); color:#fff;
+    font-size:.68rem; font-weight:700;
+    padding:.08rem .55rem; border-radius:8px;
+}
+.item-pure-preview {
+    font-size:.82rem; color:var(--fb-green);
+    font-weight:600; margin-top:.5rem;
+    padding:.3rem .5rem;
+    background:#f4f9f6; border-radius:5px;
+    border:1px dashed #bcd9c9;
+}
+</style>
+</head>
+<body>
+
+<?php require_once __DIR__ . '/navbar.php'; ?>
+
+<div class="page-content">
+<div class="container-fluid py-4">
+
+<?php if ($postSuccess): ?>
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i><?= h($postSuccess) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+<?php if ($postError): ?>
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= $postError ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
+<!-- ================================================================
+     PAGE HEADER
+================================================================ -->
+<div class="exchange-header mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="gold_exchange_list.php" class="btn btn-sm btn-outline-light py-0 px-2">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-left-right me-1"></i>
+                    Gold Exchange
+                    <span style="opacity:.65;">&nbsp;#<?= $exchangeId ?></span>
+                </h5>
+            </div>
+            <small>Gold exchange detail — FineBullion Desk</small>
+        </div>
+        <div class="text-end">
+            <div style="font-size:.75rem;color:rgba(255,255,255,.6);letter-spacing:.03em;">CREATED BY</div>
+            <div class="fw-semibold" style="font-size:.97rem;">
+                <i class="bi bi-person-circle me-1"></i><?= h($ex['created_by_username'] ?? '—') ?>
+            </div>
+            <div style="font-size:.8rem;color:rgba(255,255,255,.65);">
+                <?= h(fmt_dt($ex['created_at'])) ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================
+     CUSTOMER + DETAIL — two-column layout
+================================================================ -->
+<div class="detail-card mb-4">
+    <div class="row g-0">
+
+        <!-- Left: customer info -->
+        <div class="col-md-7 pe-md-4">
+            <div class="row g-2">
+                <div class="col-12">
+                    <span class="detail-label">Customer Name:</span>
+                    <span class="detail-val ms-1"><?= h($ex['customer_name']) ?></span>
+                </div>
+                <div class="col-12">
+                    <span class="detail-label">Phone:</span>
+                    <span class="detail-val ms-1"><?= h($ex['customer_phone'] ?: '—') ?></span>
+                </div>
+                <div class="col-12">
+                    <span class="detail-label">Address:</span>
+                    <span class="detail-val ms-1" style="font-weight:400;color:#555;">
+                        <?= h($ex['customer_address'] ?: '—') ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vertical divider (md+) -->
+        <div class="col-md-1 d-none d-md-flex justify-content-center">
+            <div style="width:1px;background:#e2e5ea;min-height:100%;"></div>
+        </div>
+        <!-- Horizontal divider (mobile) -->
+        <div class="col-12 d-md-none my-3">
+            <hr class="my-0">
+        </div>
+
+        <!-- Right: date & created-by -->
+        <div class="col-md-4 ps-md-3">
+            <div class="row g-2">
+                <div class="col-12">
+                    <span class="detail-label">Date &amp; Time:</span>
+                    <span class="detail-val ms-1"><?= h(fmt_dt($ex['created_at'])) ?></span>
+                </div>
+                <div class="col-12">
+                    <span class="detail-label">Created By:</span>
+                    <span class="detail-val ms-1"><?= h($ex['created_by_username'] ?? '—') ?></span>
+                </div>
+                <?php if ($ex['updated_at'] && $ex['updated_at'] !== $ex['created_at']): ?>
+                <div class="col-12">
+                    <span class="detail-label">Last Updated:</span>
+                    <span class="ms-1" style="font-size:.88rem;color:#888;">
+                        <?= h(fmt_dt($ex['updated_at'])) ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ================================================================
+     GOLD ITEMS TABLE
+================================================================ -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">
+            <i class="bi bi-gem me-1" style="color:var(--fb-green);"></i>
+            Old / Impure Gold Items
+            <span class="badge bg-secondary ms-1"><?= count($items) ?></span>
+        </span>
+        <?php if ($isAdmin): ?>
+        <button type="button" class="btn btn-sm btn-gold"
+                data-bs-toggle="modal" data-bs-target="#editModal">
+            <i class="bi bi-pencil-square me-1"></i> Edit Items
+        </button>
+        <?php endif; ?>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:38px;">#</th>
+                        <th>Impure Golld</th>
+                        <th style="width:90px;">Karat</th>
+                        <th>Pure Gold</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($items)): ?>
+                    <tr><td colspan="4" class="text-center text-muted py-3">No items found.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($items as $idx => $it):
+                        $karat    = round(((float)$it['old_gold_purity'] / 100) * 24, 2);
+                    ?>
+                    <tr>
+                        <td class="text-muted small"><?= $idx + 1 ?></td>
+                        <td><span class="badge badge-old"><?= h(fmt_trad((float)$it['old_gold_weight'])) ?></span></td>
+                        <td><span class="badge badge-karat"><?= h($karat) ?>K</span></td>
+                        <td><span class="badge badge-pure"><?= h(fmt_trad((float)$it['pure_gold_weight'])) ?></span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================
+     EXCHANGE SUMMARY
+================================================================ -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-calculator me-1" style="color:var(--fb-green);"></i>
+        Exchange Summary
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0 ledger" style="border-radius:0;">
+            <tbody>
+                <tr class="l-total">
+                    <td class="l-label">Total Pure Gold</td>
+                    <td class="l-val"><?= h(fmt_trad((float)$ex['total_pure_gold'])) ?></td>
+                </tr>
+                <tr class="l-loss">
+                    <td class="l-label">
+                        Loss
+                        <span class="l-rate">
+                            (<?= $lossPointsVal ?> Point @ <?= h($lossRate) ?> Pt/Vori)
+                        </span>
+                    </td>
+                    <td class="l-val"><?= h(fmt_trad((float)$ex['loss'])) ?></td>
+                </tr>
+                <tr class="l-final">
+                    <td class="l-label">Final Pure Gold</td>
+                    <td class="l-val"><?= h(fmt_trad((float)$ex['final_pure_gold'])) ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================================================================
+     NOTE
+================================================================ -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-pencil-square me-1" style="color:var(--fb-green);"></i>
+        Note / Remarks
+    </div>
+    <div class="card-body">
+        <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>">
+            <input type="hidden" name="action"     value="save_note">
+            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+            <textarea class="form-control mb-2" name="note" rows="3"
+                      placeholder="Optional note…"><?= h($ex['note'] ?? '') ?></textarea>
+            <button type="submit" class="btn btn-gold btn-sm">
+                <i class="bi bi-save-fill me-1"></i> Save Note
+            </button>
+        </form>
+    </div>
+</div>
+
+<?php if ($isAdmin): ?>
+<!-- ================================================================
+     EDIT ITEMS MODAL (admin only)
+     Only existing items — no add/remove.
+================================================================ -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--fb-green);color:#fff;">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square me-2"></i>
+                    Edit Items — Exchange #<?= $exchangeId ?>
+                </h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>"
+                  id="editItemsForm">
+                <input type="hidden" name="action"     value="save_items">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+
+                <div class="modal-body">
+
+                    <!-- Loss rate -->
+                    <div class="d-flex align-items-end gap-3 mb-4">
+                        <div>
+                            <label class="form-label small fw-semibold mb-1">
+                                Loss Rate
+                                <small class="text-muted fw-normal">(Points per Vori)</small>
+                            </label>
+                            <input type="number" name="loss_rate" id="lossRateInput"
+                                   min="0" step="0.001" value="<?= h($lossRate) ?>"
+                                   class="form-control form-control-sm" style="width:120px;"
+                                   oninput="recalcSummary()">
+                        </div>
+                        <small class="text-muted pb-1">
+                            Loss = ceil(total pure Vori × rate) Points
+                        </small>
+                    </div>
+
+                    <!-- Existing items only -->
+                    <?php if (empty($items)): ?>
+                        <div class="text-muted text-center py-3">No items to edit.</div>
+                    <?php else: ?>
+                        <?php foreach ($items as $idx => $it):
+                            $karat = round(((float)$it['old_gold_purity'] / 100) * 24, 4);
+                            $trad  = grams_to_trad((float)$it['old_gold_weight']);
+                        ?>
+                        <div class="edit-item-card">
+                            <span class="edit-item-badge">Item <?= $idx + 1 ?></span>
+                            <!-- item ID is fixed — prevents adding new rows -->
+                            <input type="hidden"
+                                   name="items[<?= $idx ?>][id]"
+                                   value="<?= (int)$it['id'] ?>">
+                            <div class="row g-2 mt-1 align-items-end">
+                                <div class="col-6 col-sm-4 col-md-2">
+                                    <label class="form-label small mb-1">Vori</label>
+                                    <input type="number"
+                                           name="items[<?= $idx ?>][vori]"
+                                           class="form-control form-control-sm"
+                                           min="0" step="1"
+                                           value="<?= $trad['v'] ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="col-6 col-sm-4 col-md-2">
+                                    <label class="form-label small mb-1">
+                                        Ana <small class="text-muted">0–15</small>
+                                    </label>
+                                    <input type="number"
+                                           name="items[<?= $idx ?>][ana]"
+                                           class="form-control form-control-sm"
+                                           min="0" max="15" step="1"
+                                           value="<?= $trad['a'] ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="col-6 col-sm-4 col-md-2">
+                                    <label class="form-label small mb-1">
+                                        Roti <small class="text-muted">0–5</small>
+                                    </label>
+                                    <input type="number"
+                                           name="items[<?= $idx ?>][roti]"
+                                           class="form-control form-control-sm"
+                                           min="0" max="5" step="1"
+                                           value="<?= $trad['r'] ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="col-6 col-sm-4 col-md-2">
+                                    <label class="form-label small mb-1">
+                                        Point <small class="text-muted">0–9</small>
+                                    </label>
+                                    <input type="number"
+                                           name="items[<?= $idx ?>][point]"
+                                           class="form-control form-control-sm"
+                                           min="0" max="9" step="1"
+                                           value="<?= $trad['p'] ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="col-6 col-sm-4 col-md-2">
+                                    <label class="form-label small mb-1">Karat</label>
+                                    <input type="number"
+                                           name="items[<?= $idx ?>][karat]"
+                                           class="form-control form-control-sm"
+                                           min="0.01" max="24" step="0.01"
+                                           value="<?= h($karat) ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                            </div>
+                            <div class="item-pure-preview" id="itemPreview_<?= $idx ?>">
+                                Pure Gold: <?= h(fmt_trad((float)$it['pure_gold_weight'])) ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+
+                    <!-- Live summary preview -->
+                    <div class="mt-3 pt-3 border-top">
+                        <div class="text-muted small fw-semibold text-uppercase mb-2"
+                             style="letter-spacing:.04em;">Preview Summary</div>
+                        <table class="table table-sm mb-0 ledger">
+                            <tbody>
+                                <tr class="l-total">
+                                    <td class="l-label">Total Pure Gold</td>
+                                    <td class="l-val" id="previewTotal">—</td>
+                                </tr>
+                                <tr class="l-loss">
+                                    <td class="l-label">
+                                        Loss
+                                        <span class="l-rate" id="previewLossRate"></span>
+                                    </td>
+                                    <td class="l-val" id="previewLoss">—</td>
+                                </tr>
+                                <tr class="l-final">
+                                    <td class="l-label">Final Pure Gold</td>
+                                    <td class="l-val" id="previewFinal">—</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div><!-- /modal-body -->
+
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm"
+                            data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-gold btn-sm">
+                        <i class="bi bi-save-fill me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+'use strict';
+
+const G_VORI  = 11.664, G_ANA = 0.729, G_ROTI = 0.1215, G_POINT = 0.01215;
+const ITEM_COUNT = <?= count($items) ?>;
+
+function gramsToTrad(g) {
+    g = Math.max(0, parseFloat(g) || 0);
+    const EPS = 1e-9;
+    const tv = g / G_VORI;
+    let v  = Math.floor(tv + EPS);
+    let ta = Math.max(0, tv - v) * 16;
+    let a  = Math.floor(ta + EPS);
+    let tr = Math.max(0, ta - a) * 6;
+    let r  = Math.floor(tr + EPS);
+    let p  = Math.round(Math.max(0, tr - r) * 10);
+    if (p >= 10){p-=10;r++;} if (r>=6){r-=6;a++;} if (a>=16){a-=16;v++;}
+    return {v,a,r,p};
+}
+function tradToGrams(v,a,r,p){
+    return v*G_VORI + a*G_ANA + r*G_ROTI + p*G_POINT;
+}
+function fmtTrad(g) {
+    const t = gramsToTrad(g);
+    return `${t.v} Vori ${t.a} Ana ${t.r} Roti ${t.p} Point`;
+}
+
+function getItemInputs(idx) {
+    return {
+        v: parseInt(document.querySelector(`[name="items[${idx}][vori]"]`)?.value)  || 0,
+        a: parseInt(document.querySelector(`[name="items[${idx}][ana]"]`)?.value)   || 0,
+        r: parseInt(document.querySelector(`[name="items[${idx}][roti]"]`)?.value)  || 0,
+        p: parseInt(document.querySelector(`[name="items[${idx}][point]"]`)?.value) || 0,
+        k: parseFloat(document.querySelector(`[name="items[${idx}][karat]"]`)?.value) || 0,
+    };
+}
+
+function recalcItem(idx) {
+    const {v,a,r,p,k} = getItemInputs(idx);
+    const grams    = tradToGrams(v, a, r, p);
+    const pureGrams = grams * (k / 24);
+    const el = document.getElementById('itemPreview_' + idx);
+    if (el) el.textContent = 'Pure Gold: ' + fmtTrad(pureGrams);
+    recalcSummary();
+}
+
+function recalcSummary() {
+    let totalPure = 0;
+    for (let i = 0; i < ITEM_COUNT; i++) {
+        const {v,a,r,p,k} = getItemInputs(i);
+        totalPure += tradToGrams(v, a, r, p) * (k / 24);
+    }
+    const lossRate       = Math.max(0, parseFloat(document.getElementById('lossRateInput').value) || 0);
+    const lossPointsCeil = Math.ceil((totalPure / G_VORI) * lossRate);
+    const lossGrams      = lossPointsCeil * G_POINT;
+    const finalPure      = Math.max(0, totalPure - lossGrams);
+
+    document.getElementById('previewTotal').textContent    = fmtTrad(totalPure);
+    document.getElementById('previewLossRate').textContent = `(${lossPointsCeil} Point @ ${lossRate} Pt/Vori)`;
+    document.getElementById('previewLoss').textContent     = fmtTrad(lossGrams);
+    document.getElementById('previewFinal').textContent    = fmtTrad(finalPure);
+}
+
+// Init preview when modal opens
+document.getElementById('editModal').addEventListener('shown.bs.modal', recalcSummary);
+</script>
+
+<?php else: ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php endif; ?>
+
+</div>
+</div>
+</body>
+</html>

@@ -403,12 +403,12 @@ function nav_is_active(string $href, string $current): bool
             </div>
         </div>
 
-        <a href="sale.php" class="nav-link-item<?= nav_is_active('sale.php', $navCurrentPage) ? ' active' : '' ?>">
+        <a href="gold_sale.php" class="nav-link-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-cash-coin"></i>
             <span>Sale</span>
         </a>
 
-        <a href="buy.php" class="nav-link-item<?= nav_is_active('buy.php', $navCurrentPage) ? ' active' : '' ?>">
+        <a href="gold_buy.php" class="nav-link-item<?= nav_is_active('gold_buy.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-cart-fill"></i>
             <span>Buy</span>
         </a>

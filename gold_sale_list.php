@@ -6,6 +6,8 @@
  * Mobile : stat bar (Weight / Total Amount / Total Paid / Total Due)
  *          + compact table rows with stacked Weight & Amount info cell.
  * Desktop: same stat bar + full table with individual columns.
+ *
+ * Payment amounts are now sourced from gold_sale_payments table.
  */
 
 require_once __DIR__ . '/auth.php';
@@ -61,18 +63,22 @@ if ($isAjax || $action !== null) {
 
         $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
-        // Totals (for stat bar)
+        // Totals (for stat bar) — paid from gold_sale_payments
         $totSql = "SELECT
-                       COALESCE(SUM(gsi.weight),      0) AS total_weight_g,
-                       COALESCE(SUM(gs.total_amount),  0) AS total_amount,
-                       COALESCE(SUM(gs.paid_amount),   0) AS total_paid,
-                       COALESCE(SUM(gs.total_amount - gs.paid_amount), 0) AS total_due
+                       COALESCE(SUM(gsi.weight),         0) AS total_weight_g,
+                       COALESCE(SUM(gs.total_amount),    0) AS total_amount,
+                       COALESCE(SUM(gsp.paid_sum),       0) AS total_paid,
+                       COALESCE(SUM(gs.total_amount) - SUM(COALESCE(gsp.paid_sum, 0)), 0) AS total_due
                    FROM gold_sales gs
                    JOIN customers c ON c.id = gs.customer_id
                    LEFT JOIN (
                        SELECT gold_sale_id, SUM(weight) AS weight
                        FROM gold_sale_items GROUP BY gold_sale_id
                    ) gsi ON gsi.gold_sale_id = gs.id
+                   LEFT JOIN (
+                       SELECT gold_sale_id, SUM(paid_amount) AS paid_sum
+                       FROM gold_sale_payments GROUP BY gold_sale_id
+                   ) gsp ON gsp.gold_sale_id = gs.id
                    $where";
         $totStmt = mysqli_prepare($conn, $totSql);
         if ($params) mysqli_stmt_bind_param($totStmt, $types, ...$params);
@@ -90,10 +96,11 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_fetch($cntStmt);
         mysqli_stmt_close($cntStmt);
 
-        // Rows
+        // Rows — paid_amount from payments table
         $sql = "SELECT gs.id, gs.customer_id, c.name AS customer_name, c.phone AS customer_phone,
-                       gs.pure_gold_price, gs.total_amount, gs.paid_amount,
-                       (gs.total_amount - gs.paid_amount) AS due_amount,
+                       gs.pure_gold_price, gs.total_amount,
+                       COALESCE(gsp.paid_sum, 0)                             AS paid_amount,
+                       (gs.total_amount - COALESCE(gsp.paid_sum, 0))         AS due_amount,
                        COALESCE(gsi.weight, 0)     AS total_weight_g,
                        COALESCE(gsi.item_count, 0) AS item_count,
                        gs.note, gs.created_at, u.username AS created_by_username
@@ -107,6 +114,11 @@ if ($isAjax || $action !== null) {
                     FROM gold_sale_items
                     GROUP BY gold_sale_id
                 ) gsi ON gsi.gold_sale_id = gs.id
+                LEFT JOIN (
+                    SELECT gold_sale_id, SUM(paid_amount) AS paid_sum
+                    FROM gold_sale_payments
+                    GROUP BY gold_sale_id
+                ) gsp ON gsp.gold_sale_id = gs.id
                 $where
                 ORDER BY gs.created_at DESC
                 LIMIT ? OFFSET ?";
@@ -134,35 +146,54 @@ if ($isAjax || $action !== null) {
         ]);
     }
 
-    // ---- GET single (with items) -----------------------------------------
+    // ---- GET single (with items + payment history) -----------------------
     if ($action === 'get' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) json_out(['success' => false, 'message' => 'Invalid ID.'], 400);
 
         $stmt = mysqli_prepare($conn,
             "SELECT gs.id, gs.customer_id, c.name AS customer_name, c.phone AS customer_phone,
-                    gs.pure_gold_price, gs.total_amount, gs.paid_amount,
-                    (gs.total_amount - gs.paid_amount) AS due_amount,
+                    gs.pure_gold_price, gs.total_amount,
+                    COALESCE(gsp.paid_sum, 0)                             AS paid_amount,
+                    (gs.total_amount - COALESCE(gsp.paid_sum, 0))         AS due_amount,
                     gs.note, gs.created_at, gs.updated_at, u.username AS created_by_username
              FROM gold_sales gs
              JOIN customers c ON c.id = gs.customer_id
              LEFT JOIN users u ON u.id = gs.created_by
+             LEFT JOIN (
+                 SELECT gold_sale_id, SUM(paid_amount) AS paid_sum
+                 FROM gold_sale_payments
+                 GROUP BY gold_sale_id
+             ) gsp ON gsp.gold_sale_id = gs.id
              WHERE gs.id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
         $sale = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
         if (!$sale) json_out(['success' => false, 'message' => 'Record not found.'], 404);
 
-        // gold_sale_items has: id, gold_sale_id, weight, price (no purity column)
         $itemStmt = mysqli_prepare($conn,
-            "SELECT id, weight, price
+            "SELECT id, weight, purity, price
              FROM gold_sale_items WHERE gold_sale_id = ? ORDER BY id ASC");
         mysqli_stmt_bind_param($itemStmt, 'i', $id);
         mysqli_stmt_execute($itemStmt);
         $items = [];
         while ($row = mysqli_fetch_assoc(mysqli_stmt_get_result($itemStmt))) $items[] = $row;
 
-        $sale['items'] = $items;
+        // Payment history
+        $pmtStmt = mysqli_prepare($conn,
+            "SELECT p.id, p.paid_amount, p.transaction_ref, p.payment_date, p.note,
+                    p.created_at, u.username AS received_by_username
+             FROM gold_sale_payments p
+             LEFT JOIN users u ON u.id = p.received_by
+             WHERE p.gold_sale_id = ?
+             ORDER BY p.payment_date ASC, p.created_at ASC");
+        mysqli_stmt_bind_param($pmtStmt, 'i', $id);
+        mysqli_stmt_execute($pmtStmt);
+        $payments = [];
+        while ($row = mysqli_fetch_assoc(mysqli_stmt_get_result($pmtStmt))) $payments[] = $row;
+
+        $sale['items']    = $items;
+        $sale['payments'] = $payments;
         json_out(['success' => true, 'data' => $sale]);
     }
 
@@ -225,7 +256,6 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     letter-spacing: 0.01em;
     white-space: nowrap;
 }
-/* Sale: amber weight, green total, dark green paid, red due */
 .stat-weight  { background: var(--fb-green);    color: #fff; }
 .stat-total   { background: var(--fb-gold);     color: #1a1a1a; }
 .stat-paid    { background: #2e7d32;            color: #fff; }
@@ -274,6 +304,21 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .ledger-due td   { background-color: var(--fb-green) !important; border-bottom: none; }
 .ledger-due .ledger-label   { color: rgba(255,255,255,0.85); font-weight: 600; }
 .ledger-due .ledger-vorp    { color: #fff; font-size: 1.05rem; }
+
+/* ---- payment history in modal ---- */
+.pmt-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed #e9ecef;
+    font-size: 0.83rem;
+}
+.pmt-row:last-child { border-bottom: none; }
+.pmt-date { color: #6c757d; white-space: nowrap; min-width: 80px; }
+.pmt-amount { font-weight: 700; color: #2e7d32; white-space: nowrap; }
+.pmt-ref { color: #555; font-size: 0.78rem; }
+.pmt-note { color: #888; font-size: 0.76rem; font-style: italic; }
 
 /* ---- filter bar ---- */
 .filter-bar { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0.65rem 1rem;
@@ -667,20 +712,34 @@ async function openView(id) {
         }
         const s = data.data;
 
-        // sale items have no purity column — always pure 24k
         const itemsHtml = s.items.map((it, idx) => {
             const t = gramsToTraditional(parseFloat(it.weight) || 0);
+            const purity = parseFloat(it.purity || 24).toFixed(2);
             return `<tr>
                 <td class="text-muted">${idx + 1}</td>
                 <td>${t.vori}V ${t.ana}A ${t.roti}R ${t.point}P</td>
                 <td class="text-center">
-                    <span class="badge" style="background:#fdf8ec;border:1px solid #DCAD41;color:#7a5c10;font-size:0.72rem;">
-                        24k Pure
+                    <span class="badge" style="background:#f0f0f0;color:#444;font-weight:600;font-size:0.75rem;">
+                        ${purity}K
                     </span>
                 </td>
                 <td class="text-end">${fmtBDT(it.price)}</td>
             </tr>`;
         }).join('');
+
+        // Payment history rows
+        const paymentsHtml = (s.payments && s.payments.length > 0)
+            ? s.payments.map(p => `
+                <div class="pmt-row">
+                    <div class="pmt-date">${fmtDate(p.payment_date)}</div>
+                    <div class="flex-grow-1">
+                        ${p.transaction_ref ? `<span class="pmt-ref me-1"><i class="bi bi-hash"></i>${escHtml(p.transaction_ref)}</span>` : ''}
+                        ${p.note ? `<span class="pmt-note">${escHtml(p.note)}</span>` : ''}
+                        ${p.received_by_username ? `<small class="text-muted ms-1">· ${escHtml(p.received_by_username)}</small>` : ''}
+                    </div>
+                    <div class="pmt-amount">${fmtBDT(p.paid_amount)}</div>
+                </div>`).join('')
+            : '<div class="text-muted small fst-italic">No payments recorded yet.</div>';
 
         const due = parseFloat(s.due_amount) || 0;
 
@@ -721,7 +780,7 @@ async function openView(id) {
                         <td class="ledger-vorp">${fmtBDT(s.total_amount)}</td>
                     </tr>
                     <tr class="ledger-paid">
-                        <td class="ledger-label">Paid Amount</td>
+                        <td class="ledger-label">Total Paid</td>
                         <td class="ledger-vorp">${fmtBDT(s.paid_amount)}</td>
                     </tr>
                     <tr class="ledger-due">
@@ -730,6 +789,17 @@ async function openView(id) {
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Payment History -->
+            <div class="mb-3">
+                <div class="fw-semibold small text-uppercase mb-2" style="letter-spacing:.04em;color:var(--fb-green);">
+                    <i class="bi bi-cash-stack me-1"></i> Payment History
+                </div>
+                <div class="border rounded p-2">
+                    ${paymentsHtml}
+                </div>
+            </div>
+
             ${s.note ? `<div class="alert alert-light border mb-0 py-2"><strong>Note:</strong> ${escHtml(s.note)}</div>` : ''}
         `;
     } catch {

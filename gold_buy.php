@@ -171,12 +171,14 @@ if ($isAjax || $action !== null) {
 
         mysqli_begin_transaction($conn);
         try {
+            // Insert the buy with paid_amount = 0; the initial payment (if any)
+            // is recorded via gold_buy_payments below and synced back.
             $stmt = mysqli_prepare($conn,
                 "INSERT INTO gold_buys
                     (customer_id, pure_gold_price, total_amount, paid_amount, note, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, 'idddsi',
-                $customerId, $pureGoldPrice, $totalAmount, $paidAmount, $note, $userId);
+                 VALUES (?, ?, ?, 0, ?, ?)");
+            mysqli_stmt_bind_param($stmt, 'iddsi',
+                $customerId, $pureGoldPrice, $totalAmount, $note, $userId);
             mysqli_stmt_execute($stmt);
             $buyId = (int) mysqli_insert_id($conn);
 
@@ -188,6 +190,23 @@ if ($isAjax || $action !== null) {
                 mysqli_stmt_bind_param($itemStmt, 'iddd',
                     $buyId, $ci['weight'], $ci['purity'], $ci['price']);
                 mysqli_stmt_execute($itemStmt);
+            }
+
+            // Optional first payment recorded at creation time.
+            if ($paidAmount > 0) {
+                $today = date('Y-m-d');
+                $ins = mysqli_prepare($conn,
+                    "INSERT INTO gold_buy_payments
+                        (gold_buy_id, paid_amount, transaction_ref, payment_date, received_by)
+                     VALUES (?, ?, NULL, ?, ?)");
+                mysqli_stmt_bind_param($ins, 'idsi', $buyId, $paidAmount, $today, $userId);
+                mysqli_stmt_execute($ins);
+
+                // Sync parent paid_amount
+                $sync = mysqli_prepare($conn,
+                    "UPDATE gold_buys SET paid_amount = ? WHERE id = ?");
+                mysqli_stmt_bind_param($sync, 'di', $paidAmount, $buyId);
+                mysqli_stmt_execute($sync);
             }
 
             mysqli_commit($conn);

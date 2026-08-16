@@ -4,9 +4,13 @@
  * FineBullion Desk — Gold Buy detail & edit
  *
  * Pure PHP + mysqli. POST → PRG to prevent duplicate submit on refresh.
- * Any logged-in user: save note.
- * Admin only: edit existing items (weight, purity, price) + pure_gold_price,
- *             paid_amount — no add / remove of items.
+ * Any logged-in user: save note, add payment.
+ * Admin only: edit existing items (weight, purity, price) + pure_gold_price.
+ *
+ * Payment tracking:
+ *   - All payments stored in gold_buy_payments table.
+ *   - gold_buys.paid_amount is a cache updated after each payment insert/delete.
+ *   - Due = total_amount − SUM(gold_buy_payments.paid_amount).
  */
 
 require_once __DIR__ . '/auth.php';
@@ -51,6 +55,21 @@ function fmt_dt(?string $s): string {
 
 function h(mixed $s): string {
     return htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8');
+}
+
+// Helper: recalculate and cache paid_amount on gold_buys from payments table
+function sync_paid_amount(mysqli $conn, int $buyId): void {
+    $stmt = mysqli_prepare($conn,
+        "UPDATE gold_buys
+         SET paid_amount = (
+             SELECT COALESCE(SUM(paid_amount), 0)
+             FROM gold_buy_payments
+             WHERE gold_buy_id = ?
+         ), updated_at = NOW()
+         WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, 'ii', $buyId, $buyId);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
 }
 
 // -----------------------------------------------------------------------
@@ -98,20 +117,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // ---- Add payment (any logged-in user) --------------------------------
+    if ($action === 'add_payment') {
+        $paidAmount     = (float)($_POST['paid_amount']    ?? 0);
+        $paymentDate    = trim($_POST['payment_date']      ?? '');
+        $transactionRef = trim($_POST['transaction_ref']   ?? '') ?: null;
+        $paymentNote    = trim($_POST['payment_note']      ?? '') ?: null;
+        $userId         = $currentUser['id'];
+
+        $errors = [];
+        if ($paidAmount <= 0) $errors[] = 'Paid amount must be greater than zero.';
+        if (empty($paymentDate)) $errors[] = 'Payment date is required.';
+
+        if (empty($errors)) {
+            mysqli_begin_transaction($conn);
+            try {
+                $stmt = mysqli_prepare($conn,
+                    "INSERT INTO gold_buy_payments
+                        (gold_buy_id, paid_amount, transaction_ref, payment_date, note, received_by)
+                     VALUES (?, ?, ?, ?, ?, ?)");
+                mysqli_stmt_bind_param($stmt, 'idsssi',
+                    $buyId, $paidAmount, $transactionRef, $paymentDate, $paymentNote, $userId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+
+                // Sync cache
+                sync_paid_amount($conn, $buyId);
+                mysqli_commit($conn);
+                $_SESSION['flash_success'] = 'Payment recorded successfully.';
+            } catch (\Throwable $e) {
+                mysqli_rollback($conn);
+                $_SESSION['flash_error'] = 'Failed to record payment. Please try again.';
+            }
+        } else {
+            $_SESSION['flash_error'] = implode('<br>', $errors);
+        }
+
+        header("Location: gold_buy_edit.php?id={$buyId}");
+        exit;
+    }
+
+    // ---- Delete payment (admin only) -------------------------------------
+    if ($action === 'delete_payment' && $isAdmin) {
+        $pmtId = (int)($_POST['payment_id'] ?? 0);
+        if ($pmtId > 0) {
+            mysqli_begin_transaction($conn);
+            try {
+                $stmt = mysqli_prepare($conn,
+                    "DELETE FROM gold_buy_payments WHERE id = ? AND gold_buy_id = ?");
+                mysqli_stmt_bind_param($stmt, 'ii', $pmtId, $buyId);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+
+                sync_paid_amount($conn, $buyId);
+                mysqli_commit($conn);
+                $_SESSION['flash_success'] = 'Payment deleted.';
+            } catch (\Throwable $e) {
+                mysqli_rollback($conn);
+                $_SESSION['flash_error'] = 'Failed to delete payment.';
+            }
+        }
+        header("Location: gold_buy_edit.php?id={$buyId}");
+        exit;
+    }
+
     // ---- Save items + amounts (admin only) ------------------------------
     if ($action === 'save_items' && $isAdmin) {
         $rawItems      = $_POST['items'] ?? [];
         $pureGoldPrice = isset($_POST['pure_gold_price']) && $_POST['pure_gold_price'] !== ''
                          ? max(0.0, (float)$_POST['pure_gold_price']) : 0.0;
-        $paidAmount    = isset($_POST['paid_amount']) && $_POST['paid_amount'] !== ''
-                         ? max(0.0, (float)$_POST['paid_amount']) : 0.0;
 
         $errors    = [];
         $calcItems = [];
         $totalAmt  = 0.0;
 
         if ($pureGoldPrice <= 0) $errors[] = 'Pure gold price must be greater than zero.';
-        if ($paidAmount < 0)     $errors[] = 'Paid amount cannot be negative.';
 
         foreach ($rawItems as $i => $item) {
             $n      = $i + 1;
@@ -181,18 +261,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 mysqli_stmt_close($updItem);
 
-                // UPDATE buy summary
+                // UPDATE buy — total_amount recalculated; paid_amount synced from payments
                 $updBuy = mysqli_prepare($conn,
                     "UPDATE gold_buys
-                     SET pure_gold_price = ?, total_amount = ?, paid_amount = ?, updated_at = NOW()
+                     SET pure_gold_price = ?,
+                         total_amount    = ?,
+                         paid_amount     = (
+                             SELECT COALESCE(SUM(paid_amount), 0)
+                             FROM gold_buy_payments
+                             WHERE gold_buy_id = ?
+                         ),
+                         updated_at      = NOW()
                      WHERE id = ?");
-                mysqli_stmt_bind_param($updBuy, 'dddi',
-                    $pureGoldPrice, $totalAmt, $paidAmount, $buyId);
+                mysqli_stmt_bind_param($updBuy, 'ddii',
+                    $pureGoldPrice, $totalAmt, $buyId, $buyId);
                 mysqli_stmt_execute($updBuy);
                 mysqli_stmt_close($updBuy);
 
                 mysqli_commit($conn);
-                $_SESSION['flash_success'] = 'Items and amounts updated successfully.';
+                $_SESSION['flash_success'] = 'Items updated successfully.';
             } catch (\Throwable $e) {
                 mysqli_rollback($conn);
                 $_SESSION['flash_error'] = 'Failed to save: ' . h($e->getMessage());
@@ -224,13 +311,19 @@ $stmt = mysqli_prepare($conn,
             c.name    AS customer_name,
             c.phone   AS customer_phone,
             c.address AS customer_address,
-            gb.pure_gold_price, gb.total_amount, gb.paid_amount,
-            (gb.total_amount - gb.paid_amount) AS due_amount,
+            gb.pure_gold_price, gb.total_amount,
+            COALESCE(gbp.paid_sum, 0)                          AS paid_amount,
+            (gb.total_amount - COALESCE(gbp.paid_sum, 0))      AS due_amount,
             gb.note, gb.created_at, gb.updated_at,
             u.username AS created_by_username
      FROM gold_buys gb
      JOIN customers c ON c.id = gb.customer_id
      LEFT JOIN users u ON u.id = gb.created_by
+     LEFT JOIN (
+         SELECT gold_buy_id, SUM(paid_amount) AS paid_sum
+         FROM gold_buy_payments
+         GROUP BY gold_buy_id
+     ) gbp ON gbp.gold_buy_id = gb.id
      WHERE gb.id = ?
      LIMIT 1");
 if (!$stmt) { die('DB error: ' . mysqli_error($conn)); }
@@ -254,6 +347,21 @@ mysqli_stmt_bind_param($iStmt, 'i', $buyId);
 mysqli_stmt_execute($iStmt);
 $items = mysqli_fetch_all(mysqli_stmt_get_result($iStmt), MYSQLI_ASSOC);
 mysqli_stmt_close($iStmt);
+
+// Fetch payment history
+$pStmt = mysqli_prepare($conn,
+    "SELECT p.id, p.paid_amount, p.transaction_ref, p.payment_date, p.note,
+            p.created_at, u.username AS received_by_username
+     FROM gold_buy_payments p
+     LEFT JOIN users u ON u.id = p.received_by
+     WHERE p.gold_buy_id = ?
+     ORDER BY p.payment_date ASC, p.created_at ASC");
+mysqli_stmt_bind_param($pStmt, 'i', $buyId);
+mysqli_stmt_execute($pStmt);
+$payments = mysqli_fetch_all(mysqli_stmt_get_result($pStmt), MYSQLI_ASSOC);
+mysqli_stmt_close($pStmt);
+
+$totalPaid = array_sum(array_column($payments, 'paid_amount'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -298,6 +406,27 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 .l-due   td  { background:var(--fb-green)!important; border-bottom:none; }
 .l-due   .l-label { color:rgba(255,255,255,.85); font-weight:600; }
 .l-due   .l-val   { color:#fff; font-size:1.05rem; }
+
+/* payment history */
+.pmt-item {
+    display:flex; align-items:flex-start; gap:.6rem;
+    padding:.6rem .75rem;
+    border-bottom:1px solid #f0f0f0;
+    font-size:.84rem;
+}
+.pmt-item:last-child { border-bottom:none; }
+.pmt-date  { color:#6c757d; white-space:nowrap; min-width:85px; font-size:.78rem; }
+.pmt-body  { flex:1; min-width:0; }
+.pmt-ref   { color:#555; font-size:.78rem; }
+.pmt-note  { color:#888; font-size:.75rem; font-style:italic; }
+.pmt-amount{ font-weight:700; color:#2e7d32; white-space:nowrap; }
+.pmt-by    { color:#999; font-size:.73rem; }
+
+/* add payment form */
+.payment-form-card { background:#fafffe; border:1px solid #c3ddd1; border-radius:10px; }
+.payment-form-card .card-header {
+    background:var(--fb-green); color:#fff; font-size:.82rem; border-radius:9px 9px 0 0;
+}
 
 /* buttons */
 .btn-gold { background:var(--fb-gold); border-color:var(--fb-gold); color:#1a1a1a; font-weight:600; }
@@ -401,6 +530,9 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     .edit-item-card .form-control-sm { font-size:.82rem; padding:.28rem .4rem; }
     .item-fields-row { gap:.4rem; }
     .item-price-preview { padding:.35rem .6rem; font-size:.76rem; margin-top:.5rem!important; }
+
+    .pmt-item { padding:.45rem .5rem; font-size:.78rem; }
+    .pmt-date { min-width:70px; font-size:.72rem; }
 }
 </style>
 </head>
@@ -582,8 +714,8 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                     <td class="l-val">৳<?= number_format((float)$buy['total_amount'], 0) ?></td>
                 </tr>
                 <tr class="l-paid">
-                    <td class="l-label">Paid Amount</td>
-                    <td class="l-val">৳<?= number_format((float)$buy['paid_amount'], 0) ?></td>
+                    <td class="l-label">Total Paid</td>
+                    <td class="l-val">৳<?= number_format((float)$totalPaid, 0) ?></td>
                 </tr>
                 <tr class="l-due">
                     <td class="l-label">Due Amount</td>
@@ -591,6 +723,60 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                 </tr>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- ================================================================
+     PAYMENT HISTORY
+================================================================ -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">
+            <i class="bi bi-cash-stack me-1" style="color:var(--fb-green);"></i>
+            Payment History
+            <span class="badge bg-secondary ms-1"><?= count($payments) ?></span>
+        </span>
+        <button type="button" class="btn btn-sm btn-gold"
+                data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+            <i class="bi bi-plus-lg me-1"></i> Add Payment
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <?php if (empty($payments)): ?>
+            <div class="text-center text-muted py-4 small fst-italic">No payments recorded yet.</div>
+        <?php else: ?>
+            <?php foreach ($payments as $pmt): ?>
+            <div class="pmt-item">
+                <div class="pmt-date">
+                    <?= h((new DateTime($pmt['payment_date']))->format('d M Y')) ?>
+                </div>
+                <div class="pmt-body">
+                    <?php if ($pmt['transaction_ref']): ?>
+                        <div class="pmt-ref"><i class="bi bi-hash"></i> <?= h($pmt['transaction_ref']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($pmt['note']): ?>
+                        <div class="pmt-note"><?= h($pmt['note']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($pmt['received_by_username']): ?>
+                        <div class="pmt-by">By <?= h($pmt['received_by_username']) ?> · <?= h(fmt_dt($pmt['created_at'])) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="pmt-amount">৳<?= number_format((float)$pmt['paid_amount'], 0) ?></div>
+                <?php if ($isAdmin): ?>
+                <form method="POST" action="gold_buy_edit.php?id=<?= $buyId ?>"
+                      onsubmit="return confirm('Delete this payment record?')"
+                      class="ms-2">
+                    <input type="hidden" name="action"     value="delete_payment">
+                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                    <input type="hidden" name="payment_id" value="<?= (int)$pmt['id'] ?>">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete payment">
+                        <i class="bi bi-trash3" style="font-size:.75rem;"></i>
+                    </button>
+                </form>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -612,6 +798,84 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                 <i class="bi bi-save-fill me-1"></i> Save Note
             </button>
         </form>
+    </div>
+</div>
+
+<!-- ================================================================
+     ADD PAYMENT MODAL (all logged-in users)
+================================================================ -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background:var(--fb-green);color:#fff;">
+                <h5 class="modal-title">
+                    <i class="bi bi-cash-stack me-2"></i>Add Payment — Buy #<?= $buyId ?>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="gold_buy_edit.php?id=<?= $buyId ?>">
+                <input type="hidden" name="action"     value="add_payment">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                <div class="modal-body">
+
+                    <!-- Current due summary -->
+                    <div class="alert alert-warning py-2 mb-3" style="font-size:.85rem;">
+                        <div class="d-flex justify-content-between">
+                            <span>Total Amount:</span>
+                            <strong>৳<?= number_format((float)$buy['total_amount'], 0) ?></strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Total Paid:</span>
+                            <strong class="text-success">৳<?= number_format((float)$totalPaid, 0) ?></strong>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-1 mt-1">
+                            <span class="fw-bold">Due Amount:</span>
+                            <strong class="text-danger">৳<?= number_format((float)$buy['due_amount'], 0) ?></strong>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Paid Amount (BDT) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background:var(--fb-green);color:#fff;border-color:var(--fb-green);">৳</span>
+                            <input type="number" name="paid_amount" class="form-control"
+                                   min="0.01" step="0.01" required
+                                   placeholder="Enter payment amount"
+                                   value="<?= number_format((float)$buy['due_amount'], 2, '.', '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Payment Date <span class="text-danger">*</span></label>
+                        <input type="date" name="payment_date" class="form-control" required
+                               value="<?= date('Y-m-d') ?>">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Transaction Reference
+                            <small class="fw-normal text-muted">(cheque no., bank ref., MFS trxn ID)</small>
+                        </label>
+                        <input type="text" name="transaction_ref" class="form-control"
+                               placeholder="Optional reference…">
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">Note <small class="fw-normal text-muted">(optional)</small></label>
+                        <input type="text" name="payment_note" class="form-control"
+                               placeholder="e.g. bKash, cash, bank transfer…">
+                    </div>
+
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-gold btn-sm">
+                        <i class="bi bi-save-fill me-1"></i> Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -637,9 +901,9 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 
                 <div class="modal-body">
 
-                    <!-- Pure gold price + paid amount (top row) -->
+                    <!-- Pure gold price -->
                     <div class="row g-3 mb-4">
-                        <div class="col-sm-6">
+                        <div class="col-sm-12">
                             <label class="form-label small fw-semibold mb-1">
                                 Pure Gold Price (24k / Vori)
                                 <small class="text-muted fw-normal">(BDT)</small>
@@ -649,20 +913,6 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                                 <input type="number" name="pure_gold_price" id="pureGoldPriceInput"
                                        min="1" step="1"
                                        value="<?= h((int)$buy['pure_gold_price']) ?>"
-                                       class="form-control"
-                                       oninput="recalcAll()">
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <label class="form-label small fw-semibold mb-1">
-                                Paid Amount
-                                <small class="text-muted fw-normal">(BDT)</small>
-                            </label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text" style="background:#2e7d32;color:#fff;border-color:#2e7d32;">৳</span>
-                                <input type="number" name="paid_amount" id="paidAmountInput"
-                                       min="0" step="1"
-                                       value="<?= h((int)$buy['paid_amount']) ?>"
                                        class="form-control"
                                        oninput="recalcAll()">
                             </div>
@@ -745,8 +995,8 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                                     <td class="l-val" id="previewTotal">—</td>
                                 </tr>
                                 <tr class="l-paid">
-                                    <td class="l-label">Paid Amount</td>
-                                    <td class="l-val" id="previewPaid">—</td>
+                                    <td class="l-label">Already Paid</td>
+                                    <td class="l-val" id="previewPaid">৳<?= number_format((float)$totalPaid, 0) ?></td>
                                 </tr>
                                 <tr class="l-due">
                                     <td class="l-label">Due Amount</td>
@@ -775,7 +1025,8 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <script>
 'use strict';
 const G_VORI = 11.664, G_ANA = 0.729, G_ROTI = 0.1215, G_POINT = 0.01215;
-const ITEM_COUNT = <?= count($items) ?>;
+const ITEM_COUNT  = <?= count($items) ?>;
+const TOTAL_PAID  = <?= (float)$totalPaid ?>;
 
 function tradToGrams(v,a,r,p){
     return v*G_VORI + a*G_ANA + r*G_ROTI + p*G_POINT;
@@ -795,14 +1046,10 @@ function getItemInputs(idx){
 function getPureGoldPrice(){
     return Math.max(0, parseFloat(document.getElementById('pureGoldPriceInput').value) || 0);
 }
-function getPaidAmount(){
-    return Math.max(0, parseFloat(document.getElementById('paidAmountInput').value) || 0);
-}
 
 function recalcItem(idx){
     const {v,a,r,p,k} = getItemInputs(idx);
-    const grams = tradToGrams(v,a,r,p);
-    const price = (grams / G_VORI) * (k / 24) * getPureGoldPrice();
+    const price = (tradToGrams(v,a,r,p) / G_VORI) * (k / 24) * getPureGoldPrice();
     const el = document.getElementById('itemPreview_' + idx);
     if (el) el.textContent = 'Item Price: ' + fmtBDT(price);
     recalcSummary();
@@ -819,11 +1066,9 @@ function recalcSummary(){
         const {v,a,r,p,k} = getItemInputs(i);
         total += (tradToGrams(v,a,r,p) / G_VORI) * (k / 24) * pg;
     }
-    const paid = getPaidAmount();
-    const due  = total - paid;
+    const due = total - TOTAL_PAID;
     document.getElementById('previewTotal').textContent = fmtBDT(total);
-    document.getElementById('previewPaid').textContent  = fmtBDT(paid);
-    document.getElementById('previewDue').textContent   = fmtBDT(Math.abs(due));
+    document.getElementById('previewDue').textContent   = fmtBDT(Math.max(0, due));
 }
 
 document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAll);

@@ -360,6 +360,8 @@ $payments = mysqli_fetch_all(mysqli_stmt_get_result($pStmt), MYSQLI_ASSOC);
 mysqli_stmt_close($pStmt);
 
 $totalPaid = array_sum(array_column($payments, 'paid_amount'));
+$dueAmount = round((float)$sale['due_amount'], 2);
+$fullyPaid = $dueAmount <= 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -725,10 +727,16 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
             Payment History
             <span class="badge bg-secondary ms-1"><?= count($payments) ?></span>
         </span>
+        <?php if (!$fullyPaid): ?>
         <button type="button" class="btn btn-sm btn-gold"
                 data-bs-toggle="modal" data-bs-target="#addPaymentModal">
             <i class="bi bi-plus-lg me-1"></i> Add Payment
         </button>
+        <?php else: ?>
+        <span class="badge bg-success">
+            <i class="bi bi-check-circle-fill me-1"></i> Fully Paid
+        </span>
+        <?php endif; ?>
     </div>
     <div class="card-body p-0">
         <?php if (empty($payments)): ?>
@@ -790,6 +798,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     </div>
 </div>
 
+<?php if (!$fullyPaid): ?>
 <!-- ================================================================
      ADD PAYMENT MODAL (all logged-in users)
 ================================================================ -->
@@ -819,7 +828,11 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1">
                             <span class="fw-bold">Due Amount:</span>
-                            <strong class="text-danger">৳<?= number_format((float)$sale['due_amount'], 0) ?></strong>
+                            <strong class="text-danger" id="modalCurrentDue">৳<?= number_format($dueAmount, 0) ?></strong>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-1 mt-1" id="dueAfterRow" style="display:none;">
+                            <span class="fw-bold">Due After This Payment:</span>
+                            <strong id="dueAfterValue">—</strong>
                         </div>
                     </div>
 
@@ -827,11 +840,12 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                         <label class="form-label fw-semibold">Paid Amount (BDT) <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text" style="background:var(--fb-green);color:#fff;border-color:var(--fb-green);">৳</span>
-                            <input type="number" name="paid_amount" class="form-control"
-                                   min="0.01" step="0.01" required
+                            <input type="number" name="paid_amount" id="salePayAmountInput" class="form-control"
+                                   min="0.01" max="<?= $dueAmount ?>" step="0.01" required
                                    placeholder="Enter payment amount"
-                                   value="<?= number_format((float)$sale['due_amount'], 2, '.', '') ?>">
+                                   value="<?= number_format($dueAmount, 2, '.', '') ?>">
                         </div>
+                        <div class="form-text" id="salePayAmountHint"></div>
                     </div>
 
                     <div class="mb-3">
@@ -859,7 +873,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-gold btn-sm">
+                    <button type="submit" class="btn btn-gold btn-sm" id="btnRecordSalePayment">
                         <i class="bi bi-save-fill me-1"></i> Record Payment
                     </button>
                 </div>
@@ -867,6 +881,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php if ($isAdmin): ?>
 <!-- ================================================================
@@ -1062,6 +1077,50 @@ function recalcSummary(){
 }
 
 document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAll);
+
+// ── Add Payment modal: live due calculation ──
+(function initSalePaymentModal(){
+    const DUE = <?= $dueAmount ?>;
+    const inp  = document.getElementById('salePayAmountInput');
+    const btn  = document.getElementById('btnRecordSalePayment');
+    const row  = document.getElementById('dueAfterRow');
+    const val  = document.getElementById('dueAfterValue');
+    const hint = document.getElementById('salePayAmountHint');
+    if (!inp) return; // modal not rendered — sale is fully paid
+
+    inp.addEventListener('input', function(){
+        const entered   = parseFloat(this.value) || 0;
+        const remaining = DUE - entered;
+
+        btn.disabled = !(entered > 0 && entered <= DUE + 0.009);
+
+        if (entered <= 0) {
+            row.style.display = 'none';
+            hint.textContent = '';
+            return;
+        }
+
+        row.style.display = '';
+
+        if (remaining <= 0.009) {
+            val.textContent = '৳0 — Fully settled';
+            val.className   = 'text-success';
+            hint.textContent = '';
+        } else if (remaining < 0) {
+            val.textContent  = 'Overpay by ৳' + Math.round(Math.abs(remaining)).toLocaleString('en-BD');
+            val.className    = 'text-danger';
+            hint.textContent = 'Amount exceeds remaining due.';
+            hint.className   = 'form-text text-danger';
+        } else {
+            val.textContent  = '৳' + Math.round(remaining).toLocaleString('en-BD');
+            val.className    = 'text-danger';
+            hint.textContent = '';
+        }
+    });
+
+    document.getElementById('addPaymentModal')
+        .addEventListener('shown.bs.modal', () => inp.dispatchEvent(new Event('input')));
+})();
 </script>
 
 <?php else: ?>

@@ -61,18 +61,23 @@ if ($isAjax || $action !== null) {
 
         $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
-        // Totals (for stat bar)
+        // Totals (for stat bar) — paid/due are derived from gold_buy_payments,
+        // the source of truth (gb.paid_amount is kept in sync but this is safer).
         $totSql = "SELECT
                        COALESCE(SUM(gbi.weight),      0) AS total_weight_g,
                        COALESCE(SUM(gb.total_amount),  0) AS total_amount,
-                       COALESCE(SUM(gb.paid_amount),   0) AS total_paid,
-                       COALESCE(SUM(gb.total_amount - gb.paid_amount), 0) AS total_due
+                       COALESCE(SUM(gbp.paid), 0) AS total_paid,
+                       COALESCE(SUM(gb.total_amount - COALESCE(gbp.paid, 0)), 0) AS total_due
                    FROM gold_buys gb
                    JOIN customers c ON c.id = gb.customer_id
                    LEFT JOIN (
                        SELECT gold_buy_id, SUM(weight) AS weight
                        FROM gold_buy_items GROUP BY gold_buy_id
                    ) gbi ON gbi.gold_buy_id = gb.id
+                   LEFT JOIN (
+                       SELECT gold_buy_id, SUM(paid_amount) AS paid
+                       FROM gold_buy_payments GROUP BY gold_buy_id
+                   ) gbp ON gbp.gold_buy_id = gb.id
                    $where";
         $totStmt = mysqli_prepare($conn, $totSql);
         if ($params) mysqli_stmt_bind_param($totStmt, $types, ...$params);
@@ -92,8 +97,9 @@ if ($isAjax || $action !== null) {
 
         // Rows
         $sql = "SELECT gb.id, gb.customer_id, c.name AS customer_name, c.phone AS customer_phone,
-                       gb.pure_gold_price, gb.total_amount, gb.paid_amount,
-                       (gb.total_amount - gb.paid_amount) AS due_amount,
+                       gb.pure_gold_price, gb.total_amount,
+                       COALESCE(gbp.paid, 0) AS paid_amount,
+                       (gb.total_amount - COALESCE(gbp.paid, 0)) AS due_amount,
                        COALESCE(gbi.weight, 0) AS total_weight_g,
                        COALESCE(gbi.item_count, 0) AS item_count,
                        gb.note, gb.created_at, u.username AS created_by_username
@@ -107,6 +113,10 @@ if ($isAjax || $action !== null) {
                     FROM gold_buy_items
                     GROUP BY gold_buy_id
                 ) gbi ON gbi.gold_buy_id = gb.id
+                LEFT JOIN (
+                    SELECT gold_buy_id, SUM(paid_amount) AS paid
+                    FROM gold_buy_payments GROUP BY gold_buy_id
+                ) gbp ON gbp.gold_buy_id = gb.id
                 $where
                 ORDER BY gb.created_at DESC
                 LIMIT ? OFFSET ?";
@@ -161,7 +171,25 @@ if ($isAjax || $action !== null) {
         $items = [];
         while ($row = mysqli_fetch_assoc(mysqli_stmt_get_result($itemStmt))) $items[] = $row;
 
-        $buy['items'] = $items;
+        // Payment history — paid/due shown to the user are recalculated from
+        // this table rather than trusting gb.paid_amount blindly.
+        $pStmt = mysqli_prepare($conn,
+            "SELECT p.id, p.paid_amount, p.transaction_ref,
+                    p.payment_date, p.note, u.username AS received_by
+             FROM gold_buy_payments p
+             LEFT JOIN users u ON u.id = p.received_by
+             WHERE p.gold_buy_id = ?
+             ORDER BY p.payment_date ASC, p.created_at ASC");
+        mysqli_stmt_bind_param($pStmt, 'i', $id);
+        mysqli_stmt_execute($pStmt);
+        $payments = mysqli_fetch_all(mysqli_stmt_get_result($pStmt), MYSQLI_ASSOC);
+
+        $buy['items']       = $items;
+        $buy['payments']    = $payments;
+        $buy['total_paid']  = array_sum(array_column($payments, 'paid_amount'));
+        $buy['paid_amount'] = $buy['total_paid'];
+        $buy['due_amount']  = (float)$buy['total_amount'] - $buy['total_paid'];
+
         json_out(['success' => true, 'data' => $buy]);
     }
 
@@ -677,6 +705,22 @@ async function openView(id) {
 
         const due = parseFloat(b.due_amount) || 0;
 
+        const pmtHtml = (!b.payments || b.payments.length === 0)
+            ? '<p class="text-muted small mb-0">No payments yet.</p>'
+            : b.payments.map(p => `
+                <div class="d-flex justify-content-between align-items-center
+                            py-1 border-bottom" style="font-size:.82rem;">
+                    <span class="text-muted">
+                        ${new Date(p.payment_date).toLocaleDateString('en-GB',
+                          {day:'2-digit',month:'short',year:'numeric'})}
+                    </span>
+                    <span class="fw-semibold text-success">${fmtBDT(p.paid_amount)}</span>
+                    <span class="text-muted small">${escHtml(p.received_by ?? '—')}</span>
+                    ${p.transaction_ref
+                        ? `<span class="badge bg-light text-dark border">#${escHtml(p.transaction_ref)}</span>`
+                        : '<span></span>'}
+                </div>`).join('');
+
         document.getElementById('viewBody').innerHTML = `
             <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
                 <div>
@@ -701,6 +745,11 @@ async function openView(id) {
                     </thead>
                     <tbody>${itemsHtml}</tbody>
                 </table>
+            </div>
+
+            <div class="mb-3">
+                <div class="fw-semibold small text-muted mb-1">Payment History</div>
+                ${pmtHtml}
             </div>
 
             <table class="table table-sm mb-3 ledger-table">

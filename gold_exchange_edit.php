@@ -518,7 +518,31 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         Customer
     </div>
     <div class="detail-card">
-    <div class="row g-0">
+
+    <!-- Mobile-only: Date & Time, Name, Phone, Address in that exact order -->
+    <div class="row g-2 d-md-none">
+        <div class="col-12">
+            <span class="detail-label">Date &amp; Time:</span>
+            <span class="detail-val ms-1"><?= h(fmt_dt($ex['created_at'])) ?></span>
+        </div>
+        <div class="col-12">
+            <span class="detail-label">Name:</span>
+            <span class="detail-val ms-1"><?= h($ex['customer_name']) ?></span>
+        </div>
+        <div class="col-12">
+            <span class="detail-label">Phone:</span>
+            <span class="detail-val ms-1"><?= h($ex['customer_phone'] ?: '—') ?></span>
+        </div>
+        <div class="col-12">
+            <span class="detail-label">Address:</span>
+            <span class="detail-val ms-1" style="font-weight:400;color:#555;">
+                <?= h($ex['customer_address'] ?: '—') ?>
+            </span>
+        </div>
+    </div>
+
+    <!-- Desktop: two-column layout (customer info left, date/created-by right) -->
+    <div class="row g-0 d-none d-md-flex">
 
         <!-- Left: customer info -->
         <div class="col-md-7 pe-md-4">
@@ -543,10 +567,6 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         <!-- Vertical divider (md+) -->
         <div class="col-md-1 d-none d-md-flex justify-content-center">
             <div style="width:1px;background:#e2e5ea;min-height:100%;"></div>
-        </div>
-        <!-- Horizontal divider (mobile) -->
-        <div class="col-12 d-md-none my-3">
-            <hr class="my-0">
         </div>
 
         <!-- Right: date & created-by -->

@@ -617,7 +617,31 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         <i class="bi bi-person-fill me-1" style="color:var(--fb-green);"></i> Customer
     </div>
     <div class="detail-card">
-    <div class="row g-0">
+
+    <!-- Mobile-only: Date & Time, Name, Phone, Address in that exact order -->
+    <div class="row g-2 d-md-none">
+        <div class="col-12">
+            <span class="detail-label">Date &amp; Time:</span>
+            <span class="detail-val ms-1"><?= h(fmt_dt($buy['created_at'])) ?></span>
+        </div>
+        <div class="col-12">
+            <span class="detail-label">Name:</span>
+            <span class="detail-val ms-1"><?= h($buy['customer_name']) ?></span>
+        </div>
+        <div class="col-12">
+            <span class="detail-label">Phone:</span>
+            <span class="detail-val ms-1"><?= h($buy['customer_phone'] ?: '—') ?></span>
+        </div>
+        <div class="col-12">
+            <span class="detail-label">Address:</span>
+            <span class="detail-val ms-1" style="font-weight:400;color:#555;">
+                <?= h($buy['customer_address'] ?: '—') ?>
+            </span>
+        </div>
+    </div>
+
+    <!-- Desktop: two-column layout (customer info left, date/created-by right) -->
+    <div class="row g-0 d-none d-md-flex">
         <!-- Left: customer info -->
         <div class="col-md-7 pe-md-4">
             <div class="row g-2">
@@ -642,8 +666,6 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         <div class="col-md-1 d-none d-md-flex justify-content-center">
             <div style="width:1px;background:#e2e5ea;min-height:100%;"></div>
         </div>
-        <!-- Horizontal divider (mobile) -->
-        <div class="col-12 d-md-none my-3"><hr class="my-0"></div>
 
         <!-- Right: date + created-by -->
         <div class="col-md-4 ps-md-3">
@@ -1127,20 +1149,41 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
     const hint = document.getElementById('buyPayAmountHint');
     if (!inp) return;
 
-    inp.addEventListener('input', function(){
-        const entered   = parseFloat(this.value) || 0;
+    function update(){
+        // Recompute from the field's current string value every time —
+        // fires on every keystroke, paste, and clear so it never goes stale.
+        const raw     = inp.value;
+        const entered = raw === '' ? 0 : (parseFloat(raw) || 0);
         const remaining = DUE - entered;
 
-        btn.disabled = !(entered > 0 && entered <= DUE + 0.009);
+        row.style.display = '';
 
-        if (entered <= 0) {
-            row.style.display = 'none';
-            hint.textContent = entered < 0 ? 'Payment cannot be negative.' : '';
-            hint.className    = 'form-text text-danger';
+        if (raw === '') {
+            val.textContent  = '৳' + Math.round(DUE).toLocaleString('en-BD');
+            val.className    = 'text-danger';
+            hint.textContent = '';
+            btn.disabled     = true;
             return;
         }
 
-        row.style.display = '';
+        if (entered < 0) {
+            val.textContent  = '৳' + Math.round(DUE).toLocaleString('en-BD');
+            val.className    = 'text-danger';
+            hint.textContent = 'Payment cannot be negative.';
+            hint.className   = 'form-text text-danger';
+            btn.disabled     = true;
+            return;
+        }
+
+        if (entered === 0) {
+            val.textContent  = '৳' + Math.round(DUE).toLocaleString('en-BD');
+            val.className    = 'text-danger';
+            hint.textContent = '';
+            btn.disabled     = true;
+            return;
+        }
+
+        btn.disabled = !(entered > 0 && entered <= DUE + 0.009);
 
         if (remaining <= 0.009) {
             val.textContent  = '৳0 — Fully settled';
@@ -1156,10 +1199,14 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
             val.className    = 'text-danger';
             hint.textContent = '';
         }
-    });
+    }
+
+    ['input', 'keyup', 'change', 'paste'].forEach(evt =>
+        inp.addEventListener(evt, () => setTimeout(update, 0))
+    );
 
     document.getElementById('addPaymentModal')
-        .addEventListener('shown.bs.modal', () => inp.dispatchEvent(new Event('input')));
+        .addEventListener('shown.bs.modal', update);
 })();
 </script>
 <?php endif; ?>

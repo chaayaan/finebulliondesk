@@ -40,6 +40,7 @@ if ($isAjax || $action !== null) {
     // ---- LIST -------------------------------------------------------------
     if ($action === 'list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $categoryId = (int)($_GET['category_id'] ?? 0);
+        $search     = trim($_GET['search'] ?? '');
         $from       = trim($_GET['from'] ?? '');
         $to         = trim($_GET['to'] ?? '');
         $page       = max(1, (int)($_GET['page'] ?? 1));
@@ -65,11 +66,20 @@ if ($isAjax || $action !== null) {
             $types   .= 'i';
             $params[] = $categoryId;
         }
+        if ($search !== '') {
+            $where[]  = '(e.details LIKE ? OR c.category LIKE ?)';
+            $like     = '%' . $search . '%';
+            $types   .= 'ss';
+            $params[] = $like;
+            $params[] = $like;
+        }
 
         $whereSql = implode(' AND ', $where);
 
         // Count
-        $cntSql  = "SELECT COUNT(*) FROM expenses e WHERE $whereSql";
+        $cntSql  = "SELECT COUNT(*) FROM expenses e
+                    JOIN expense_categories c ON c.id = e.expense_category_id
+                    WHERE $whereSql";
         $cntStmt = mysqli_prepare($conn, $cntSql);
         mysqli_stmt_bind_param($cntStmt, $types, ...$params);
         mysqli_stmt_execute($cntStmt);
@@ -95,7 +105,9 @@ if ($isAjax || $action !== null) {
         while ($row = mysqli_fetch_assoc($result)) $rows[] = $row;
 
         // Sum for the filtered range (not just current page)
-        $sumSql  = "SELECT COALESCE(SUM(amount),0) FROM expenses e WHERE $whereSql";
+        $sumSql  = "SELECT COALESCE(SUM(amount),0) FROM expenses e
+                    JOIN expense_categories c ON c.id = e.expense_category_id
+                    WHERE $whereSql";
         $sumStmt = mysqli_prepare($conn, $sumSql);
         mysqli_stmt_bind_param($sumStmt, $types, ...$params);
         mysqli_stmt_execute($sumStmt);
@@ -246,6 +258,39 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
 .btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
 
+/* ---- stat bar (matches other list pages: Buy / Sale / Exchange) ---- */
+.stat-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.stat-cell {
+    padding: 0.65rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.stat-cell .s-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.92;
+    white-space: nowrap;
+}
+.stat-cell .s-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+.stat-count { background: var(--fb-green); color: #fff; }
+.stat-sum   { background: var(--fb-gold);  color: #1a1a1a; }
+
 /* ---- chart card ---- */
 .chart-card {
     background: #fff;
@@ -253,31 +298,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     border-radius: 12px;
     padding: 1rem 1.25rem 0.5rem;
 }
-.chart-legend { display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.85rem; margin-bottom:0.5rem; }
-.chart-legend .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:5px; }
-.chart-wrap { position: relative; height: 260px; }
-
-/* ---- total summary cards after graph ---- */
-.summary-card {
-    background: #fff;
-    border-radius: 10px;
-    border: 1px solid #eef0f3;
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-}
-.summary-card-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    flex-shrink: 0;
-}
+.chart-legend { display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.85rem; font-weight:600; margin-bottom:0.5rem; }
+.chart-legend .dot { width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:6px; }
+.chart-wrap { position: relative; height: 260px; width: 100%; }
 
 /* ---- total strip ---- */
 .total-strip {
@@ -356,11 +379,18 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     }
     .list-header > button.btn span { display: none; }
 
-    /* Summary cards mobile adjustment */
-    .summary-card { padding: 0.65rem 0.75rem; }
-    .summary-card span.text-muted { font-size: 0.68rem !important; }
-    .summary-card h3 { font-size: 1.15rem !important; }
-    .summary-card-icon { width: 34px; height: 34px; font-size: 1rem; }
+    /* Chart mobile adjustment */
+    .chart-card { padding: 0.75rem 0.6rem 0.4rem; border-radius: 10px; }
+    .chart-legend { font-size: 0.68rem; gap: 0.6rem; }
+    .chart-legend .dot { width: 8px; height: 8px; margin-right: 4px; }
+    #chartYear { font-size: 0.78rem; padding: 0.25rem 0.5rem; }
+    .chart-wrap { height: 220px; width: 100%; }
+
+    /* Stat bar mobile adjustment (matches other list pages) */
+    .stat-bar { margin-bottom: 0.75rem; }
+    .stat-cell { padding: 0.5rem 0.55rem; }
+    .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
+    .stat-cell .s-value { font-size: 0.85rem; white-space: normal; }
 
     .card { border-radius: 10px; }
     .filter-bar { padding: 0.6rem 0.7rem; gap: 0.5rem; }
@@ -405,8 +435,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </button>
     </div>
 
-    <!-- CHART (HIDDEN ON MOBILE VIEW: d-none d-md-block) -->
-    <div class="chart-card mb-4 d-none d-md-block">
+    <!-- CHART -->
+    <div class="chart-card mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <div class="chart-legend" id="chartLegend"></div>
             <select id="chartYear" class="form-select form-select-sm" style="width:auto;"></select>
@@ -416,33 +446,29 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
     </div>
 
-    <!-- SUMMARY CARDS -->
-    <div class="row g-2 g-md-3 mb-4">
-        <div class="col-6">
-            <div class="summary-card">
-                <div>
-                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Total Transaction</span>
-                    <h3 class="mb-0 fw-bold text-dark" id="summaryTotalCount">0</h3>
-                </div>
-                <div class="summary-card-icon bg-light text-primary">
-                    <i class="bi bi-receipt"></i>
-                </div>
-            </div>
+    <!-- Stat bar -->
+    <div class="stat-bar" id="statBar">
+        <div class="stat-cell stat-count">
+            <span class="s-label">Total Transaction</span>
+            <span class="s-value" id="summaryTotalCount">0</span>
         </div>
-        <div class="col-6">
-            <div class="summary-card">
-                <div>
-                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Total Expenses</span>
-                    <h3 class="mb-0 fw-bold text-success" id="summaryTotalSum">৳0</h3>
-                </div>
-                <div class="summary-card-icon bg-light text-success">
-                    <i class="bi bi-wallet-fill"></i>
-                </div>
-            </div>
+        <div class="stat-cell stat-sum">
+            <span class="s-label">Total Expenses</span>
+            <span class="s-value" id="summaryTotalSum">৳0</span>
         </div>
     </div>
 
+
     <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Expenses</span>
+            <div class="input-group" style="max-width:300px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search details…">
+                <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+
         <div class="filter-bar">
             <div class="filter-field">
                 <label for="filterCategory">Category</label>
@@ -576,6 +602,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     const state = {
         page: 1,
         categoryId: 0,
+        search: '',
         from: '',
         to: '',
         categories: [],
@@ -672,6 +699,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             ? state.categories.map(c => c.category)
             : [...new Set(rows.map(r => r.category))];
 
+        const isMobile = window.innerWidth < 768;
+
         const datasets = cats.map((cat, i) => {
             const data = months.map((_, mIdx) => {
                 const found = rows.find(r => Number(r.m) === mIdx + 1 && r.category === cat);
@@ -681,8 +710,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 label: cat,
                 data,
                 backgroundColor: CAT_COLORS[i % CAT_COLORS.length],
-                borderRadius: 3,
-                maxBarThickness: 14,
+                borderRadius: 0,
+                maxBarThickness: isMobile ? 16 : 34,
             };
         });
 
@@ -699,13 +728,45 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { right: isMobile ? 4 : 0 } },
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() } },
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: isMobile ? 8.5 : 11 },
+                            maxRotation: isMobile ? 60 : 0,
+                            minRotation: isMobile ? 60 : 0,
+                            autoSkip: false,
+                        },
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        grid: { color: '#eef0f3', borderDash: [3, 3] },
+                        ticks: {
+                            font: { size: isMobile ? 8.5 : 12 },
+                            maxTicksLimit: isMobile ? 5 : 8,
+                            callback: v => isMobile
+                                ? (v >= 1000 ? (v / 1000) + 'k' : v)
+                                : v.toLocaleString(),
+                        },
+                    },
                 },
             },
         });
     }
+
+    // Re-render on breakpoint crossing so bar sizing stays correct after rotation/resize
+    let lastIsMobile = window.innerWidth < 768;
+    window.addEventListener('resize', () => {
+        const nowMobile = window.innerWidth < 768;
+        if (nowMobile !== lastIsMobile) {
+            lastIsMobile = nowMobile;
+            loadChart(document.getElementById('chartYear').value);
+        }
+    });
 
     document.getElementById('chartYear').addEventListener('change', function () {
         loadChart(this.value);
@@ -725,6 +786,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             action: 'list',
             page: state.page,
             category_id: state.categoryId,
+            search: state.search,
             from: state.from,
             to: state.to,
         });
@@ -833,6 +895,19 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         ctrl.appendChild(mk('»', page + 1, page >= totalPages, false));
     }
 
+    // ── Search ────────────────────────────────────────────────────────
+    let searchTimer = null;
+    document.getElementById('searchInput').addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        const val = this.value;
+        searchTimer = setTimeout(() => { state.search = val.trim(); loadExpenses(1); }, 350);
+    });
+    document.getElementById('clearSearchBtn').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        state.search = '';
+        loadExpenses(1);
+    });
+
     // ── Filters ───────────────────────────────────────────────────────
     document.getElementById('filterCategory').addEventListener('change', function () {
         state.categoryId = parseInt(this.value, 10) || 0;
@@ -848,9 +923,11 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     });
     document.getElementById('resetFilterBtn').addEventListener('click', () => {
         state.categoryId = 0;
+        state.search = '';
         state.from = monthStartStr();
         state.to   = todayStr();
         document.getElementById('filterCategory').value = '0';
+        document.getElementById('searchInput').value = '';
         document.getElementById('filterFrom').value = state.from;
         document.getElementById('filterTo').value   = state.to;
         loadExpenses(1);

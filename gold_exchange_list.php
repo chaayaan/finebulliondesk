@@ -29,21 +29,51 @@ if ($isAjax || $action !== null) {
 
     // ---- LIST ------------------------------------------------------------
     if ($action === 'list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
-        $search  = trim($_GET['search'] ?? '');
-        $page    = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 20;
-        $offset  = ($page - 1) * $perPage;
+        $search   = trim($_GET['search']    ?? '');
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo   = trim($_GET['date_to']   ?? '');
+        $page     = max(1, (int)($_GET['page'] ?? 1));
+        $perPage  = 20;
+        $offset   = ($page - 1) * $perPage;
 
-        $where  = '';
-        $params = [];
-        $types  = '';
+        $conditions = [];
+        $params     = [];
+        $types      = '';
 
         if ($search !== '') {
-            $where = "WHERE c.name LIKE ? OR c.phone LIKE ?";
-            $like  = '%' . $search . '%';
-            $params = [$like, $like];
-            $types  = 'ss';
+            $conditions[] = "(c.name LIKE ? OR c.phone LIKE ?)";
+            $like = '%' . $search . '%';
+            $params[] = $like; $params[] = $like;
+            $types .= 'ss';
         }
+        if ($dateFrom !== '') {
+            $conditions[] = "DATE(ge.created_at) >= ?";
+            $params[] = $dateFrom; $types .= 's';
+        }
+        if ($dateTo !== '') {
+            $conditions[] = "DATE(ge.created_at) <= ?";
+            $params[] = $dateTo; $types .= 's';
+        }
+
+        $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        // Totals (for stat bar)
+        $totSql = "SELECT
+                       COALESCE(SUM(gei.old_gold_weight), 0) AS total_impure_gold,
+                       COALESCE(SUM(ge.total_pure_gold),  0) AS total_pure_gold,
+                       COALESCE(SUM(ge.loss),             0) AS total_loss,
+                       COALESCE(SUM(ge.final_pure_gold),  0) AS net_pure_gold_output
+                   FROM gold_exchanges ge
+                   JOIN customers c ON c.id = ge.customer_id
+                   LEFT JOIN (
+                       SELECT gold_exchange_id, SUM(old_gold_weight) AS old_gold_weight
+                       FROM gold_exchange_items GROUP BY gold_exchange_id
+                   ) gei ON gei.gold_exchange_id = ge.id
+                   $where";
+        $totStmt = mysqli_prepare($conn, $totSql);
+        if ($params) mysqli_stmt_bind_param($totStmt, $types, ...$params);
+        mysqli_stmt_execute($totStmt);
+        $totRow = mysqli_fetch_assoc(mysqli_stmt_get_result($totStmt));
 
         $cntSql = "SELECT COUNT(*) FROM gold_exchanges ge
                    JOIN customers c ON c.id = ge.customer_id
@@ -83,6 +113,7 @@ if ($isAjax || $action !== null) {
         json_out([
             'success'    => true,
             'data'       => $rows,
+            'totals'     => $totRow,
             'page'       => $page,
             'perPage'    => $perPage,
             'totalRows'  => (int)$total,
@@ -155,6 +186,49 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .list-header h4 { color: #fff; }
 .list-header small { color: rgba(255,255,255,0.75); }
 
+/* ---- stat bar: Impure / Net Output / Loss / Pure Gold ---- */
+.stat-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.stat-cell {
+    padding: 0.65rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.stat-cell .s-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.92;
+    white-space: nowrap;
+}
+.stat-cell .s-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+.stat-impure { background: var(--fb-green); color: #fff; }
+.stat-output { background: var(--fb-gold);  color: #1a1a1a; }
+.stat-loss   { background: #2e7d32;         color: #fff; }
+.stat-pure   { background: #c0392b;         color: #fff; }
+
+/* ---- filter bar ---- */
+.filter-bar { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0.65rem 1rem;
+              display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.filter-bar label { font-size: 0.75rem; color: #6c757d; margin-bottom: 0; }
+.filter-bar input[type=date] { font-size: 0.82rem; padding: 0.3rem 0.5rem;
+                                border: 1px solid #dee2e6; border-radius: 6px; }
+
+
 /* ---- table weight badges ---- */
 .badge-pure  { background: #eaf5ee; color: var(--fb-green); font-weight: 600; font-size: 0.82rem; }
 .badge-loss  { background: #fdf1e0; color: #96660c;         font-weight: 600; font-size: 0.82rem; }
@@ -226,6 +300,20 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     }
     .list-header > a.btn span { display: none; }
 
+    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; }
+    .stat-cell { padding: 0.5rem 0.55rem; }
+    .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
+    .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
+
+    /* Mobile pairing: Impure+Loss on row 1, Output+Pure on row 2 */
+    .stat-impure { order: 1; }
+    .stat-loss   { order: 2; }
+    .stat-output { order: 3; }
+    .stat-pure   { order: 4; }
+
+    .filter-bar { padding: 0.5rem 0.6rem; gap: 0.4rem; }
+    .filter-bar input[type=date] { font-size: 0.76rem; padding: 0.25rem 0.4rem; }
+
     .card { border-radius: 8px; }
     .card-header { padding: 0.5rem 0.6rem; }
     .card-header .fw-semibold { font-size: 0.82rem; }
@@ -252,7 +340,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <div class="page-content">
 <div class="container-fluid py-4">
 
-    <div class="list-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="list-header mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
             <h4 class="mb-0">
                 <i class="bi bi-arrow-left-right me-2"></i>
@@ -266,6 +354,26 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </a>
     </div>
 
+    <!-- Stat bar -->
+    <div class="stat-bar" id="statBar">
+        <div class="stat-cell stat-impure">
+            <span class="s-label">Total Impure Gold</span>
+            <span class="s-value" id="statImpure">—</span>
+        </div>
+        <div class="stat-cell stat-output">
+            <span class="s-label">Net Pure Gold Output</span>
+            <span class="s-value" id="statOutput">—</span>
+        </div>
+        <div class="stat-cell stat-loss">
+            <span class="s-label">Total Loss</span>
+            <span class="s-value" id="statLoss">—</span>
+        </div>
+        <div class="stat-cell stat-pure">
+            <span class="s-label">Total Pure Gold</span>
+            <span class="s-value" id="statPure">—</span>
+        </div>
+    </div>
+
     <div class="card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Exchanges</span>
@@ -275,6 +383,19 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
         </div>
+
+        <!-- Date filter bar -->
+        <div class="filter-bar">
+            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:#6c757d;">From</span>
+            <label class="d-md-none" style="font-size:0.72rem;color:#6c757d;">From</label>
+            <input type="date" id="dateFrom">
+            <span style="font-size:0.8rem;color:#6c757d;">To</span>
+            <input type="date" id="dateTo">
+            <button class="btn btn-sm btn-outline-secondary ms-1" id="clearDatesBtn" title="Clear dates">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -394,6 +515,8 @@ function escHtml(s) {
 // ----------------------------------------------------------------
 let currentPage   = 1;
 let currentSearch = '';
+let currentFrom   = '';
+let currentTo     = '';
 let searchTimer   = null;
 
 async function loadList(page = 1) {
@@ -402,7 +525,12 @@ async function loadList(page = 1) {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>';
 
     try {
-        const params = new URLSearchParams({ action: 'list', page, search: currentSearch });
+        const params = new URLSearchParams({
+            action: 'list', page,
+            search:    currentSearch,
+            date_from: currentFrom,
+            date_to:   currentTo,
+        });
         const res  = await fetch('gold_exchange_list.php?' + params.toString(), {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
@@ -412,6 +540,13 @@ async function loadList(page = 1) {
             tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">${escHtml(data.message || 'Failed to load.')}</td></tr>`;
             return;
         }
+
+        // Stat bar
+        const tot = data.totals || {};
+        document.getElementById('statImpure').textContent = fmtTrad(tot.total_impure_gold      || 0);
+        document.getElementById('statOutput').textContent = fmtTrad(tot.net_pure_gold_output    || 0);
+        document.getElementById('statLoss').textContent   = fmtTrad(tot.total_loss              || 0);
+        document.getElementById('statPure').textContent   = fmtTrad(tot.total_pure_gold          || 0);
 
         if (data.data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No exchanges found.</td></tr>';
@@ -434,7 +569,7 @@ async function loadList(page = 1) {
                     <td class="d-none d-md-table-cell"><span class="badge badge-final">${fmtTrad(row.final_pure_gold)}</span></td>
                     <td class="d-md-none exchange-info-cell">
                         <div class="info-row"><span class="info-label">Total Pure Gold</span><span class="info-value">${fmtTrad(row.total_pure_gold)}</span></div>
-                        <div class="info-row"><span class="info-label">Point ( ${lossRate}Pt/V)</span><span class="info-value">${lossPoints(row.loss)} P</span></div>
+                        <div class="info-row"><span class="info-label">LossPoint (${lossRate} Pt/V)</span><span class="info-value">${lossPoints(row.loss)} P</span></div>
                         <div class="info-row"><span class="info-label">Final Pure Gold</span><span class="info-value">${fmtTrad(row.final_pure_gold)}</span></div>
                     </td>
                     <td class="small d-none d-md-table-cell">${fmtDate(row.created_at)}</td>
@@ -498,6 +633,18 @@ document.getElementById('clearSearchBtn').addEventListener('click', function () 
     document.getElementById('searchInput').value = '';
     currentSearch = '';
     loadList(1);
+});
+
+document.getElementById('dateFrom').addEventListener('change', function () {
+    currentFrom = this.value; loadList(1);
+});
+document.getElementById('dateTo').addEventListener('change', function () {
+    currentTo = this.value; loadList(1);
+});
+document.getElementById('clearDatesBtn').addEventListener('click', () => {
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value   = '';
+    currentFrom = ''; currentTo = ''; loadList(1);
 });
 
 // ----------------------------------------------------------------
@@ -601,6 +748,17 @@ async function openView(id) {
         document.getElementById('viewBody').innerHTML = '<div class="text-danger">Network error.</div>';
     }
 }
+
+// Set default date range: past 30 days → today
+(function setDefaultDates() {
+    const today = new Date();
+    const from  = new Date(); from.setDate(today.getDate() - 30);
+    const fmt   = d => d.toISOString().slice(0, 10);
+    document.getElementById('dateFrom').value = fmt(from);
+    document.getElementById('dateTo').value   = fmt(today);
+    currentFrom = fmt(from);
+    currentTo   = fmt(today);
+})();
 
 loadList(1);
 </script>

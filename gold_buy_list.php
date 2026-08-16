@@ -322,10 +322,10 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     }
     .list-header > a.btn span { display: none; }
 
-    .stat-bar { grid-template-columns: repeat(4, 1fr); margin-bottom: 0.75rem; }
-    .stat-cell { padding: 0.45rem 0.4rem; }
-    .stat-cell .s-label { font-size: 0.58rem; }
-    .stat-cell .s-value { font-size: 0.72rem; }
+    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; }
+    .stat-cell { padding: 0.5rem 0.55rem; }
+    .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
+    .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
 
     .card { border-radius: 8px; }
     .card-header { padding: 0.5rem 0.6rem; }

@@ -125,8 +125,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $paymentNote    = trim($_POST['payment_note']      ?? '') ?: null;
         $userId         = $currentUser['id'];
 
+        // Re-fetch the live due amount to guard against race conditions or
+        // a stale/tampered form (never trust the client-submitted due figure).
+        $chkStmt = mysqli_prepare($conn,
+            "SELECT gs.total_amount,
+                    COALESCE(SUM(p.paid_amount), 0) AS paid_so_far
+             FROM gold_sales gs
+             LEFT JOIN gold_sale_payments p ON p.gold_sale_id = gs.id
+             WHERE gs.id = ?
+             GROUP BY gs.id, gs.total_amount");
+        mysqli_stmt_bind_param($chkStmt, 'i', $saleId);
+        mysqli_stmt_execute($chkStmt);
+        $chk        = mysqli_fetch_assoc(mysqli_stmt_get_result($chkStmt));
+        mysqli_stmt_close($chkStmt);
+        $currentDue = $chk ? round((float)$chk['total_amount'] - (float)$chk['paid_so_far'], 2) : 0.0;
+
         $errors = [];
-        if ($paidAmount <= 0) $errors[] = 'Paid amount must be greater than zero.';
+        if ($currentDue <= 0) {
+            $errors[] = 'This sale is already fully paid.';
+        } elseif ($paidAmount <= 0) {
+            $errors[] = 'Paid amount must be greater than zero.';
+        } elseif ($paidAmount > $currentDue + 0.009) {
+            $errors[] = 'Amount exceeds remaining due (৳' . number_format($currentDue, 0) . ').';
+        }
         if (empty($paymentDate)) $errors[] = 'Payment date is required.';
 
         if (empty($errors)) {
@@ -1077,8 +1098,16 @@ function recalcSummary(){
 }
 
 document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAll);
+</script>
 
-// ── Add Payment modal: live due calculation ──
+<?php else: ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php endif; ?>
+
+<?php if (!$fullyPaid): ?>
+<script>
+'use strict';
+// ── Add Payment modal: live due calculation (all logged-in users) ──
 (function initSalePaymentModal(){
     const DUE = <?= $dueAmount ?>;
     const inp  = document.getElementById('salePayAmountInput');
@@ -1086,7 +1115,7 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
     const row  = document.getElementById('dueAfterRow');
     const val  = document.getElementById('dueAfterValue');
     const hint = document.getElementById('salePayAmountHint');
-    if (!inp) return; // modal not rendered — sale is fully paid
+    if (!inp) return;
 
     inp.addEventListener('input', function(){
         const entered   = parseFloat(this.value) || 0;
@@ -1096,15 +1125,16 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
 
         if (entered <= 0) {
             row.style.display = 'none';
-            hint.textContent = '';
+            hint.textContent = entered < 0 ? 'Payment cannot be negative.' : '';
+            hint.className    = 'form-text text-danger';
             return;
         }
 
         row.style.display = '';
 
         if (remaining <= 0.009) {
-            val.textContent = '৳0 — Fully settled';
-            val.className   = 'text-success';
+            val.textContent  = '৳0 — Fully settled';
+            val.className    = 'text-success';
             hint.textContent = '';
         } else if (remaining < 0) {
             val.textContent  = 'Overpay by ৳' + Math.round(Math.abs(remaining)).toLocaleString('en-BD');
@@ -1122,9 +1152,6 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
         .addEventListener('shown.bs.modal', () => inp.dispatchEvent(new Event('input')));
 })();
 </script>
-
-<?php else: ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <?php endif; ?>
 
 </div>

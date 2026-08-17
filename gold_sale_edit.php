@@ -53,7 +53,7 @@ function fmt_dt(?string $s): string {
     return (new DateTime($s))->format('d M Y, g:i A');
 }
 
-function h(mixed $s): string {
+function h($s): string {
     return htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8');
 }
 

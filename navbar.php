@@ -1,7 +1,7 @@
 <?php
 /**
  * navbar.php
- * FineBullion Desk — Shared sidebar navigation
+ * Clean 5-Item Navigation with Dynamic Full-Width Logo / Text Fallback
  */
 
 if (!isset($navUser)) {
@@ -27,13 +27,20 @@ if (!isset($navUser)) {
 }
 
 $navCurrentPage = basename($_SERVER['SCRIPT_NAME']);
+$isAdmin = (strtolower(trim($navUser['role'])) === 'admin');
 
-// Array of exchange sub-items
-$exchangePages = ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php'];
-$isExchangeActive = in_array($navCurrentPage, $exchangePages);
+// Check if logo image file physically exists on the server
+$logoImagePath = 'fine bullion desk logo.png';
+$hasLogoImage = file_exists(__DIR__ . '/' . $logoImagePath);
 
-function nav_is_active(string $href, string $current): bool
-{
+// Active State Logic
+$isCustomerActive  = in_array($navCurrentPage, ['customers.php', 'customer_history.php']);
+$isExchangeActive  = in_array($navCurrentPage, ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php']);
+$isSaleActive      = in_array($navCurrentPage, ['gold_sale.php', 'gold_sale_list.php', 'gold_sale_edit.php']);
+$isBuyActive       = in_array($navCurrentPage, ['gold_buy.php', 'gold_buy_list.php', 'gold_buy_edit.php']);
+$isMenuActive      = in_array($navCurrentPage, ['dashboard.php', 'expenses.php', 'users.php']);
+
+function nav_is_active(string $href, string $current): bool {
     return $href === $current;
 }
 ?>
@@ -45,440 +52,278 @@ function nav_is_active(string $href, string $current): bool
         --nav-bg-soft: #1a1d25;
         --nav-border: #262a35;
         --nav-gold: #d4a847;
-        --nav-gold-soft: #c9973a;
         --nav-text: #e7e9ee;
         --nav-text-dim: #9095a3;
+        --mobile-nav-height: 60px;
     }
 
-    body {
-        margin: 0;
-    }
+    body { margin: 0; }
 
-    /* ---------- Sidebar ---------- */
+    /* Desktop Sidebar */
     .app-sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: var(--nav-width);
-        height: 100vh;
-        background: var(--nav-bg);
-        border-right: 1px solid var(--nav-border);
-        display: flex;
-        flex-direction: column;
-        z-index: 1040;
-        transition: transform 0.25s ease;
-        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        position: fixed; top: 0; left: 0;
+        width: var(--nav-width); height: 100vh;
+        background: var(--nav-bg); border-right: 1px solid var(--nav-border);
+        display: flex; flex-direction: column; z-index: 1040;
+        font-family: system-ui, -apple-system, sans-serif;
     }
-
+    
+    /* Full-Width Logo Header Container */
     .nav-brand {
         display: flex;
         align-items: center;
-        gap: 0.65rem;
-        padding: 1.15rem 1rem;
+        justify-content: center;
+        padding: 1rem 0.75rem;
         border-bottom: 1px solid var(--nav-border);
+        min-height: 48px;
+        box-sizing: border-box;
     }
-
-    /* Logo Image Style */
-    .nav-brand-logo {
-        width: 36px;
-        height: 36px;
+    
+    /* Full-width logo image layout */
+    .nav-brand-logo-full {
+        width: 100%;
+        max-height: 42px;
         object-fit: contain;
-        flex-shrink: 0;
-        border-radius: 6px;
+        display: block;
     }
 
-    .nav-brand-text {
-        line-height: 1.15;
-        overflow: hidden;
+    /* Fallback Text Layout */
+    .nav-brand-text-fallback {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--nav-gold);
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+        text-align: center;
+        line-height: 1.2;
     }
 
-    .nav-brand-name {
-        font-size: 0.92rem;
-        font-weight: 700;
-        color: #fff;
-        letter-spacing: -0.01em;
-        white-space: nowrap;
-    }
-
-    .nav-brand-sub {
-        font-size: 0.62rem;
-        color: var(--nav-text-dim);
-        letter-spacing: 0.03em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .nav-links {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0.75rem 0.6rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-    }
-
+    .nav-links { flex: 1; overflow-y: auto; padding: 0.75rem 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
     .nav-link-item {
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        padding: 0.62rem 0.75rem;
-        border-radius: 8px;
-        color: var(--nav-text);
-        text-decoration: none;
-        font-size: 0.88rem;
-        font-weight: 500;
-        border-left: 3px solid transparent;
-        transition: background 0.15s, color 0.15s;
-        white-space: nowrap;
-        cursor: pointer;
-        background: none;
-        border-top: none;
-        border-right: none;
-        border-bottom: none;
-        width: 100%;
-        text-align: left;
+        display: flex; align-items: center; gap: 0.7rem; padding: 0.62rem 0.75rem;
+        border-radius: 8px; color: var(--nav-text); text-decoration: none;
+        font-size: 0.88rem; font-weight: 500; cursor: pointer; background: none; border: none; width: 100%; text-align: left;
     }
+    .nav-link-item i { font-size: 1.02rem; width: 20px; color: var(--nav-gold); text-align: center; }
+    .nav-link-item:hover { background: var(--nav-bg-soft); color: #fff; }
+    .nav-link-item.active { background: rgba(212, 168, 71, 0.18); color: var(--nav-gold); }
 
-    .nav-link-item i {
-        font-size: 1.02rem;
-        width: 20px;
-        text-align: center;
-        color: var(--nav-gold);
-        flex-shrink: 0;
-    }
-
-    .nav-link-item:hover {
-        background: var(--nav-bg-soft);
-        color: #fff;
-    }
-
-    .nav-link-item.active {
-        background: linear-gradient(135deg, rgba(201, 151, 58, 0.28) 0%, rgba(212, 168, 71, 0.16) 100%);
-        border-left-color: var(--nav-gold);
-        color: var(--nav-gold);
-    }
-
-    /* Collapsible Submenu Styles */
-    .nav-dropdown-toggle {
-        justify-content: space-between;
-    }
-
-    .nav-dropdown-toggle .chevron-icon {
-        font-size: 0.75rem;
-        transition: transform 0.2s ease;
-        margin-left: auto;
-    }
-
-    .nav-dropdown-toggle.open .chevron-icon {
-        transform: rotate(90deg);
-    }
-
-    .nav-sub-menu {
-        display: none;
-        flex-direction: column;
-        gap: 0.15rem;
-        padding-left: 1.25rem;
-        margin-top: 0.15rem;
-    }
-
-    .nav-sub-menu.show {
-        display: flex;
-    }
-
-    .nav-sub-item {
-        font-size: 0.82rem;
-        padding: 0.5rem 0.75rem;
-    }
-
-    .nav-footer {
-        border-top: 1px solid var(--nav-border);
-        padding: 1.1rem 1rem;
-        text-align: center;
-    }
-
-    .nav-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid var(--nav-gold);
-        margin-bottom: 0.55rem;
-        background: #2a2d36;
-    }
-
-    .nav-avatar-fallback {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        border: 2px solid var(--nav-gold);
-        margin: 0 auto 0.55rem;
-        background: var(--nav-bg-soft);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: var(--nav-gold);
-    }
-
-    .nav-user-name {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #fff;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .nav-user-role {
-        font-size: 0.72rem;
-        color: var(--nav-text-dim);
-        text-transform: capitalize;
-        margin-bottom: 0.75rem;
-    }
-
+    .nav-footer { border-top: 1px solid var(--nav-border); padding: 1rem; text-align: center; }
+    .nav-user-name { font-size: 0.85rem; font-weight: 700; color: #fff; }
+    .nav-user-role { font-size: 0.72rem; color: var(--nav-text-dim); text-transform: capitalize; margin-bottom: 0.5rem; }
     .nav-logout-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-        width: 100%;
-        padding: 0.5rem;
-        border-radius: 7px;
-        border: 1px solid var(--nav-border);
-        background: transparent;
-        color: var(--nav-gold);
-        font-size: 0.82rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: background 0.15s, border-color 0.15s;
+        display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+        width: 100%; padding: 0.45rem; border-radius: 7px; border: 1px solid var(--nav-border);
+        color: var(--nav-gold); text-decoration: none; font-size: 0.82rem; font-weight: 600;
     }
 
-    .nav-logout-btn:hover {
-        background: var(--nav-bg-soft);
-        border-color: var(--nav-gold);
-        color: var(--nav-gold);
-    }
+    .page-content { margin-left: var(--nav-width); min-height: 100vh; background: #f0f2f5; }
 
-    /* ---------- Page content offset (desktop) ---------- */
-    .page-content {
-        margin-left: var(--nav-width);
-        min-height: 100vh;
-        background: #f0f2f5;
+    /* Mobile Bottom Navigation (5 Action Items) */
+    .mobile-bottom-nav {
+        display: none; position: fixed; bottom: 0; left: 0; right: 0;
+        height: var(--mobile-nav-height); background: var(--nav-bg);
+        border-top: 1px solid var(--nav-border); z-index: 1050;
     }
-
-    /* ---------- Mobile topbar ---------- */
-    .nav-topbar {
-        display: none;
-        position: sticky;
-        top: 0;
-        z-index: 1030;
-        align-items: center;
-        gap: 0.75rem;
-        background: var(--nav-bg);
-        color: #fff;
-        padding: 0.7rem 1rem;
-        border-bottom: 1px solid var(--nav-border);
+    .mobile-nav-container { display: flex; height: 100%; align-items: center; justify-content: space-around; }
+    .mobile-nav-item {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        flex: 1; height: 100%; color: var(--nav-text-dim); background: none; border: none; padding: 0; gap: 3px; cursor: pointer;
     }
+    .mobile-nav-item i { font-size: 1.2rem; }
+    .mobile-nav-item span { font-size: 0.65rem; font-weight: 500; }
+    .mobile-nav-item.active { color: var(--nav-gold); }
 
-    .nav-topbar-brand {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 700;
-        font-size: 0.95rem;
+    /* Bottom Sheets */
+    .bottom-sheet-backdrop {
+        display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 1060; opacity: 0; transition: opacity 0.2s ease;
     }
-
-    .nav-topbar-brand .nav-brand-logo {
-        width: 28px;
-        height: 28px;
+    .bottom-sheet-backdrop.active { display: block; opacity: 1; }
+    .bottom-sheet {
+        position: fixed; left: 0; right: 0; bottom: 0; background: var(--nav-bg);
+        border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid var(--nav-border);
+        padding: 0.75rem 1.25rem 1.5rem; z-index: 1070; transform: translateY(100%); transition: transform 0.25s ease;
     }
-
-    .nav-toggle-btn {
-        background: transparent;
-        border: 1px solid var(--nav-border);
-        color: #fff;
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        flex-shrink: 0;
+    .bottom-sheet.open { transform: translateY(0); }
+    .bottom-sheet-drag-handle { width: 36px; height: 4px; background: var(--nav-border); border-radius: 2px; margin: 0 auto 0.85rem; }
+    .bottom-sheet-title { color: #fff; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.85rem; text-align: center; }
+    .bottom-sheet-options { display: flex; flex-direction: column; gap: 0.5rem; }
+    .bottom-sheet-item {
+        display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 1rem; border-radius: 10px;
+        background: var(--nav-bg-soft); color: var(--nav-text); text-decoration: none; font-size: 0.9rem; font-weight: 500;
     }
+    .bottom-sheet-item i { font-size: 1.1rem; color: var(--nav-gold); }
+    .bottom-sheet-item.active { background: rgba(212, 168, 71, 0.2); color: var(--nav-gold); }
 
-    .nav-backdrop {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 1035;
-    }
-
-    /* ---------- Responsive breakpoint ---------- */
     @media (max-width: 991.98px) {
-        .app-sidebar {
-            transform: translateX(-100%);
-            box-shadow: 0 0 32px rgba(0, 0, 0, 0.35);
-        }
-
-        .app-sidebar.nav-open {
-            transform: translateX(0);
-        }
-
-        .page-content {
-            margin-left: 0;
-        }
-
-        .nav-topbar {
-            display: flex;
-        }
-
-        .nav-backdrop.nav-open {
-            display: block;
-        }
+        .app-sidebar { display: none; }
+        .mobile-bottom-nav { display: block; }
+        .page-content { margin-left: 0; padding-bottom: calc(var(--mobile-nav-height) + 12px); }
     }
 </style>
 
-<div class="nav-topbar">
-    <button class="nav-toggle-btn" id="navToggleBtn" aria-label="Open menu" aria-expanded="false">
-        <i class="bi bi-list"></i>
-    </button>
-    <div class="nav-topbar-brand">
-        <!-- Replacing icon with logo image in topbar -->
-        <img src="assets/images/logo.png" alt="Logo" class="nav-brand-logo">
-        <span>FineBullion Desk</span>
-    </div>
-</div>
-
-<div class="nav-backdrop" id="navBackdrop"></div>
-
-<aside class="app-sidebar" id="appSidebar">
-
+<!-- Desktop Sidebar -->
+<aside class="app-sidebar">
     <div class="nav-brand">
-        <!-- Replacing icon with logo image in sidebar -->
-        <img src="fine bullion desk logo.png" alt="Logo" class="nav-brand-logo">
-        <div class="nav-brand-text">
-            <div class="nav-brand-name">FineBullion Desk</div>
-            <div class="nav-brand-sub">Artisan Gold Trade &amp; Pure-Weight Ledger</div>
-        </div>
+        <?php if ($hasLogoImage): ?>
+            <!-- Full Width Image Logo -->
+            <img src="<?= htmlspecialchars($logoImagePath) ?>" 
+                 alt="FineBullion Desk" 
+                 class="nav-brand-logo-full" 
+                 onerror="this.style.display='none'; document.getElementById('navBrandFallbackText').style.display='block';">
+            <div class="nav-brand-text-fallback" id="navBrandFallbackText" style="display: none;">
+                FineBullion Desk
+            </div>
+        <?php else: ?>
+            <!-- Text Fallback when logo file is missing -->
+            <div class="nav-brand-text-fallback">
+                FineBullion Desk
+            </div>
+        <?php endif; ?>
     </div>
 
     <nav class="nav-links">
         <a href="dashboard.php" class="nav-link-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-grid-1x2-fill"></i>
-            <span>Dashboard</span>
+            <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
         </a>
-
-        <a href="customers.php" class="nav-link-item<?= nav_is_active('customers.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-person-fill"></i>
-            <span>Customer</span>
+        <a href="customers.php" class="nav-link-item<?= $isCustomerActive ? ' active' : '' ?>">
+            <i class="bi bi-person-fill"></i><span>Customer</span>
         </a>
-
-        <!-- Collapsible Exchange Menu -->
-        <div class="nav-dropdown">
-            <button type="button" class="nav-link-item nav-dropdown-toggle<?= $isExchangeActive ? ' open' : '' ?>" id="exchangeToggle">
-                <div style="display:flex; align-items:center; gap:0.7rem;">
-                    <i class="bi bi-arrow-left-right"></i>
-                    <span>Exchange</span>
-                </div>
-                <i class="bi bi-chevron-right chevron-icon"></i>
-            </button>
-            <div class="nav-sub-menu<?= $isExchangeActive ? ' show' : '' ?>" id="exchangeSubMenu">
-                <a href="gold_exchange.php" class="nav-link-item nav-sub-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
-                    <span>Gold Exchange</span>
-                </a>
-                <a href="gold_exchange_list.php" class="nav-link-item nav-sub-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
-                    <span>Gold Exchange List</span>
-                </a>
-                
-                <!-- Shown strictly when user is currently on the edit page -->
-                <?php if ($navCurrentPage === 'gold_exchange_edit.php'): ?>
-                    <a href="gold_exchange_edit.php" class="nav-link-item nav-sub-item active">
-                        <span>Gold Exchange Edit</span>
-                    </a>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <a href="gold_sale.php" class="nav-link-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-cash-coin"></i>
-            <span>Sale</span>
+        <a href="gold_exchange.php" class="nav-link-item<?= $isExchangeActive ? ' active' : '' ?>">
+            <i class="bi bi-arrow-left-right"></i><span>Exchange</span>
         </a>
-
-        <a href="gold_buy.php" class="nav-link-item<?= nav_is_active('gold_buy.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-cart-fill"></i>
-            <span>Buy</span>
+        <a href="gold_sale.php" class="nav-link-item<?= $isSaleActive ? ' active' : '' ?>">
+            <i class="bi bi-cash-coin"></i><span>Sale</span>
         </a>
-
+        <a href="gold_buy.php" class="nav-link-item<?= $isBuyActive ? ' active' : '' ?>">
+            <i class="bi bi-cart-fill"></i><span>Buy</span>
+        </a>
         <a href="expenses.php" class="nav-link-item<?= nav_is_active('expenses.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-wallet2"></i>
-            <span>Expenses</span>
+            <i class="bi bi-wallet2"></i><span>Expenses</span>
         </a>
-
-        <a href="users.php" class="nav-link-item<?= nav_is_active('users.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-people-fill"></i>
-            <span>Users</span>
-        </a>
-    </nav>
-
-    <div class="nav-footer">
-        <?php if (!empty($navUser['photo_path'])): ?>
-            <img src="<?= htmlspecialchars($navUser['photo_path']) ?>" alt="Profile photo" class="nav-avatar">
-        <?php else: ?>
-            <div class="nav-avatar-fallback">
-                <?= htmlspecialchars(strtoupper(substr($navUser['username'] ?? 'U', 0, 1))) ?>
-            </div>
+        <?php if ($isAdmin): ?>
+            <a href="users.php" class="nav-link-item<?= nav_is_active('users.php', $navCurrentPage) ? ' active' : '' ?>">
+                <i class="bi bi-people-fill"></i><span>Users</span>
+            </a>
         <?php endif; ?>
-        <div class="nav-user-name"><?= htmlspecialchars($navUser['username'] ?? 'User') ?></div>
+    </nav>
+    <div class="nav-footer">
+        <div class="nav-user-name"><?= htmlspecialchars($navUser['username']) ?></div>
         <div class="nav-user-role"><?= htmlspecialchars($navUser['role'] ?: 'Member') ?></div>
-        <a href="logout.php" class="nav-logout-btn">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
+        <a href="logout.php" class="nav-logout-btn"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
-
 </aside>
 
+<!-- Mobile Bottom Navigation (5 Action Items) -->
+<nav class="mobile-bottom-nav">
+    <div class="mobile-nav-container">
+        <button type="button" class="mobile-nav-item<?= $isCustomerActive ? ' active' : '' ?>" onclick="openSheet('sheetCustomer')">
+            <i class="bi bi-person-fill"></i><span>Customer</span>
+        </button>
+        <button type="button" class="mobile-nav-item<?= $isExchangeActive ? ' active' : '' ?>" onclick="openSheet('sheetExchange')">
+            <i class="bi bi-arrow-left-right"></i><span>Exchange</span>
+        </button>
+        <button type="button" class="mobile-nav-item<?= $isSaleActive ? ' active' : '' ?>" onclick="openSheet('sheetSale')">
+            <i class="bi bi-cash-coin"></i><span>Sale</span>
+        </button>
+        <button type="button" class="mobile-nav-item<?= $isBuyActive ? ' active' : '' ?>" onclick="openSheet('sheetBuy')">
+            <i class="bi bi-cart-fill"></i><span>Buy</span>
+        </button>
+        <button type="button" class="mobile-nav-item<?= $isMenuActive ? ' active' : '' ?>" onclick="openSheet('sheetMenu')">
+            <i class="bi bi-three-dots"></i><span>Menu</span>
+        </button>
+    </div>
+</nav>
+
+<!-- Backdrop -->
+<div class="bottom-sheet-backdrop" id="sheetBackdrop" onclick="closeSheets()"></div>
+
+<!-- Bottom Sheets -->
+<div class="bottom-sheet" id="sheetCustomer">
+    <div class="bottom-sheet-drag-handle"></div>
+    <div class="bottom-sheet-title">Customer Module</div>
+    <div class="bottom-sheet-options">
+        <a href="customers.php" class="bottom-sheet-item<?= nav_is_active('customers.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-people"></i><span>Customers List</span>
+        </a>
+    </div>
+</div>
+
+<div class="bottom-sheet" id="sheetExchange">
+    <div class="bottom-sheet-drag-handle"></div>
+    <div class="bottom-sheet-title">Exchange Module</div>
+    <div class="bottom-sheet-options">
+        <a href="gold_exchange.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-plus-circle"></i><span>New Exchange</span>
+        </a>
+        <a href="gold_exchange_list.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-journal-text"></i><span>Exchange List</span>
+        </a>
+    </div>
+</div>
+
+<div class="bottom-sheet" id="sheetSale">
+    <div class="bottom-sheet-drag-handle"></div>
+    <div class="bottom-sheet-title">Sale Module</div>
+    <div class="bottom-sheet-options">
+        <a href="gold_sale.php" class="bottom-sheet-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-plus-circle"></i><span>New Gold Sale</span>
+        </a>
+        <a href="gold_sale_list.php" class="bottom-sheet-item<?= nav_is_active('gold_sale_list.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-journal-text"></i><span>Gold Sale List</span>
+        </a>
+    </div>
+</div>
+
+<div class="bottom-sheet" id="sheetBuy">
+    <div class="bottom-sheet-drag-handle"></div>
+    <div class="bottom-sheet-title">Buy Module</div>
+    <div class="bottom-sheet-options">
+        <a href="gold_buy.php" class="bottom-sheet-item<?= nav_is_active('gold_buy.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-plus-circle"></i><span>New Gold Buy</span>
+        </a>
+        <a href="gold_buy_list.php" class="bottom-sheet-item<?= nav_is_active('gold_buy_list.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-journal-text"></i><span>Gold Buy List</span>
+        </a>
+    </div>
+</div>
+
+<!-- Three Dot Menu (Home, Expenses, Users, Logout) -->
+<div class="bottom-sheet" id="sheetMenu">
+    <div class="bottom-sheet-drag-handle"></div>
+    <div class="bottom-sheet-title">Main Menu</div>
+    <div class="bottom-sheet-options">
+        <a href="dashboard.php" class="bottom-sheet-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-grid-1x2-fill"></i><span>Dashboard (Home)</span>
+        </a>
+        <a href="expenses.php" class="bottom-sheet-item<?= nav_is_active('expenses.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-wallet2"></i><span>Expenses</span>
+        </a>
+        <?php if ($isAdmin): ?>
+            <a href="users.php" class="bottom-sheet-item<?= nav_is_active('users.php', $navCurrentPage) ? ' active' : '' ?>">
+                <i class="bi bi-people-fill"></i><span>User Management</span>
+            </a>
+        <?php endif; ?>
+        <a href="logout.php" class="bottom-sheet-item" style="color: #ff6b6b;">
+            <i class="bi bi-box-arrow-right" style="color: #ff6b6b;"></i><span>Logout</span>
+        </a>
+    </div>
+</div>
+
 <script>
-    (function () {
-        const sidebar  = document.getElementById('appSidebar');
-        const backdrop = document.getElementById('navBackdrop');
-        const toggle   = document.getElementById('navToggleBtn');
-
-        function openNav() {
-            sidebar.classList.add('nav-open');
-            backdrop.classList.add('nav-open');
-            toggle.setAttribute('aria-expanded', 'true');
+    function openSheet(id) {
+        closeSheets();
+        const sheet = document.getElementById(id);
+        const backdrop = document.getElementById('sheetBackdrop');
+        if (sheet && backdrop) {
+            backdrop.classList.add('active');
+            sheet.classList.add('open');
         }
+    }
 
-        function closeNav() {
-            sidebar.classList.remove('nav-open');
-            backdrop.classList.remove('nav-open');
-            toggle.setAttribute('aria-expanded', 'false');
-        }
-
-        toggle.addEventListener('click', function () {
-            sidebar.classList.contains('nav-open') ? closeNav() : openNav();
-        });
-
-        backdrop.addEventListener('click', closeNav);
-
-        window.addEventListener('resize', function () {
-            if (window.innerWidth > 991.98) closeNav();
-        });
-
-        // Exchange Accordion Toggle
-        const exchangeToggle = document.getElementById('exchangeToggle');
-        const exchangeSubMenu = document.getElementById('exchangeSubMenu');
-
-        if (exchangeToggle && exchangeSubMenu) {
-            exchangeToggle.addEventListener('click', function (e) {
-                e.preventDefault();
-                exchangeToggle.classList.toggle('open');
-                exchangeSubMenu.classList.toggle('show');
-            });
-        }
-    })();
+    function closeSheets() {
+        const backdrop = document.getElementById('sheetBackdrop');
+        if (backdrop) backdrop.classList.remove('active');
+        document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('open'));
+    }
 </script>

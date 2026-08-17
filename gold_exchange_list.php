@@ -360,17 +360,17 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             <span class="s-label">Total Impure Gold</span>
             <span class="s-value" id="statImpure">—</span>
         </div>
-        <div class="stat-cell stat-output">
-            <span class="s-label">Net Pure Gold Output</span>
-            <span class="s-value" id="statOutput">—</span>
+        <div class="stat-cell stat-pure">
+            <span class="s-label">Total Pure Gold</span>
+            <span class="s-value" id="statPure">—</span>
         </div>
         <div class="stat-cell stat-loss">
             <span class="s-label">Total Loss</span>
             <span class="s-value" id="statLoss">—</span>
         </div>
-        <div class="stat-cell stat-pure">
-            <span class="s-label">Total Pure Gold</span>
-            <span class="s-value" id="statPure">—</span>
+        <div class="stat-cell stat-output">
+            <span class="s-label">Net Pure Gold Output</span>
+            <span class="s-value" id="statOutput">—</span>
         </div>
     </div>
 

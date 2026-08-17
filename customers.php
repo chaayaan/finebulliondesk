@@ -357,7 +357,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                             <th>Email</th>
                             <th>NID</th>
                             <th style="width:130px;">Added</th>
-                            <th style="width:100px;" class="text-center">Actions</th>
+                            <th style="width:130px;" class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="customersTableBody">
@@ -477,6 +477,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
       </div>
       <div class="modal-footer">
+        <a href="#" class="btn btn-outline-success" id="historyFromViewBtn"><i class="bi bi-clock-history me-1"></i> History</a>
         <button type="button" class="btn btn-gold" id="editFromViewBtn"><i class="bi bi-pencil-fill me-1"></i> Edit</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
@@ -583,7 +584,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 <td><small>${esc(fmtDate(c.created_at))}</small></td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-secondary me-1 btn-view" data-id="${c.id}" title="View"><i class="bi bi-eye-fill"></i></button>
-                    <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                    <button class="btn btn-sm btn-outline-primary me-1 btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                    <a href="customer_history.php?customer_id=${c.id}" class="btn btn-sm btn-outline-success" title="History"><i class="bi bi-clock-history"></i></a>
                 </td>
             </tr>`).join('');
     }
@@ -608,6 +610,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                     <div class="cr-actions">
                         <button class="btn btn-outline-secondary btn-view" data-id="${c.id}" title="View"><i class="bi bi-eye-fill"></i></button>
                         <button class="btn btn-outline-primary btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
+                        <a href="customer_history.php?customer_id=${c.id}" class="btn btn-outline-success" title="History"><i class="bi bi-clock-history"></i></a>
                     </div>
                 </div>
             </div>`).join('');
@@ -717,6 +720,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 document.getElementById('viewCreatedBy').textContent = c.created_by_username || '-';
                 document.getElementById('viewCreatedAt').textContent = fmtDate(c.created_at);
                 document.getElementById('viewUpdatedAt').textContent = fmtDate(c.updated_at);
+                document.getElementById('historyFromViewBtn').href   = 'customer_history.php?customer_id=' + c.id;
                 viewModal.show();
             })
             .catch(() => showToast('Network error.', true));

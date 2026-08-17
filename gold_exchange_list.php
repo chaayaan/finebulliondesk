@@ -170,102 +170,224 @@ if ($isAjax || $action !== null) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 :root {
-    --fb-green: #0B412A;
-    --fb-gold:  #DCAD41;
-}
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+    /* Brand Foundation */
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
 
-/* ---- page header bar ---- */
+    /* Jewel Tone Financial Status Colors */
+    --status-paid-bg: #1b5238;      /* Deep Emerald (Paid / Impure / Loss) */
+    --status-paid-light: #eaf4ee;   /* Soft Emerald Tint */
+    --status-due-bg: #93292c;       /* Deep Ruby (Due / Pure / Outflow) */
+    --status-due-light: #fbeceb;    /* Soft Ruby Tint */
+    --status-total-bg: #b88328;     /* Rich Gold (Totals / Net Output) */
+    --status-total-light: #fdf6e2;  /* Soft Gold Tint */
+}
+
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
+
+/* ---- page header bar (flush to viewport top) ---- */
 .list-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
     color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
+    border-radius: 0 0 20px 20px;
+    padding: 1.5rem 1.5rem;
+    margin-top: 0;
+    top: 0;
+    width: 100%;
     position: relative;
 }
 .list-header h4 { color: #fff; }
-.list-header small { color: rgba(255,255,255,0.75); }
+.list-header small { color: rgba(255,255,255,0.8); }
 
-/* ---- stat bar: Impure / Net Output / Loss / Pure Gold ---- */
+.page-inset { padding: 0 1.5rem; }
+
+/* ---- stat bar: Impure / Pure / Loss / Net Output ---- */
 .stat-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    border-radius: 8px;
-    overflow: hidden;
+    gap: 0.75rem;
     margin-bottom: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 .stat-cell {
-    padding: 0.65rem 0.8rem;
+    padding: 0.85rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 0.15rem;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
 }
 .stat-cell .s-label {
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    opacity: 0.92;
+    opacity: 0.85;
     white-space: nowrap;
 }
 .stat-cell .s-value {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 800;
     letter-spacing: 0.01em;
     white-space: nowrap;
 }
-.stat-impure { background: var(--fb-green); color: #fff; }
-.stat-output { background: var(--fb-gold);  color: #1a1a1a; }
-.stat-loss   { background: #2e7d32;         color: #fff; }
-.stat-pure   { background: #c0392b;         color: #fff; }
+/* Impure Gold — Deep Emerald */
+.stat-impure { background: var(--status-paid-bg); color: #fff; }
+/* Pure Gold — Deep Ruby */
+.stat-pure   { background: var(--status-due-bg);  color: #fff; }
+/* Loss — warm amber (deduction) */
+.stat-loss   { background: #fdf1e0; color: #7a5417; border: 1px solid #f1cf8e; box-shadow: none; }
+/* Net Pure Gold Output — Rich Gold */
+.stat-output { background: var(--status-total-bg); color: #fff; }
 
 /* ---- filter bar ---- */
-.filter-bar { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0.65rem 1rem;
+.filter-bar { background: #fff; border-bottom: 1px solid var(--hairline); padding: 0.75rem 1.25rem;
               display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.filter-bar label { font-size: 0.75rem; color: #6c757d; margin-bottom: 0; }
-.filter-bar input[type=date] { font-size: 0.82rem; padding: 0.3rem 0.5rem;
-                                border: 1px solid #dee2e6; border-radius: 6px; }
-
+.filter-bar label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0; }
+.filter-bar input[type=date] { font-size: 0.82rem; padding: 0.4rem 0.6rem;
+                                border: 1.5px solid var(--hairline); border-radius: 10px;
+                                color: var(--bronze-text); }
+.filter-bar input[type=date]:focus { outline: none; border-color: var(--gold-deep); }
 
 /* ---- table weight badges ---- */
-.badge-pure  { background: #eaf5ee; color: var(--fb-green); font-weight: 600; font-size: 0.82rem; }
-.badge-loss  { background: #fdf1e0; color: #96660c;         font-weight: 600; font-size: 0.82rem; }
-.badge-final { background: var(--fb-green); color: #fff;    font-weight: 600; font-size: 0.82rem; }
+.badge-pure  { background: var(--status-due-light);  color: var(--status-due-bg);  font-weight: 600; font-size: 0.82rem; }
+.badge-loss  { background: #fdf1e0; color: #7a5417;   font-weight: 600; font-size: 0.82rem; }
+.badge-final { background: var(--status-total-bg); color: #fff; font-weight: 600; font-size: 0.82rem; }
 
 /* ---- action buttons ---- */
-.btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
-.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
+.btn-gold {
+    background: var(--gold-deep);
+    border-color: var(--gold-deep);
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-gold:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; opacity: 0.92; }
+
+/* Primary action buttons (pill, solid gold, white text) */
+.btn-fb-primary {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0.5rem 1.1rem;
+}
+.btn-fb-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; opacity: 0.92; }
+
+/* Secondary / cancel buttons (pill, white, hairline border) */
+.btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
 
 .btn-actions { display: flex; gap: 4px; justify-content: center; }
+.btn-actions .btn { border-radius: 999px; }
+
+/* ---- cards ---- */
+.card {
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
+}
+.card-header {
+    background: #ffffff;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    color: var(--bronze-text);
+}
+.card-footer {
+    background: #ffffff;
+    border-top: 1px solid var(--hairline);
+    border-radius: 0 0 18px 18px !important;
+}
+
+/* ---- tables ---- */
+table.table thead.table-light th {
+    background: var(--ivory) !important;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    border-bottom: 1.5px solid var(--hairline);
+}
+table.table td, table.table th { border-color: var(--hairline); }
+table.table-hover tbody tr:hover { background-color: #fdf7ec; }
+
+/* ---- inputs ---- */
+.form-control, .input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #fff;
+}
+.form-control:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.2rem rgba(201,151,58,0.15); }
+.input-group .form-control { border-radius: 0; }
+.input-group .input-group-text:first-child { border-radius: 10px 0 0 10px; }
+.input-group .btn:last-child { border-radius: 0 10px 10px 0; }
+
+/* ---- modal ---- */
+.modal-content { border-radius: 18px; overflow: hidden; border: none; }
+.modal-header.fb-modal-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+    border-bottom: none;
+}
+.modal-header.fb-modal-header .modal-title { color: #fff; }
+.modal-header.fb-modal-header .btn-close { filter: brightness(0) invert(1); }
+
+/* ---- pagination ---- */
+.pagination .page-link { color: var(--bronze-text); border-color: var(--hairline); }
+.pagination .page-item.active .page-link { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; }
+.pagination .page-item.disabled .page-link { color: var(--muted); }
+
+/* ---- alerts ---- */
+.alert-fb {
+    background: #fdf1e0;
+    border: 1px solid #f1cf8e;
+    color: #7a5417;
+    border-radius: 12px;
+}
 
 /* ---- modal summary ledger ---- */
-.ledger-table                  { border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
-.ledger-table td               { padding: 0.55rem 0.85rem; vertical-align: middle;
-                                  border-bottom: 1px solid #e9ecef;
+.ledger-table                  { border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+.ledger-table td               { padding: 0.6rem 0.9rem; vertical-align: middle;
+                                  border-bottom: 1px solid var(--hairline);
                                   --bs-table-bg: transparent; } /* neutralise Bootstrap override */
 .ledger-table tr:last-child td { border-bottom: none; }
 
-.ledger-label { font-size: 0.82rem; color: #555; white-space: nowrap; width: 1%; }
-.ledger-rate  { font-weight: 400; color: #888; font-size: 0.78rem; }
+.ledger-label { font-size: 0.82rem; color: var(--muted); white-space: nowrap; width: 1%; }
+.ledger-rate  { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
 .ledger-vorp  { font-weight: 700; font-size: 0.95rem; text-align: right; letter-spacing: 0.01em; }
 
-/* Total row — light green */
-.ledger-total td               { background-color: #eaf5ee !important; }
-.ledger-total .ledger-label    { color: var(--fb-green); font-weight: 600; }
-.ledger-total .ledger-vorp     { color: var(--fb-green); }
+/* Total Pure Gold row — soft ruby tint */
+.ledger-total td               { background-color: var(--status-due-light) !important; }
+.ledger-total .ledger-label    { color: var(--status-due-bg); font-weight: 600; }
+.ledger-total .ledger-vorp     { color: var(--status-due-bg); }
 
-/* Loss row — light amber */
-.ledger-loss td                { background-color: #fdf6ec !important; }
-.ledger-loss .ledger-label     { color: #8a5e0a; font-weight: 600; }
-.ledger-loss .ledger-vorp      { color: #96660c; }
+/* Loss row — soft amber tint */
+.ledger-loss td                { background-color: #fdf1e0 !important; }
+.ledger-loss .ledger-label     { color: #7a5417; font-weight: 600; }
+.ledger-loss .ledger-vorp      { color: #7a5417; }
 
-/* Final row — dark green, white text */
-.ledger-final td               { background-color: var(--fb-green) !important; border-bottom: none; }
-.ledger-final .ledger-label    { color: rgba(255,255,255,0.85); font-weight: 600; }
+/* Final Pure Gold row — rich gold, white text */
+.ledger-final td               { background-color: var(--status-total-bg) !important; border-bottom: none; }
+.ledger-final .ledger-label    { color: rgba(255,255,255,0.88); font-weight: 600; }
 .ledger-final .ledger-vorp     { color: #fff; font-size: 1.05rem; }
-.ledger-final .ledger-rate     { color: rgba(255,255,255,0.6); }
+.ledger-final .ledger-rate     { color: rgba(255,255,255,0.65); }
 
 /* ---------------------------------------------------------------
    Mobile "Exchange Gold Info" combined cell (Total / Loss / Final
@@ -281,29 +403,29 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     line-height: 1.35;
     white-space: nowrap;
 }
-.exchange-info-cell .info-label { color: #6c757d; }
-.exchange-info-cell .info-value { font-weight: 600; color: #1a1a1a; }
+.exchange-info-cell .info-label { color: var(--muted); }
+.exchange-info-cell .info-value { font-weight: 600; color: var(--bronze-text); }
 
 /* ---------------------------------------------------------------
    Mobile compaction
 --------------------------------------------------------------- */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-inset { padding: 0 0.75rem; }
+    .page-content .container-fluid { padding: 0.6rem 0 1rem; }
 
-    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
+    .list-header { padding: 0.85rem 1rem; border-radius: 0 0 16px 16px; justify-content: center !important; }
     .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
     .list-header h4 i { display: none; }
     .list-header small { display: none; }
     .list-header > a.btn {
-        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+        position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
+        padding: 0.4rem 0.75rem; font-size: 0.75rem;
     }
-    .list-header > a.btn span { display: none; }
 
-    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; }
-    .stat-cell { padding: 0.5rem 0.55rem; }
+    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; gap: 0.5rem; }
+    .stat-cell { padding: 0.55rem 0.6rem; border-radius: 12px; }
     .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
-    .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
+    .stat-cell .s-value { font-size: 0.8rem; white-space: normal; }
 
     /* Mobile pairing: Impure+Loss on row 1, Output+Pure on row 2 */
     .stat-impure { order: 1; }
@@ -311,11 +433,11 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     .stat-output { order: 3; }
     .stat-pure   { order: 4; }
 
-    .filter-bar { padding: 0.5rem 0.6rem; gap: 0.4rem; }
-    .filter-bar input[type=date] { font-size: 0.76rem; padding: 0.25rem 0.4rem; }
+    .filter-bar { padding: 0.6rem 0.75rem; gap: 0.4rem; }
+    .filter-bar input[type=date] { font-size: 0.76rem; padding: 0.3rem 0.5rem; }
 
-    .card { border-radius: 8px; }
-    .card-header { padding: 0.5rem 0.6rem; }
+    .card { border-radius: 14px; }
+    .card-header { padding: 0.6rem 0.75rem; border-radius: 14px 14px 0 0 !important; }
     .card-header .fw-semibold { font-size: 0.82rem; }
     .card-header .input-group { max-width: 100% !important; width: 100%; }
 
@@ -325,11 +447,11 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     .badge-pure, .badge-loss, .badge-final { font-size: 0.7rem; }
 
     .btn-actions { flex-direction: column; gap: 4px; }
-    .btn-actions .btn { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+    .btn-actions .btn { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
 
-    .card-footer { padding: 0.5rem 0.6rem; }
+    .card-footer { padding: 0.6rem 0.75rem; border-radius: 0 0 14px 14px !important; }
     .card-footer small { font-size: 0.7rem; }
-    .pagination-sm .page-link { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+    .pagination-sm .page-link { padding: 0.3rem 0.55rem; font-size: 0.75rem; }
 }
 </style>
 </head>
@@ -338,7 +460,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
+<div class="container-fluid px-0">
 
     <div class="list-header mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
@@ -349,10 +471,12 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </h4>
             <small>FineBullion Desk</small>
         </div>
-        <a href="gold_exchange.php" class="btn btn-outline-light btn-sm">
+        <a href="gold_exchange.php" class="btn btn-fb-primary btn-sm">
             <i class="bi bi-plus-lg me-1"></i> <span>New Exchange</span>
         </a>
     </div>
+
+    <div class="page-inset">
 
     <!-- Stat bar -->
     <div class="stat-bar" id="statBar">
@@ -374,24 +498,24 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Exchanges</span>
             <div class="input-group" style="max-width:300px;">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" id="searchInput" class="form-control" placeholder="Search customer name, phone…">
-                <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-fb-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
         </div>
 
         <!-- Date filter bar -->
         <div class="filter-bar">
-            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:#6c757d;">From</span>
-            <label class="d-md-none" style="font-size:0.72rem;color:#6c757d;">From</label>
+            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:var(--muted);">From</span>
+            <label class="d-md-none" style="font-size:0.72rem;color:var(--muted);">From</label>
             <input type="date" id="dateFrom">
-            <span style="font-size:0.8rem;color:#6c757d;">To</span>
+            <span style="font-size:0.8rem;color:var(--muted);">To</span>
             <input type="date" id="dateTo">
-            <button class="btn btn-sm btn-outline-secondary ms-1" id="clearDatesBtn" title="Clear dates">
+            <button class="btn btn-sm btn-fb-secondary ms-1" id="clearDatesBtn" title="Clear dates">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
@@ -418,12 +542,14 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
             <small class="text-muted" id="paginationInfo">—</small>
             <nav>
                 <ul class="pagination pagination-sm mb-0" id="paginationControls"></ul>
             </nav>
         </div>
+    </div>
+
     </div>
 
 </div>
@@ -435,7 +561,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <div class="modal fade" id="viewModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header" style="background: var(--fb-green); color:#fff;">
+            <div class="modal-header fb-modal-header">
                 <h5 class="modal-title">
                     <i class="bi bi-receipt me-2"></i>Exchange #<span id="viewId"></span>
                 </h5>
@@ -445,7 +571,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 <div class="text-center text-muted py-4">Loading…</div>
             </div>
             <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                     <i class="bi bi-x-lg me-1"></i>Close
                 </button>
                 <a id="btnOpenEdit" href="#" class="btn btn-gold btn-sm">
@@ -742,7 +868,7 @@ async function openView(id) {
                 </tbody>
             </table>
 
-            ${ex.note ? `<div class="alert alert-light border mb-0 py-2"><strong>Note:</strong> ${escHtml(ex.note)}</div>` : ''}
+            ${ex.note ? `<div class="alert-fb mb-0 py-2 px-3"><strong>Note:</strong> ${escHtml(ex.note)}</div>` : ''}
         `;
     } catch (err) {
         document.getElementById('viewBody').innerHTML = '<div class="text-danger">Network error.</div>';

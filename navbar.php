@@ -30,7 +30,7 @@ $navCurrentPage = basename($_SERVER['SCRIPT_NAME']);
 $isAdmin = (strtolower(trim($navUser['role'])) === 'admin');
 
 // Check if logo image file physically exists on the server
-$logoImagePath = 'fine bullion desk logo.png';
+$logoImagePath = 'finebullion desk logo.png';
 $hasLogoImage = file_exists(__DIR__ . '/' . $logoImagePath);
 
 // Active State Logic
@@ -57,8 +57,36 @@ function nav_is_active(string $href, string $current): bool {
         --mobile-nav-height: 60px;
     }
 
-    body { margin: 0; }
+    /* Zero out root margins and body padding */
+    html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    }
 
+    /* Remove spacing from parent layout wrappers */
+    .page-content,
+    .main-wrapper,
+    .content-wrapper,
+    .container,
+    .container-fluid {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    }
+
+    /* Force header banner flush to the top edge */
+    .list-header {
+    margin-top: 0 !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    position: relative;
+    top: 0;
+    }
+
+    /* Prevent CSS margin collapsing from child headings/icons */
+    .page-content > *:first-child,
+    .list-header > *:first-child {
+    margin-top: 0 !important;
+    }
     /* Desktop Sidebar */
     .app-sidebar {
         position: fixed; top: 0; left: 0;
@@ -117,7 +145,22 @@ function nav_is_active(string $href, string $current): bool {
         color: var(--nav-gold); text-decoration: none; font-size: 0.82rem; font-weight: 600;
     }
 
-    .page-content { margin-left: var(--nav-width); min-height: 100vh; background: #f0f2f5; }
+    .page-content { 
+        margin-left: var(--nav-width); 
+        margin-top: 0 !important; 
+        padding-top: 0 !important; 
+        min-height: 100vh; 
+        background: #f0f2f5; 
+    }
+
+    /* Global Header Fix: Ensures no top spacing and rounds bottom corners only */
+    .list-header {
+        margin-top: 0 !important;
+        border-top-left-radius: 0 !important;
+        border-top-right-radius: 0 !important;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+    }
 
     /* Mobile Bottom Navigation (5 Action Items) */
     .mobile-bottom-nav {
@@ -158,7 +201,12 @@ function nav_is_active(string $href, string $current): bool {
     @media (max-width: 991.98px) {
         .app-sidebar { display: none; }
         .mobile-bottom-nav { display: block; }
-        .page-content { margin-left: 0; padding-bottom: calc(var(--mobile-nav-height) + 12px); }
+        .page-content { 
+            margin-left: 0; 
+            margin-top: 0 !important; 
+            padding-top: 0 !important; 
+            padding-bottom: calc(var(--mobile-nav-height) + 12px); 
+        }
     }
 </style>
 

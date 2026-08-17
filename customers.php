@@ -166,130 +166,357 @@ if ($isAjax || $action !== null) {
 <title>Customer Management — FineBullion Desk</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* ── Design Tokens ─────────────────────────────────────────────────── */
 :root {
+    --gold-deep:   #c9973a;
+    --gold-mid:    #dcb04a;
+    --gold-light:  #e9cd7d;
+    --ivory:       #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted:       #9a8f76;
+    --hairline:    #ecdfb8;
+
+    /* Legacy aliases kept for PHP partials (navbar, etc.) */
     --fb-green: #0B412A;
     --fb-gold:  #DCAD41;
 }
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
-/* ---- page header bar ---- */
+/* ── Base ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
+
+/* ── Page Header Bar ───────────────────────────────────────────────── */
 .list-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
     color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
+    padding: 1.4rem 1.75rem;
+    margin-top: 0;
     position: relative;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 0 6px 24px rgba(201, 151, 58, 0.22);
 }
-.list-header h4 { color: #fff; }
-.list-header small { color: rgba(255,255,255,0.75); }
+.list-header h4 { color: #fff; font-weight: 800; letter-spacing: 0.02em; }
+.list-header small { color: rgba(255,255,255,0.80); font-size: 0.8rem; }
+.list-header i { color: #fff; }
 
-/* ---- gold accent button (matches gold_exchange list) ---- */
-.btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
-.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.btn-gold {
+    background: var(--gold-deep);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(201, 151, 58, 0.30);
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.btn-gold:hover { background: #b8872e; transform: translateY(-1px); color: #fff; box-shadow: 0 8px 22px rgba(201, 151, 58, 0.38); }
+.btn-gold:active { transform: translateY(0); color: #fff; background: #a87828; }
 
-/* ---- total count strip ---- */
-.total-strip {
-    background: #eaf5ee;
-    color: var(--fb-green);
-    font-weight: 600;
+/* ── Main Card ──────────────────────────────────────────────────────── */
+.card {
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 18px !important;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
+}
+.card-header {
+    background: #fff !important;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    padding: 1rem 1.25rem;
+}
+.card-header .fw-semibold {
+    color: var(--bronze-text);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.card-footer {
+    background: #fff !important;
+    border-top: 1px solid var(--hairline);
+    border-radius: 0 0 18px 18px !important;
+    padding: 0.75rem 1.25rem;
+}
+
+/* ── Search Bar ─────────────────────────────────────────────────────── */
+.search-wrap .input-group-text {
+    background: #fff;
+    border: 1.5px solid var(--hairline);
+    border-right: none;
+    border-radius: 999px 0 0 999px;
+    color: var(--muted);
+}
+.search-wrap .form-control {
+    border: 1.5px solid var(--hairline);
+    border-left: none;
+    border-right: none;
     font-size: 0.85rem;
-    padding: 0.55rem 1rem;
-    border-bottom: 1px solid #e1ece5;
+    color: var(--bronze-text);
+}
+.search-wrap .form-control:focus {
+    box-shadow: none;
+    border-color: var(--gold-deep);
+}
+.search-wrap .form-control::placeholder { color: var(--muted); }
+.search-wrap .btn-outline-secondary {
+    border: 1.5px solid var(--hairline);
+    border-left: none;
+    border-radius: 0 999px 999px 0;
+    color: var(--muted);
+    background: #fff;
+}
+.search-wrap .btn-outline-secondary:hover { background: var(--ivory); color: var(--bronze-text); }
+
+/* ── Total Count Strip ──────────────────────────────────────────────── */
+.total-strip {
+    background: linear-gradient(90deg, #fdf6e3, var(--ivory));
+    border-bottom: 1px solid var(--hairline);
+    color: var(--gold-deep);
+    font-weight: 700;
+    font-size: 0.82rem;
+    padding: 0.5rem 1.25rem;
+    letter-spacing: 0.01em;
 }
 
-/* ---- customer avatar ---- */
+/* ── Table ──────────────────────────────────────────────────────────── */
+.table thead th {
+    background: var(--ivory);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--hairline);
+    padding: 0.7rem 0.9rem;
+}
+.table tbody td {
+    border-bottom: 1px solid #f5ede0;
+    vertical-align: middle;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.86rem;
+    color: var(--bronze-text);
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.table-hover tbody tr:hover td { background: #fdf7ec; }
+
+/* ── Customer Avatar ────────────────────────────────────────────────── */
 .customer-avatar {
-    width: 44px; height: 44px; object-fit: cover; border-radius: 50%;
-    border: 2px solid #eaf5ee; flex-shrink: 0;
+    width: 44px; height: 44px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid var(--hairline);
+    flex-shrink: 0;
 }
-.view-photo { width: 130px; height: 130px; object-fit: cover; border-radius: 10px; border: 1px solid #dee2e6; }
-.photo-preview { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6; }
+.customer-photo-thumb {
+    width: 40px; height: 40px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid var(--hairline);
+}
+.view-photo {
+    width: 130px; height: 130px;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 2px solid var(--hairline);
+}
+.photo-preview {
+    width: 110px; height: 110px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 2px solid var(--hairline);
+}
 
-/* ---- customer list row (card-like, image-1 style) ---- */
+/* ── Mobile Customer Row ─────────────────────────────────────────────── */
 .customer-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.7rem 1rem;
-    border-bottom: 1px solid #eef0f3;
+    padding: 0.75rem 1.1rem;
+    border-bottom: 1px solid #f5ede0;
     text-decoration: none;
     color: inherit;
     transition: background 0.12s ease;
 }
 .customer-row:last-child { border-bottom: none; }
-.customer-row:hover { background: #f8faf9; }
+.customer-row:hover { background: #fdf7ec; }
 
 .customer-row .cr-info { flex: 1; min-width: 0; }
-.customer-row .cr-name { font-weight: 600; font-size: 0.92rem; color: #1a1a1a; margin-bottom: 1px; }
-.customer-row .cr-phone { font-size: 0.8rem; color: #6c757d; }
-.customer-row .cr-address { font-size: 0.78rem; color: #8a8f98; }
+.customer-row .cr-name { font-weight: 700; font-size: 0.9rem; color: var(--bronze-text); margin-bottom: 1px; }
+.customer-row .cr-phone { font-size: 0.78rem; color: var(--muted); }
+.customer-row .cr-address { font-size: 0.75rem; color: #b8a98a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .customer-row .cr-meta { text-align: right; flex-shrink: 0; }
-.customer-row .cr-date { font-size: 0.72rem; color: #9aa0a6; white-space: nowrap; }
+.customer-row .cr-date { font-size: 0.7rem; color: #c4b89a; white-space: nowrap; margin-bottom: 4px; }
 
-.cr-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.cr-actions { display: flex; gap: 4px; flex-shrink: 0; justify-content: flex-end; }
 .cr-actions .btn {
-    width: 32px; height: 32px; padding: 0; display: inline-flex;
-    align-items: center; justify-content: center; border-radius: 7px; font-size: 0.85rem;
+    width: 30px; height: 30px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px; font-size: 0.82rem;
+    border-color: var(--hairline);
 }
 
-/* ---- desktop table (kept for md+ screens) ---- */
-.customer-photo-thumb { width:42px; height:42px; object-fit:cover; border-radius:50%; border:1px solid #dee2e6; }
+/* ── Action Buttons in Table ────────────────────────────────────────── */
+.btn-actions { display: flex; gap: 4px; justify-content: center; }
+.btn-actions .btn {
+    border-radius: 8px;
+    font-size: 0.8rem;
+    border-color: var(--hairline);
+}
+.btn-outline-secondary { color: var(--muted); border-color: var(--hairline); }
+.btn-outline-secondary:hover { background: var(--ivory); color: var(--bronze-text); border-color: var(--gold-mid); }
+.btn-outline-primary { color: var(--gold-deep); border-color: var(--hairline); }
+.btn-outline-primary:hover { background: #fdf6e3; color: var(--gold-deep); border-color: var(--gold-mid); }
+.btn-outline-success { color: var(--gold-deep); border-color: var(--hairline); }
+.btn-outline-success:hover { background: #fdf6e3; color: var(--gold-deep); border-color: var(--gold-mid); }
 
-/* ---- search bar ---- */
-.search-wrap .input-group-text { background: #fff; border-right: 0; }
-.search-wrap .form-control { border-left: 0; }
-.search-wrap .form-control:focus { box-shadow: none; border-color: #ced4da; }
+/* ── Pagination ──────────────────────────────────────────────────────── */
+.page-link {
+    color: var(--gold-deep);
+    border-color: var(--hairline);
+    border-radius: 8px !important;
+    margin: 0 2px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.page-item.active .page-link {
+    background: var(--gold-deep);
+    border-color: var(--gold-deep);
+    color: #fff;
+}
+.page-link:focus { box-shadow: 0 0 0 0.2rem rgba(201, 151, 58, 0.25); }
 
-/* ---- modal form styling ---- */
-.modal-header.fb-modal-header { background: var(--fb-green); color: #fff; }
-.modal-header.fb-modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-.form-label .text-danger { font-weight: 700; }
-.form-control:focus { border-color: var(--fb-gold); box-shadow: 0 0 0 0.2rem rgba(220,173,65,0.18); }
+/* ── Modal ───────────────────────────────────────────────────────────── */
+.modal-content {
+    border: none;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(58, 47, 26, 0.18);
+}
+.modal-header.fb-modal-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+    padding: 1.1rem 1.5rem;
+    border-bottom: none;
+}
+.modal-header.fb-modal-header .modal-title { font-weight: 700; color: #fff; font-size: 1rem; }
+.modal-header.fb-modal-header .btn-close { filter: brightness(0) invert(1); opacity: 0.85; }
+.modal-body { padding: 1.5rem; background: #fff; }
+.modal-footer {
+    padding: 1rem 1.5rem;
+    background: var(--ivory);
+    border-top: 1px solid var(--hairline);
+}
 
-/* ---- label-left / input-right field rows (add & edit customer) ---- */
+/* ── Form Controls ───────────────────────────────────────────────────── */
+.form-control, .form-select {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    font-size: 0.88rem;
+    color: var(--bronze-text);
+    background: #fff;
+    padding: 0.55rem 0.85rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.2rem rgba(201, 151, 58, 0.18);
+    outline: none;
+}
+.form-control::placeholder { color: #c9bca0; }
+textarea.form-control { resize: vertical; }
+
+/* ── Field Row Layout ────────────────────────────────────────────────── */
 .field-row { display: flex; align-items: center; gap: 0.75rem; }
-.field-row .field-label { flex: 0 0 130px; max-width: 130px; margin-bottom: 0; padding-right: 0.25rem; }
+.field-row .field-label {
+    flex: 0 0 130px; max-width: 130px;
+    margin-bottom: 0; padding-right: 0.25rem;
+    font-size: 0.82rem; font-weight: 600; color: var(--muted);
+}
+.field-row .field-label .text-danger { color: var(--gold-deep) !important; font-weight: 800; }
 .field-row .field-input { flex: 1 1 auto; min-width: 0; }
 .field-row .field-input .d-flex { flex-wrap: wrap; }
-@media (max-width: 575.98px) {
-    .field-row { align-items: flex-start; }
-    .field-row .field-label { flex-basis: 92px; max-width: 92px; font-size: 0.85rem; padding-top: 0.4rem; }
+
+/* ── View Modal Table ─────────────────────────────────────────────────── */
+.view-detail-table th {
+    font-size: 0.78rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 0.55rem 0.75rem; width: 130px;
+    border-bottom: 1px solid #f5ede0;
+}
+.view-detail-table td {
+    font-size: 0.88rem; color: var(--bronze-text);
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid #f5ede0;
+}
+.view-detail-table tr:last-child th,
+.view-detail-table tr:last-child td { border-bottom: none; }
+
+/* ── Toast ───────────────────────────────────────────────────────────── */
+.toast {
+    border-radius: 14px !important;
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
-/* ---------------------------------------------------------------
-   Mobile compaction
---------------------------------------------------------------- */
+/* ── Cancel Button ───────────────────────────────────────────────────── */
+.btn-secondary {
+    background: #fff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    border-radius: 999px;
+    font-weight: 600;
+}
+.btn-secondary:hover { background: var(--ivory); color: var(--bronze-text); border-color: var(--gold-mid); }
+
+/* ── Mobile ──────────────────────────────────────────────────────────── */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-content .container-fluid { padding: 0 0 1rem; }
 
-    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
-    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .list-header h4 i { display: none; }
-    .list-header small { display: none; }
-    .list-header > button.btn {
-        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    .list-header {
+        padding: 1rem 1rem;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+        margin-bottom: 1rem !important;
     }
-    .list-header > button.btn span { display: none; }
+    .list-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .list-header h4 i { display: inline; }
+    .list-header small { display: none; }
 
-    .card { border-radius: 10px; }
-    .card-header { padding: 0.5rem 0.6rem; }
+    .card { border-radius: 14px !important; margin: 0 0.5rem; }
+    .card-header { padding: 0.65rem 0.85rem; border-radius: 14px 14px 0 0 !important; }
     .card-header .fw-semibold { font-size: 0.82rem; }
     .card-header .input-group { max-width: 100% !important; width: 100%; }
 
-    .total-strip { font-size: 0.78rem; padding: 0.45rem 0.85rem; }
+    .total-strip { font-size: 0.76rem; padding: 0.4rem 0.9rem; }
 
-    .customer-row { padding: 0.6rem 0.75rem; gap: 0.6rem; }
-    .customer-avatar { width: 40px; height: 40px; }
-    .customer-row .cr-name { font-size: 0.86rem; }
-    .customer-row .cr-phone, .customer-row .cr-address { font-size: 0.74rem; }
+    .customer-row { padding: 0.6rem 0.85rem; gap: 0.55rem; }
+    .customer-avatar { width: 38px; height: 38px; }
+    .customer-row .cr-name { font-size: 0.85rem; }
+    .customer-row .cr-phone, .customer-row .cr-address { font-size: 0.73rem; }
     .cr-actions .btn { width: 28px; height: 28px; font-size: 0.75rem; }
 
-    .card-footer { padding: 0.5rem 0.6rem; }
+    .card-footer { padding: 0.5rem 0.85rem; border-radius: 0 0 14px 14px !important; }
     .card-footer small { font-size: 0.7rem; }
-    .pagination-sm .page-link { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+    .pagination-sm .page-link { padding: 0.25rem 0.5rem; font-size: 0.73rem; }
+
+    .field-row { align-items: flex-start; }
+    .field-row .field-label { flex-basis: 90px; max-width: 90px; font-size: 0.78rem; padding-top: 0.45rem; }
+
+    .modal-content { border-radius: 16px; }
+    .modal-body { padding: 1rem; }
+    .modal-footer { padding: 0.75rem 1rem; }
 }
 </style>
 </head>
@@ -298,29 +525,35 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
+<div class="container-fluid px-0 pb-4">
 
+    <!-- ── Page Header ── -->
     <div class="list-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
             <h4 class="mb-0">
                 <i class="bi bi-people-fill me-2"></i>
                 <span class="d-none d-md-inline">Customer Management</span>
-                <span class="d-md-none">Customer</span>
+                <span class="d-md-none">Customers</span>
             </h4>
             <small>FineBullion Desk</small>
         </div>
-        <div class="d-none d-md-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
             <?php if (is_admin()): ?>
-            <a href="users.php" class="btn btn-outline-light btn-sm"><i class="bi bi-person-gear me-1"></i>Users</a>
+            <a href="users.php" class="btn btn-sm" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.5);color:#fff;border-radius:999px;font-weight:600;">
+                <i class="bi bi-person-gear me-1"></i><span class="d-none d-sm-inline">Users</span>
+            </a>
             <?php endif; ?>
-            <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomer">
+            <button type="button" class="btn btn-gold btn-sm px-3" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomer">
                 <i class="bi bi-plus-lg me-1"></i> Add Customer
             </button>
+            <!-- Mobile uses same button — no separate icon-only button -->
+            <button type="button" class="btn btn-gold btn-sm px-3 d-md-none d-none" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomerMobile">
+                <i class="bi bi-plus-lg me-1"></i> Add
+            </button>
         </div>
-        <button type="button" class="btn btn-gold btn-sm d-md-none" data-bs-toggle="modal" data-bs-target="#customerModal" id="btnAddCustomerMobile">
-            <i class="bi bi-plus-lg me-1"></i><span>Add</span>
-        </button>
     </div>
+
+    <div class="px-md-3 px-2">
 
     <div class="card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -372,8 +605,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             <nav><ul class="pagination pagination-sm mb-0" id="paginationControls"></ul></nav>
         </div>
     </div>
-</div>
-</div>
+    </div><!-- /px wrapper -->
+</div><!-- /container-fluid -->
+</div><!-- /page-content -->
 
 <!-- ADD / EDIT MODAL -->
 <div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
@@ -385,7 +619,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <div id="formAlert" class="alert alert-danger d-none"></div>
+          <div id="formAlert" class="alert d-none" style="background:#fdf1e0;border:1px solid #f1cf8e;color:#7a5417;border-radius:12px;font-size:0.85rem;"></div>
           <input type="hidden" name="action" value="save">
           <input type="hidden" name="id" id="customerId" value="0">
           <div class="row g-3">
@@ -477,7 +711,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
       </div>
       <div class="modal-footer">
-        <a href="#" class="btn btn-outline-success" id="historyFromViewBtn"><i class="bi bi-clock-history me-1"></i> History</a>
+        <a href="#" class="btn btn-outline-secondary" id="historyFromViewBtn"><i class="bi bi-clock-history me-1"></i> History</a>
         <button type="button" class="btn btn-gold" id="editFromViewBtn"><i class="bi bi-pencil-fill me-1"></i> Edit</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
@@ -522,9 +756,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     function avatarSvg() {
         return 'data:image/svg+xml;utf8,' + encodeURIComponent(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-            '<circle cx="12" cy="12" r="12" fill="%23eaf5ee"/>' +
-            '<circle cx="12" cy="9" r="4" fill="%230B412A" fill-opacity="0.55"/>' +
-            '<path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="%230B412A" fill-opacity="0.55"/></svg>'
+            '<circle cx="12" cy="12" r="12" fill="%23fdf6e3"/>' +
+            '<circle cx="12" cy="9" r="4" fill="%23c9973a" fill-opacity="0.60"/>' +
+            '<path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="%23c9973a" fill-opacity="0.50"/></svg>'
         );
     }
 
@@ -585,7 +819,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-secondary me-1 btn-view" data-id="${c.id}" title="View"><i class="bi bi-eye-fill"></i></button>
                     <button class="btn btn-sm btn-outline-primary me-1 btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
-                    <a href="customer_history.php?customer_id=${c.id}" class="btn btn-sm btn-outline-success" title="History"><i class="bi bi-clock-history"></i></a>
+                    <a href="customer_history.php?customer_id=${c.id}" class="btn btn-sm btn-outline-secondary" title="History"><i class="bi bi-clock-history"></i></a>
                 </td>
             </tr>`).join('');
     }
@@ -610,7 +844,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                     <div class="cr-actions">
                         <button class="btn btn-outline-secondary btn-view" data-id="${c.id}" title="View"><i class="bi bi-eye-fill"></i></button>
                         <button class="btn btn-outline-primary btn-edit" data-id="${c.id}" title="Edit"><i class="bi bi-pencil-fill"></i></button>
-                        <a href="customer_history.php?customer_id=${c.id}" class="btn btn-outline-success" title="History"><i class="bi bi-clock-history"></i></a>
+                        <a href="customer_history.php?customer_id=${c.id}" class="btn btn-outline-secondary" title="History"><i class="bi bi-clock-history"></i></a>
                     </div>
                 </div>
             </div>`).join('');

@@ -49,126 +49,210 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — FineBullion Desk</title>
 
-    <!-- Bootstrap 5 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --gold-deep: #c9973a;
+            --gold-mid: #dcb04a;
+            --gold-light: #e9cd7d;
+            --ivory: #fbf8f2;
+            --bronze-text: #3a2f1a;
+            --muted: #9a8f76;
+            --hairline: #ecdfb8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         html, body {
             height: 100%;
         }
 
         body {
-            background-color: #f0f2f5;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            background: var(--ivory);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--bronze-text);
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            margin: 0;
+            padding: 1.5rem;
         }
 
         .login-card {
             width: 100%;
-            max-width: 420px;
+            max-width: 380px;
             background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-            padding: 2.5rem 2.25rem 2rem;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(180, 140, 50, 0.16);
         }
 
-        .brand-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #c9973a 0%, #e6b84a 100%);
+        /* ---------- Header: wavy gold banner with logo ---------- */
+        .card-header {
+            position: relative;
+            background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+            padding: 2.1rem 1.5rem 3.2rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 108px;
+        }
+
+        .card-header svg.wave {
+            position: absolute;
+            left: 0;
+            bottom: -1px;
+            width: 100%;
+            height: 34px;
+            display: block;
+        }
+
+        /* Real logo image — falls back to text wordmark via onerror in JS below */
+        #brandLogoImg {
+            max-height: auto;
+            max-width: 300px;
+            width: auto;
+            display: block;
+            position: relative;
+            z-index: 2;
+        }
+
+        .brand-fallback {
+            display: none;
             font-size: 1.5rem;
-            color: #fff;
-            margin-bottom: 1rem;
-            flex-shrink: 0;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            position: relative;
+            z-index: 2;
         }
 
-        .brand-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            letter-spacing: -0.02em;
-            line-height: 1.2;
+        .brand-fallback.show-fallback {
+            display: block;
         }
 
-        .brand-sub {
-            font-size: 0.8rem;
-            color: #8a8f98;
+        /* ---------- Body ---------- */
+        .card-body {
+            padding: 0.5rem 2rem 2.25rem;
+        }
+
+        .login-heading {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 800;
             letter-spacing: 0.04em;
-            text-transform: uppercase;
-            font-weight: 500;
+            color: var(--gold-deep);
+            margin: 0.25rem 0 1.9rem;
         }
 
-        .divider {
-            border: none;
-            border-top: 1px solid #eaecef;
-            margin: 1.5rem 0;
+        .field {
+            margin-bottom: 1.5rem;
         }
 
-        .form-label {
-            font-size: 0.82rem;
+        .field label {
+            display: block;
+            font-size: 0.78rem;
             font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.3rem;
+            color: var(--gold-deep);
+            margin-bottom: 0.45rem;
         }
 
-        .input-group-text {
-            background: #f8f9fa;
-            border-right: none;
-            color: #8a8f98;
+        .underline-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
         }
 
-        .form-control {
-            border-left: none;
-            padding-left: 0;
+        .underline-input-wrap input {
+            width: 100%;
+            border: none;
+            border-bottom: 1.5px solid var(--hairline);
+            background: transparent;
+            padding: 0.35rem 1.8rem 0.55rem 0.05rem;
+            font-size: 1rem;
+            color: var(--bronze-text);
+            outline: none;
+            transition: border-color 0.15s;
         }
 
-        .form-control:focus {
-            box-shadow: none;
-            border-color: #c9973a;
+        .underline-input-wrap input::placeholder {
+            color: #c7bda3;
+        }
+
+        .underline-input-wrap input:focus {
+            border-bottom-color: var(--gold-deep);
+        }
+
+        .underline-input-wrap i.field-icon {
+            position: absolute;
+            right: 0.1rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+            cursor: default;
         }
 
         .btn-toggle-pw {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-left: none;
-            color: #8a8f98;
-            padding: 0 0.75rem;
+            position: absolute;
+            right: 0;
+            background: transparent;
+            border: none;
+            color: var(--muted);
             cursor: pointer;
-            border-radius: 0 6px 6px 0;
-            transition: color 0.15s;
+            padding: 0.2rem;
+            display: flex;
+            align-items: center;
         }
 
         .btn-toggle-pw:hover {
-            color: #495057;
+            color: var(--gold-deep);
+        }
+
+        .forgot-row {
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+
+        .forgot-link {
+            font-size: 0.8rem;
+            color: var(--gold-deep);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
         }
 
         .btn-signin {
-            background: linear-gradient(135deg, #c9973a 0%, #d4a847 100%);
+            display: block;
+            width: 100%;
+            margin-top: 1.9rem;
+            background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-light) 100%);
             border: none;
             color: #fff;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 0.95rem;
-            padding: 0.6rem 1.25rem;
-            border-radius: 8px;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.06em;
+            padding: 0.85rem 1.25rem;
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: 0 10px 22px rgba(201, 151, 58, 0.32);
             transition: opacity 0.15s, transform 0.1s;
-            width: 100%;
         }
 
         .btn-signin:hover:not(:disabled) {
-            opacity: 0.92;
+            opacity: 0.94;
             transform: translateY(-1px);
-            color: #fff;
         }
 
         .btn-signin:active:not(:disabled) {
@@ -177,30 +261,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .btn-signin:disabled {
             opacity: 0.7;
+            cursor: default;
+        }
+
+        .signup-row {
+            text-align: center;
+            margin-top: 1.2rem;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .signup-row a {
+            color: var(--gold-deep);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .signup-row a:hover {
+            text-decoration: underline;
         }
 
         .alert-login {
-            font-size: 0.875rem;
-            border-radius: 8px;
+            font-size: 0.82rem;
+            border-radius: 10px;
+            background: #fdf1e0;
+            border: 1px solid #f1cf8e;
+            color: #7a5417;
+            padding: 0.6rem 0.85rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .login-footer {
             text-align: center;
-            font-size: 0.78rem;
-            color: #b0b5bf;
-            margin-top: 1.5rem;
-        }
-
-        @media (max-width: 480px) {
-            .login-card {
-                border-radius: 0;
-                box-shadow: none;
-                padding: 2rem 1.25rem 1.5rem;
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
+            font-size: 0.72rem;
+            color: #c4c0b6;
+            margin-top: 1.6rem;
         }
     </style>
 </head>
@@ -208,83 +306,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="login-card">
 
-    <div class="d-flex align-items-center gap-3 mb-1">
-        <div class="brand-icon">
-            <i class="bi bi-gem"></i>
-        </div>
-        <div>
-            <div class="brand-name">FineBullion Desk</div>
-            <div class="brand-sub">Management System</div>
-        </div>
+    <div class="card-header">
+        <!-- Real logo: point src at your uploaded logo file. Falls back automatically if missing. -->
+        <img id="brandLogoImg" src="finebullion desk logo.png" alt="FineBullion Desk">
+        <div class="brand-fallback" id="brandFallback">FINE BULLION DESK</div>
+
+        <svg class="wave" viewBox="0 0 400 34" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,10 C80,34 160,0 240,14 C300,24 350,6 400,16 L400,34 L0,34 Z" fill="#ffffff"></path>
+        </svg>
     </div>
 
-    <hr class="divider">
+    <div class="card-body">
 
+        <h1 class="login-heading">LOGIN</h1>
 
-    <?php if ($error !== null): ?>
-        <div class="alert alert-danger alert-login d-flex align-items-center gap-2 py-2 mb-3" role="alert">
-            <i class="bi bi-exclamation-circle-fill flex-shrink-0"></i>
-            <span><?= htmlspecialchars($error) ?></span>
-        </div>
-    <?php endif; ?>
-
-    <form method="POST" action="index.php" id="loginForm" novalidate>
-
-        <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-person"></i></span>
-                <input
-                    type="text"
-                    class="form-control"
-                    id="username"
-                    name="username"
-                    placeholder="Enter your username"
-                    value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
-                    autocomplete="username"
-                    autofocus
-                    required
-                >
+        <?php if ($error !== null): ?>
+            <div class="alert-login" role="alert">
+                <i class="bi bi-exclamation-circle-fill flex-shrink-0"></i>
+                <span><?= htmlspecialchars($error) ?></span>
             </div>
-        </div>
+        <?php endif; ?>
 
-        <div class="mb-4">
-            <label for="password" class="form-label">Password</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    autocomplete="current-password"
-                    required
-                >
-                <button type="button" class="btn-toggle-pw" id="togglePw" aria-label="Show or hide password" tabindex="-1">
-                    <i class="bi bi-eye" id="togglePwIcon"></i>
-                </button>
+        <form method="POST" action="index.php" id="loginForm" novalidate>
+
+            <div class="field">
+                <label for="username">Username</label>
+                <div class="underline-input-wrap">
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Your Name"
+                        value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+                        autocomplete="username"
+                        autofocus
+                        required
+                    >
+                </div>
             </div>
+
+            <div class="field mb-0">
+                <label for="password">Password</label>
+                <div class="underline-input-wrap">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                        required
+                    >
+                    <button type="button" class="btn-toggle-pw" id="togglePw" aria-label="Show or hide password" tabindex="-1">
+                        <i class="bi bi-eye" id="togglePwIcon"></i>
+                    </button>
+                </div>
+                <!-- <div class="forgot-row">
+                    <a href="#" class="forgot-link">Forget your password?</a>
+                </div> -->
+            </div>
+
+            <button type="submit" class="btn-signin" id="submitBtn">
+                <span id="submitLabel">SIGN IN</span>
+                <!-- <span id="submitSpinner" class="d-none">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    Signing in…
+                </span> -->
+            </button>
+        </form>
+
+        <div class="login-footer">
+            &copy; <?= date('Y') ?> FineBullion Desk. All rights reserved.
         </div>
 
-        <button type="submit" class="btn btn-signin" id="submitBtn">
-            <span id="submitLabel">
-                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-            </span>
-            <span id="submitSpinner" class="d-none">
-                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                Signing in…
-            </span>
-        </button>
-    </form>
-
-    <div class="login-footer">
-        &copy; <?= date('Y') ?> FineBullion Desk. All rights reserved.
     </div>
-
 </div>
 
 <script>
+    // Logo fallback: if assets/logo.png fails to load (or hasn't been uploaded yet),
+    // hide the <img> and show the text wordmark fallback instead.
+    (function () {
+        const img = document.getElementById('brandLogoImg');
+        const fallback = document.getElementById('brandFallback');
+        img.addEventListener('error', function () {
+            img.style.display = 'none';
+            fallback.classList.add('show-fallback');
+        }, { once: true });
+    })();
+
     const pwInput   = document.getElementById('password');
     const toggleBtn = document.getElementById('togglePw');
     const toggleIcon = document.getElementById('togglePwIcon');

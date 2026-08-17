@@ -194,7 +194,6 @@ if ($isAjax || $action !== null) {
     json_out(['success' => false, 'message' => 'Unknown action.'], 400);
 }
 ?>
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

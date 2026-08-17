@@ -10,9 +10,6 @@
  *       Ana   0–15
  *       Roti  0–5
  *       Point 0–9
- *     (10 Point = 1 Roti, 6 Roti = 1 Ana, 16 Ana = 1 Vori — so a value at
- *     the top of its range, e.g. 9 Point, never itself completes a full
- *     unit of the level above; it stays a remainder.)
  *   - Karat/purity is a free DECIMAL input (e.g. 10.2, 16.36, 19.00,
  *     20.59 — anything from 0.01 up to 24.00), not restricted to the
  *     18/21/22/24 preset list.
@@ -52,11 +49,6 @@ function json_out(array $data, int $status = 200): void
     exit;
 }
 
-/**
- * Convert traditional Vori/Ana/Roti/Point input into grams.
- * Vori/Ana/Roti/Point are expected to already be validated whole numbers
- * within their boundaries (Vori >= 0, Ana 0–15, Roti 0–5, Point 0–9).
- */
 function traditional_to_grams(int $vori, int $ana, int $roti, int $point): float
 {
     return ($vori * G_PER_VORI)
@@ -65,16 +57,11 @@ function traditional_to_grams(int $vori, int $ana, int $roti, int $point): float
          + ($point * G_PER_POINT);
 }
 
-/**
- * Convert a gram value back into whole Vori / Ana / Roti / Point for
- * display. Nesting is exact: 16 Ana = 1 Vori, 6 Roti = 1 Ana,
- * 10 Point = 1 Roti — so this is plain base conversion, no ambiguity.
- */
 function grams_to_traditional(float $grams): array
 {
     $totalVori = $grams / G_PER_VORI;
 
-    $vori = (int) floor($totalVori + 1e-9); // tiny epsilon guards float noise
+    $vori = (int) floor($totalVori + 1e-9);
     $fracVori = max(0.0, $totalVori - $vori);
 
     $totalAna = $fracVori * 16;
@@ -87,7 +74,6 @@ function grams_to_traditional(float $grams): array
 
     $point = (int) round($fracRoti * 10);
 
-    // Rounding carry: 10 Point -> 1 Roti -> possibly 6 Roti -> 1 Ana -> possibly 16 Ana -> 1 Vori
     if ($point >= 10) { $point -= 10; $roti += 1; }
     if ($roti >= 6)   { $roti -= 6;   $ana += 1; }
     if ($ana >= 16)   { $ana -= 16;   $vori += 1; }
@@ -111,7 +97,6 @@ function format_traditional(array $t): string
 
 if ($isAjax || $action !== null) {
 
-    // ---- Customer quick lookup (used after selecting from autocomplete) ----
     if ($action === 'customer' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) json_out(['success' => false, 'message' => 'Invalid customer ID.'], 400);
@@ -125,7 +110,6 @@ if ($isAjax || $action !== null) {
         json_out(['success' => true, 'data' => $row]);
     }
 
-    // ---- SAVE exchange ---------------------------------------------------
     if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $customerId = (int)($_POST['customer_id'] ?? 0);
         $note       = trim($_POST['note'] ?? '') ?: null;
@@ -144,7 +128,6 @@ if ($isAjax || $action !== null) {
             json_out(['success' => false, 'message' => 'Loss rate cannot be negative.'], 422);
         }
 
-        // Verify customer exists
         $cstmt = mysqli_prepare($conn, "SELECT id FROM customers WHERE id = ?");
         mysqli_stmt_bind_param($cstmt, 'i', $customerId);
         mysqli_stmt_execute($cstmt);
@@ -152,16 +135,12 @@ if ($isAjax || $action !== null) {
             json_out(['success' => false, 'message' => 'Selected customer does not exist.'], 404);
         }
 
-        // Validate & calculate each item server-side (never trust client math)
         $calcItems = [];
         $totalPureGrams = 0.0;
 
         foreach ($items as $i => $item) {
             $n = $i + 1;
 
-            // Vori/Ana/Roti/Point must be whole numbers within their
-            // boundaries. Reject anything that isn't a clean integer
-            // (covers stray floats/decimals slipping through from the client).
             foreach (['vori', 'ana', 'roti', 'point'] as $field) {
                 $raw = $item[$field] ?? 0;
                 if (!is_numeric($raw) || (float)$raw != (int)$raw) {
@@ -208,11 +187,9 @@ if ($isAjax || $action !== null) {
             ];
         }
 
-        // Loss = ceil(Points of loss per Vori of TOTAL pure gold).
-        // e.g. 18.6 Points → ceiled to 19 Points before converting to grams.
         $totalPureVori   = $totalPureGrams / G_PER_VORI;
         $lossPointsExact = $totalPureVori * $lossRate;
-        $lossPointsCeil  = (int) ceil($lossPointsExact);   // ← ceil
+        $lossPointsCeil  = (int) ceil($lossPointsExact);
         $lossGrams       = $lossPointsCeil * G_PER_POINT;
 
         $finalPureGrams = $totalPureGrams - $lossGrams;
@@ -267,39 +244,108 @@ if ($isAjax || $action !== null) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Gold Exchange — FineBullion Desk</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-    --fb-green: #0B412A;
-    --fb-gold: #DCAD41;
-}
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
 
-.exchange-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
-    color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
+    --status-paid-bg: #1b5238;
+    --status-paid-light: #eaf4ee;
+    --status-due-bg: #93292c;
+    --status-due-light: #fbeceb;
+    --status-total-bg: #b88328;
+    --status-total-light: #fdf6e2;
 }
-.exchange-header small { color: rgba(255,255,255,0.75); }
+
+/* Global Reset to eliminate top spacing entirely */
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
+
+.page-content {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.page-content > .container-fluid:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* ---------------------------------------------------------------
+   Page-Specific Header (.ge-header) — Unaffected by navbar.php
+--------------------------------------------------------------- */
+.ge-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+    padding: 1.1rem 1.5rem;
+    margin: 0 0 1.5rem 0 !important;
+    width: 100%;
+    position: relative;
+    top: 0;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 0 6px 24px rgba(201, 151, 58, 0.22);
+    box-sizing: border-box;
+}
+
+.ge-header h4 {
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    margin: 0 !important;
+    text-align: left !important;
+    font-size: 1.25rem;
+}
+
+.ge-header i {
+    color: #fff;
+}
+
+.ge-header .btn-history {
+    border-color: rgba(255, 255, 255, 0.6);
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.ge-header .btn-history:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.page-inset { padding: 0 1.5rem; }
 
 .customer-result-item {
     cursor: pointer;
     padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--hairline);
 }
-.customer-result-item:hover { background: #f8f4e8; }
+.customer-result-item:hover { background: #fdf7ec; }
 .customer-result-item:last-child { border-bottom: none; }
 .customer-result-photo {
     width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
-    border: 1px solid #dee2e6; flex-shrink: 0;
+    border: 1px solid var(--hairline); flex-shrink: 0;
 }
 .customer-result-photo-fallback {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-    background: var(--fb-green); color: #fff; font-size: 0.8rem; font-weight: 700;
+    background: var(--gold-deep); color: #fff; font-size: 0.8rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
 }
 
@@ -307,9 +353,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     position: absolute;
     z-index: 20;
     background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.18);
     width: 100%;
     max-height: 260px;
     overflow-y: auto;
@@ -317,9 +363,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 }
 
 .selected-customer-card {
-    border: 1px solid var(--fb-gold);
-    background: #fdf8ec;
-    border-radius: 8px;
+    border: 1.5px solid var(--gold-deep);
+    background: var(--status-total-light);
+    border-radius: 14px;
     padding: 0.75rem 1rem;
     display: none;
     align-items: center;
@@ -327,83 +373,114 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 }
 
 .gold-item-card {
-    border: 1px solid #e2e5ea;
-    border-radius: 10px;
+    border: 1.5px solid var(--hairline);
+    border-radius: 18px;
     padding: 1rem 1.1rem;
     margin-bottom: 1rem;
     background: #fff;
     position: relative;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.08);
 }
 .gold-item-card .item-index {
     position: absolute;
     top: -10px;
     left: 14px;
-    background: var(--fb-green);
+    background: var(--gold-deep);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 0.1rem 0.6rem;
-    border-radius: 10px;
+    border-radius: 999px;
 }
 .gold-item-card .btn-remove-item {
     position: absolute;
     top: 10px;
     right: 10px;
+    border-radius: 999px;
+    border: 1.5px solid var(--hairline);
+    background: #fff;
+    color: var(--status-due-bg);
 }
+.gold-item-card .btn-remove-item:hover { background: var(--status-due-light); }
 .item-pure-result {
-    background: #f4f9f6;
-    border: 1px dashed #bcd9c9;
-    border-radius: 8px;
+    background: var(--status-paid-light);
+    border: 1px dashed var(--status-paid-bg);
+    border-radius: 10px;
     padding: 0.5rem 0.8rem;
     font-size: 0.88rem;
-    color: var(--fb-green);
+    color: var(--status-paid-bg);
     font-weight: 600;
 }
 
 .summary-card {
-    background: var(--fb-green);
+    background: var(--status-total-bg);
     color: #fff;
-    border-radius: 12px;
+    border-radius: 18px;
     padding: 1.4rem 1.6rem;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.20);
 }
 .summary-row {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     padding: 0.45rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
+    border-bottom: 1px solid rgba(255,255,255,0.18);
 }
 .summary-row:last-child { border-bottom: none; }
-.summary-row .label { color: rgba(255,255,255,0.75); font-size: 0.85rem; }
+.summary-row .label { color: rgba(255,255,255,0.8); font-size: 0.85rem; }
 .summary-row .value { font-weight: 700; font-size: 1.05rem; }
-.summary-row.final .value { color: var(--fb-gold); font-size: 1.35rem; }
-.summary-row .sub { font-size: 0.75rem; color: rgba(255,255,255,0.6); display:block; }
+.summary-row.final .value { color: #ffffff; font-size: 1.35rem; }
+.summary-row .sub { font-size: 0.75rem; color: rgba(255,255,255,0.65); display:block; }
 .loss-rate-input {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.35);
     color: #fff;
     text-align: right;
+    border-radius: 10px;
 }
 .loss-rate-input:focus {
-    background: rgba(255,255,255,0.18);
-    border-color: var(--fb-gold);
+    background: rgba(255,255,255,0.22);
+    border-color: #ffffff;
     color: #fff;
-    box-shadow: 0 0 0 0.15rem rgba(220,173,65,0.35);
+    box-shadow: 0 0 0 0.15rem rgba(255,255,255,0.25);
 }
 
 .btn-gold {
-    background: var(--fb-gold);
-    border-color: var(--fb-gold);
-    color: #1a1a1a;
-    font-weight: 600;
+    background: var(--gold-deep);
+    border: 1px solid var(--gold-deep);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 999px;
 }
-.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
+.btn-gold:hover, .btn-gold:focus { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; opacity: 0.92; }
 
-/* ---------------------------------------------------------------
-   Item fields — Vori / Ana / Roti / Point always in ONE row
-   (4 equal columns), Karat as its own full-width row underneath.
-   This mirrors the compact mobile layout regardless of card width.
---------------------------------------------------------------- */
+.btn-outline-danger {
+    border-radius: 999px !important;
+}
+
+.card {
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
+}
+.card-header {
+    background: var(--ivory) !important;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    color: var(--bronze-text);
+}
+
+.form-control {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+}
+.form-control:focus {
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.15rem rgba(201, 151, 58, 0.18);
+}
+
 .item-fields-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -413,7 +490,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     display: block;
     font-size: 0.72rem;
     margin-bottom: 0.15rem;
-    color: #6c757d;
+    color: var(--muted);
     white-space: nowrap;
 }
 .item-fields-row .field-col input {
@@ -421,7 +498,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     padding-left: 0.25rem;
     padding-right: 0.25rem;
 }
-/* Remove Bootstrap's built-in valid/invalid checkmark & X icons on weight inputs */
+
 .item-fields-row input.form-control.is-valid,
 .item-fields-row input.form-control.is-invalid,
 .karat-row input.form-control.is-valid,
@@ -436,32 +513,31 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     display: block;
     font-size: 0.72rem;
     margin-bottom: 0.15rem;
-    color: #6c757d;
+    color: var(--muted);
 }
 
-/* ---------------------------------------------------------------
-   Mobile compaction — keep the whole form (header, customer,
-   one gold item, summary, save button) visible without scrolling
-   on a typical phone viewport for a single item.
---------------------------------------------------------------- */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-content .container-fluid { padding: 0 !important; }
+    .page-inset { padding: 0 0.8rem; }
 
-    .exchange-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
-    .exchange-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .exchange-header small { font-size: 0.7rem; }
-    .exchange-header .btn { padding: 0.2rem 0.5rem; font-size: 0.72rem; }
+    .ge-header { 
+        padding: 0.75rem 0.9rem !important; 
+        border-radius: 0 0 16px 16px !important;
+        margin-bottom: 0.8rem !important;
+    }
+    .ge-header h4 { font-size: 1.05rem !important; }
+    .ge-header .btn-history { padding: 0.22rem 0.55rem !important; font-size: 0.72rem !important; }
 
     .row.g-4 { --bs-gutter-y: 0.6rem; }
 
-    .card { margin-bottom: 0.6rem !important; border-radius: 8px; }
-    .card-header { padding: 0.45rem 0.75rem; font-size: 0.82rem; }
+    .card { margin-bottom: 0.6rem !important; border-radius: 14px; }
+    .card-header { padding: 0.45rem 0.75rem; font-size: 0.82rem; border-radius: 14px 14px 0 0 !important; }
     .card-body { padding: 0.6rem 0.75rem; }
 
     #customerSearch { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
     .selected-customer-card { padding: 0.5rem 0.7rem; }
 
-    .gold-item-card { padding: 0.75rem 0.75rem 0.6rem; margin-bottom: 0; border-radius: 8px; }
+    .gold-item-card { padding: 0.75rem 0.75rem 0.6rem; margin-bottom: 0; border-radius: 14px; }
     .gold-item-card .item-index { top: -9px; left: 12px; font-size: 0.65rem; padding: 0.08rem 0.5rem; }
     .gold-item-card .btn-remove-item { top: 6px; right: 6px; padding: 0.15rem 0.4rem; }
     .gold-item-card .form-control-sm { font-size: 0.82rem; padding: 0.28rem 0.4rem; }
@@ -470,7 +546,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
     #note { min-height: 44px; }
 
-    .summary-card { padding: 0.75rem 0.9rem; border-radius: 10px; }
+    .summary-card { padding: 0.75rem 0.9rem; border-radius: 14px; }
     .summary-card h6 { font-size: 0.72rem; margin-bottom: 0.5rem !important; }
     .summary-row { padding: 0.3rem 0; }
     .summary-row .label { font-size: 0.75rem; }
@@ -480,8 +556,6 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     .loss-rate-input { width: 55px !important; padding: 0.2rem 0.35rem; }
 
     #btnSave { padding: 0.5rem; font-size: 0.9rem; margin-top: 0.6rem !important; }
-
-    /* Note / Remarks is skipped entirely on mobile */
     #noteCard { display: none !important; }
 }
 </style>
@@ -491,22 +565,23 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
+<div class="container-fluid px-0">
 
-    <div class="exchange-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-            <h4 class="mb-1">
-                <i class="bi bi-arrow-left-right me-2 d-none d-md-inline"></i>
-                <span class="d-none d-md-inline">New Gold Exchange</span>
-                <span class="d-md-none">Gold Exchange</span>
-            </h4>
-            <small class="d-none d-md-inline">Convert old / impure gold into pure gold for a customer</small>
+    <!-- Isolated Page Header -->
+    <div class="ge-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-left-right text-white fs-4"></i>
+            <h4 class="m-0 text-white fw-bold">Gold Exchange</h4>
         </div>
-        <a href="gold_exchange_list.php" class="btn btn-outline-light btn-sm d-none d-md-inline-flex align-items-center">
-            <i class="bi bi-list-ul me-1"></i> Exchange History
-        </a>
+        <div>
+            <a href="gold_exchange_list.php" class="btn btn-outline-light btn-history btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bi bi-list-ul"></i>
+                <span>Exchange History</span>
+            </a>
+        </div>
     </div>
 
+    <div class="page-inset">
     <form id="exchangeForm" autocomplete="off">
         <div class="row g-4">
             <div class="col-lg-8">
@@ -529,8 +604,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                                 <div class="fw-semibold" id="selectedCustomerName">—</div>
                                 <small class="text-muted" id="selectedCustomerPhone">—</small>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearCustomer">
-                                <i class="bi bi-x-lg"></i>
+                            <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center" id="btnClearCustomer">
+                                <i class="bi bi-x-lg"></i> <span class="d-none d-sm-inline ms-1">Clear</span>
                             </button>
                         </div>
                     </div>
@@ -540,8 +615,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
                         <span class="fw-semibold"><i class="bi bi-gem me-1"></i> Old / Impure Gold Items</span>
-                        <button type="button" class="btn btn-sm btn-gold" id="btnAddItem">
-                            <i class="bi bi-plus-lg me-1"></i> Add Item
+                        <button type="button" class="btn btn-sm btn-gold d-inline-flex align-items-center" id="btnAddItem">
+                            <i class="bi bi-plus-lg me-1"></i> <span>Add Item</span>
                         </button>
                     </div>
                     <div class="card-body" id="itemsContainer">
@@ -600,6 +675,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </div>
         </div>
     </form>
+    </div>
 
 </div>
 </div>
@@ -607,8 +683,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <template id="itemTemplate">
     <div class="gold-item-card" data-item>
         <span class="item-index">Item <span data-item-num></span></span>
-        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-remove>
-            <i class="bi bi-trash3"></i>
+        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item d-inline-flex align-items-center" data-remove>
+            <i class="bi bi-trash3"></i> <span class="d-none d-sm-inline ms-1">Remove</span>
         </button>
         <div class="item-fields-row mt-2">
             <div class="field-col">
@@ -645,16 +721,14 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
 <script>
 const G_PER_VORI  = 11.664;
-const G_PER_ANA   = 0.729;    // 1 Vori / 16
-const G_PER_ROTI  = 0.1215;   // 1 Ana / 6
-const G_PER_POINT = 0.01215;  // 1 Roti / 10
+const G_PER_ANA   = 0.729;
+const G_PER_ROTI  = 0.1215;
+const G_PER_POINT = 0.01215;
 
 function traditionalToGrams(vori, ana, roti, point) {
     return (vori * G_PER_VORI) + (ana * G_PER_ANA) + (roti * G_PER_ROTI) + (point * G_PER_POINT);
 }
 
-// Convert grams back to Vori/Ana/Roti/Point for display only.
-// Nesting is exact: 16 Ana = 1 Vori, 6 Roti = 1 Ana, 10 Point = 1 Roti.
 function gramsToTraditional(grams) {
     const EPS = 1e-9;
     const totalVori = grams / G_PER_VORI;
@@ -682,9 +756,6 @@ function formatTraditional(t) {
     return `${t.vori} Vori ${t.ana} Ana ${t.roti} Roti ${t.point} Point`;
 }
 
-// ---------------------------------------------------------------
-// Customer search
-// ---------------------------------------------------------------
 const customerSearch  = document.getElementById('customerSearch');
 const customerResults = document.getElementById('customerResults');
 const customerIdInput = document.getElementById('customerId');
@@ -778,14 +849,10 @@ document.addEventListener('click', function (e) {
     }
 });
 
-// ---------------------------------------------------------------
-// Gold items
-// ---------------------------------------------------------------
 const itemsContainer = document.getElementById('itemsContainer');
 const itemTemplate    = document.getElementById('itemTemplate');
 let itemCounter = 0;
 
-// Validation rules for each traditional-unit field
 const FIELD_RULES = {
     vori:  { min: 0,    max: null, label: 'Vori'  },
     ana:   { min: 0,    max: 15,   label: 'Ana'   },
@@ -793,24 +860,17 @@ const FIELD_RULES = {
     point: { min: 0,    max: 9,    label: 'Point' },
 };
 
-/**
- * Validate a single traditional-unit input in real time.
- * Returns { valid, value } where value is the integer (or 0 on error).
- * Marks the input is-invalid / is-valid and fills the error span.
- */
 function validateField(input, field) {
     const raw   = input.value;
     const rules = FIELD_RULES[field];
     const errEl = input.parentElement.querySelector(`[data-error="${field}"]`);
 
-    // Empty → treat as 0, no error shown while typing
     if (raw === '' || raw === null) {
         input.classList.remove('is-invalid', 'is-valid');
         if (errEl) errEl.textContent = '';
         return { valid: true, value: 0 };
     }
 
-    // Reject decimals: if the string contains a dot/comma it is a float
     if (/[.,]/.test(raw)) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
@@ -820,7 +880,6 @@ function validateField(input, field) {
 
     const n = Number(raw);
 
-    // Must be a finite integer
     if (!Number.isFinite(n) || !Number.isInteger(n)) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
@@ -828,7 +887,6 @@ function validateField(input, field) {
         return { valid: false, value: 0 };
     }
 
-    // Range check
     if (n < rules.min) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
@@ -842,7 +900,6 @@ function validateField(input, field) {
         return { valid: false, value: rules.max };
     }
 
-    // Valid
     input.classList.remove('is-invalid');
     input.classList.add('is-valid');
     if (errEl) errEl.textContent = '';
@@ -856,7 +913,6 @@ function addItem() {
     card.dataset.itemId = itemCounter;
     node.querySelector('[data-item-num]').textContent = itemCounter;
 
-    // Attach real-time validation + render to every input
     card.querySelectorAll('input').forEach(el => {
         el.addEventListener('input', () => { renderItem(card); renderSummary(); });
         el.addEventListener('change', () => { renderItem(card); renderSummary(); });
@@ -879,12 +935,6 @@ function renumberItems() {
     });
 }
 
-/**
- * Read and validate all fields from a card.
- * Returns { allValid, vori, ana, roti, point, karat }
- * For display/calculation, uses the integer value even when invalid
- * (so the result display can still update live — errors are shown in the field).
- */
 function getItemValues(card) {
     let allValid = true;
     const results = {};
@@ -904,7 +954,7 @@ function getItemValues(card) {
         karatInput.classList.remove('is-valid');
         if (karatErrEl) karatErrEl.textContent = 'Karat must be 0.01 – 24.00.';
         allValid = false;
-        results.karat = 22; // fallback for display
+        results.karat = 22;
     } else {
         karatInput.classList.remove('is-invalid');
         karatInput.classList.add('is-valid');
@@ -921,7 +971,6 @@ function renderItem(card) {
     const grams    = traditionalToGrams(v.vori, v.ana, v.roti, v.point);
     const pureGrams = grams * (v.karat / 24);
     const pureTrad  = gramsToTraditional(pureGrams);
-    const oldTrad   = { vori: v.vori, ana: v.ana, roti: v.roti, point: v.point };
 
     card.querySelector('[data-pure-result]').innerHTML =
         `<span>Pure Gold: <strong>${formatTraditional(pureTrad)}</strong></span>`;
@@ -929,9 +978,6 @@ function renderItem(card) {
 
 document.getElementById('btnAddItem').addEventListener('click', addItem);
 
-// ---------------------------------------------------------------
-// Summary calculation
-// ---------------------------------------------------------------
 const lossRateInput = document.getElementById('lossRateInput');
 lossRateInput.addEventListener('input', renderSummary);
 
@@ -949,12 +995,10 @@ function renderSummary() {
         totalPureGrams += grams * (v.karat / 24);
     });
 
-    // Loss points = ceil(total_pure_vori * loss_rate)
-    // e.g. 18.6 Points → ceiled to 19 Points before converting to grams
     const lossRate        = getLossRate();
     const totalPureVori   = totalPureGrams / G_PER_VORI;
     const lossPointsExact = totalPureVori * lossRate;
-    const lossPointsCeil  = Math.ceil(lossPointsExact);   // ← ceil here
+    const lossPointsCeil  = Math.ceil(lossPointsExact);
     const lossGrams       = lossPointsCeil * G_PER_POINT;
 
     let finalPureGrams = totalPureGrams - lossGrams;
@@ -965,20 +1009,13 @@ function renderSummary() {
     const lossTrad  = gramsToTraditional(lossGrams);
 
     document.getElementById('sumTotalPure').textContent = formatTraditional(totalTrad);
-
-    // Loss shown as ceiled point count, then traditional breakdown
     document.getElementById('sumLoss').textContent = lossPointsCeil + ' Point  (@ ' + lossRate + ' Pt/Vori)';
     document.getElementById('sumLossTrad').textContent = formatTraditional(lossTrad);
-
     document.getElementById('sumFinalPure').textContent = formatTraditional(finalTrad);
 }
 
-// Start with one item row
 addItem();
 
-// ---------------------------------------------------------------
-// Save
-// ---------------------------------------------------------------
 document.getElementById('exchangeForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 

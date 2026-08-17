@@ -1,7 +1,7 @@
 <?php
 /**
  * navbar.php
- * Clean 5-Item Navigation with Dynamic Full-Width Logo / Text Fallback
+ * Clean Navigation with Dynamic Logo, Mobile Bottom Sheet, and PC Dropdown Menus
  */
 
 if (!isset($navUser)) {
@@ -34,15 +34,27 @@ $logoImagePath = 'finebullion desk logo.png';
 $hasLogoImage = file_exists(__DIR__ . '/' . $logoImagePath);
 
 // Active State Logic
-$isCustomerActive  = in_array($navCurrentPage, ['customers.php', 'customer_history.php']);
-$isExchangeActive  = in_array($navCurrentPage, ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php']);
-$isSaleActive      = in_array($navCurrentPage, ['gold_sale.php', 'gold_sale_list.php', 'gold_sale_edit.php']);
-$isBuyActive       = in_array($navCurrentPage, ['gold_buy.php', 'gold_buy_list.php', 'gold_buy_edit.php']);
-$isMenuActive      = in_array($navCurrentPage, ['dashboard.php', 'expenses.php', 'users.php']);
+$isCustomerActive     = in_array($navCurrentPage, ['customers.php', 'customer_history.php']);
+$isExchangeActive     = in_array($navCurrentPage, ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php']);
+$isExchangeEditActive = ($navCurrentPage === 'gold_exchange_edit.php');
+
+$isSaleActive         = in_array($navCurrentPage, ['gold_sale.php', 'gold_sale_list.php', 'gold_sale_edit.php']);
+$isSaleEditActive     = ($navCurrentPage === 'gold_sale_edit.php');
+
+$isBuyActive          = in_array($navCurrentPage, ['gold_buy.php', 'gold_buy_list.php', 'gold_buy_edit.php']);
+$isBuyEditActive      = ($navCurrentPage === 'gold_buy_edit.php');
+
+$isMenuActive         = in_array($navCurrentPage, ['dashboard.php', 'expenses.php', 'users.php']);
 
 function nav_is_active(string $href, string $current): bool {
     return $href === $current;
 }
+
+// Preserve current URI for Edit routes (handles ?id=X)
+$currentQueryString = $_SERVER['QUERY_STRING'] ?? '';
+$exchangeEditUrl = 'gold_exchange_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+$saleEditUrl     = 'gold_sale_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+$buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -59,8 +71,8 @@ function nav_is_active(string $href, string $current): bool {
 
     /* Zero out root margins and body padding */
     html, body {
-    margin: 0 !important;
-    padding: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     /* Remove spacing from parent layout wrappers */
@@ -69,24 +81,25 @@ function nav_is_active(string $href, string $current): bool {
     .content-wrapper,
     .container,
     .container-fluid {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
     }
 
     /* Force header banner flush to the top edge */
     .list-header {
-    margin-top: 0 !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-    position: relative;
-    top: 0;
+        margin-top: 0 !important;
+        border-top-left-radius: 0 !important;
+        border-top-right-radius: 0 !important;
+        position: relative;
+        top: 0;
     }
 
     /* Prevent CSS margin collapsing from child headings/icons */
     .page-content > *:first-child,
     .list-header > *:first-child {
-    margin-top: 0 !important;
+        margin-top: 0 !important;
     }
+
     /* Desktop Sidebar */
     .app-sidebar {
         position: fixed; top: 0; left: 0;
@@ -132,9 +145,40 @@ function nav_is_active(string $href, string $current): bool {
         border-radius: 8px; color: var(--nav-text); text-decoration: none;
         font-size: 0.88rem; font-weight: 500; cursor: pointer; background: none; border: none; width: 100%; text-align: left;
     }
-    .nav-link-item i { font-size: 1.02rem; width: 20px; color: var(--nav-gold); text-align: center; }
+    .nav-link-item i.nav-icon { font-size: 1.02rem; width: 20px; color: var(--nav-gold); text-align: center; }
     .nav-link-item:hover { background: var(--nav-bg-soft); color: #fff; }
     .nav-link-item.active { background: rgba(212, 168, 71, 0.18); color: var(--nav-gold); }
+
+    /* Desktop Dropdown Styles */
+    .nav-dropdown-toggle {
+        justify-content: space-between;
+    }
+    .nav-dropdown-toggle .chevron-icon {
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+        color: var(--nav-text-dim);
+    }
+    .nav-dropdown.open .chevron-icon {
+        transform: rotate(180deg);
+    }
+    .nav-submenu {
+        display: none;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding-left: 0.8rem;
+        margin-top: 0.15rem;
+    }
+    .nav-dropdown.open .nav-submenu {
+        display: flex;
+    }
+    .nav-sub-item {
+        display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.75rem;
+        border-radius: 6px; color: var(--nav-text-dim); text-decoration: none;
+        font-size: 0.82rem; font-weight: 500;
+    }
+    .nav-sub-item i { font-size: 0.9rem; color: var(--nav-gold); width: 16px; text-align: center; }
+    .nav-sub-item:hover { background: var(--nav-bg-soft); color: #fff; }
+    .nav-sub-item.active { background: rgba(212, 168, 71, 0.15); color: var(--nav-gold); font-weight: 600; }
 
     .nav-footer { border-top: 1px solid var(--nav-border); padding: 1rem; text-align: center; }
     .nav-user-name { font-size: 0.85rem; font-weight: 700; color: #fff; }
@@ -232,29 +276,91 @@ function nav_is_active(string $href, string $current): bool {
 
     <nav class="nav-links">
         <a href="dashboard.php" class="nav-link-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+            <i class="bi bi-grid-1x2-fill nav-icon"></i><span>Dashboard</span>
         </a>
         <a href="customers.php" class="nav-link-item<?= $isCustomerActive ? ' active' : '' ?>">
-            <i class="bi bi-person-fill"></i><span>Customer</span>
+            <i class="bi bi-person-fill nav-icon"></i><span>Customer</span>
         </a>
-        <a href="gold_exchange.php" class="nav-link-item<?= $isExchangeActive ? ' active' : '' ?>">
-            <i class="bi bi-arrow-left-right"></i><span>Exchange</span>
-        </a>
-        <a href="gold_sale.php" class="nav-link-item<?= $isSaleActive ? ' active' : '' ?>">
-            <i class="bi bi-cash-coin"></i><span>Sale</span>
-        </a>
-        <a href="gold_buy.php" class="nav-link-item<?= $isBuyActive ? ' active' : '' ?>">
-            <i class="bi bi-cart-fill"></i><span>Buy</span>
-        </a>
+
+        <!-- Exchange Dropdown -->
+        <div class="nav-dropdown<?= $isExchangeActive ? ' open' : '' ?>">
+            <button type="button" class="nav-link-item nav-dropdown-toggle<?= $isExchangeActive ? ' active' : '' ?>" onclick="toggleNavDropdown(this)">
+                <div style="display: flex; align-items: center; gap: 0.7rem;">
+                    <i class="bi bi-arrow-left-right nav-icon"></i><span>Exchange</span>
+                </div>
+                <i class="bi bi-chevron-down chevron-icon"></i>
+            </button>
+            <div class="nav-submenu">
+                <a href="gold_exchange.php" class="nav-sub-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <i class="bi bi-plus-circle"></i><span>New Exchange</span>
+                </a>
+                <a href="gold_exchange_list.php" class="nav-sub-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <i class="bi bi-journal-text"></i><span>Exchange List</span>
+                </a>
+                <?php if ($isExchangeEditActive): ?>
+                    <a href="<?= $exchangeEditUrl ?>" class="nav-sub-item active">
+                        <i class="bi bi-pencil-square"></i><span>Edit Exchange</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Sale Dropdown -->
+        <div class="nav-dropdown<?= $isSaleActive ? ' open' : '' ?>">
+            <button type="button" class="nav-link-item nav-dropdown-toggle<?= $isSaleActive ? ' active' : '' ?>" onclick="toggleNavDropdown(this)">
+                <div style="display: flex; align-items: center; gap: 0.7rem;">
+                    <i class="bi bi-cash-coin nav-icon"></i><span>Sale</span>
+                </div>
+                <i class="bi bi-chevron-down chevron-icon"></i>
+            </button>
+            <div class="nav-submenu">
+                <a href="gold_sale.php" class="nav-sub-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <i class="bi bi-plus-circle"></i><span>New Sale</span>
+                </a>
+                <a href="gold_sale_list.php" class="nav-sub-item<?= nav_is_active('gold_sale_list.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <i class="bi bi-journal-text"></i><span>Sale List</span>
+                </a>
+                <?php if ($isSaleEditActive): ?>
+                    <a href="<?= $saleEditUrl ?>" class="nav-sub-item active">
+                        <i class="bi bi-pencil-square"></i><span>Edit Sale</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Buy Dropdown -->
+        <div class="nav-dropdown<?= $isBuyActive ? ' open' : '' ?>">
+            <button type="button" class="nav-link-item nav-dropdown-toggle<?= $isBuyActive ? ' active' : '' ?>" onclick="toggleNavDropdown(this)">
+                <div style="display: flex; align-items: center; gap: 0.7rem;">
+                    <i class="bi bi-cart-fill nav-icon"></i><span>Buy</span>
+                </div>
+                <i class="bi bi-chevron-down chevron-icon"></i>
+            </button>
+            <div class="nav-submenu">
+                <a href="gold_buy.php" class="nav-sub-item<?= nav_is_active('gold_buy.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <i class="bi bi-plus-circle"></i><span>New Buy</span>
+                </a>
+                <a href="gold_buy_list.php" class="nav-sub-item<?= nav_is_active('gold_buy_list.php', $navCurrentPage) ? ' active' : '' ?>">
+                    <i class="bi bi-journal-text"></i><span>Buy List</span>
+                </a>
+                <?php if ($isBuyEditActive): ?>
+                    <a href="<?= $buyEditUrl ?>" class="nav-sub-item active">
+                        <i class="bi bi-pencil-square"></i><span>Edit Buy</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <a href="expenses.php" class="nav-link-item<?= nav_is_active('expenses.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-wallet2"></i><span>Expenses</span>
+            <i class="bi bi-wallet2 nav-icon"></i><span>Expenses</span>
         </a>
         <?php if ($isAdmin): ?>
             <a href="users.php" class="nav-link-item<?= nav_is_active('users.php', $navCurrentPage) ? ' active' : '' ?>">
-                <i class="bi bi-people-fill"></i><span>Users</span>
+                <i class="bi bi-people-fill nav-icon"></i><span>Users</span>
             </a>
         <?php endif; ?>
     </nav>
+
     <div class="nav-footer">
         <div class="nav-user-name"><?= htmlspecialchars($navUser['username']) ?></div>
         <div class="nav-user-role"><?= htmlspecialchars($navUser['role'] ?: 'Member') ?></div>
@@ -359,6 +465,13 @@ function nav_is_active(string $href, string $current): bool {
 </div>
 
 <script>
+    function toggleNavDropdown(btn) {
+        const parentDropdown = btn.closest('.nav-dropdown');
+        if (parentDropdown) {
+            parentDropdown.classList.toggle('open');
+        }
+    }
+
     function openSheet(id) {
         closeSheets();
         const sheet = document.getElementById(id);

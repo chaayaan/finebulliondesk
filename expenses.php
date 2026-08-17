@@ -238,44 +238,113 @@ if ($isAjax || $action !== null) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 :root {
-    --fb-green: #0B412A;
-    --fb-gold:  #DCAD41;
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
+
+    --status-paid-bg: #1b5238;      /* Deep Emerald (Paid / Impure / Loss) */
+    --status-paid-light: #eaf4ee;
+    --status-due-bg: #93292c;       /* Deep Ruby (Due / Pure / Outflow) */
+    --status-due-light: #fbeceb;
+    --status-total-bg: #b88328;     /* Rich Gold (Totals / Net Output) */
+    --status-total-light: #fdf6e2;
 }
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
 
 /* ---- page header bar ---- */
-.list-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
-    color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
-    position: relative;
+.exchange-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.list-header h4 { color: #fff; }
-.list-header small { color: rgba(255,255,255,0.75); }
+.exchange-header h4, .exchange-header h4 i { color: #ffffff !important; }
+.exchange-header small { color: rgba(255,255,255,0.85) !important; }
+.exchange-header .header-title-block { min-width: 0; }
+.exchange-header .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 
-/* ---- gold accent button ---- */
-.btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
-.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
+.page-inset { padding: 0 1.5rem; }
 
-/* ---- stat bar (matches other list pages: Buy / Sale / Exchange) ---- */
+/* ---- pill buttons ---- */
+.btn-fb-primary, .btn-gold {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff !important;
+    font-weight: 700;
+    border-radius: 999px;
+}
+.btn-fb-primary:hover, .btn-gold:hover { opacity: 0.92; background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff !important; }
+
+.btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-danger {
+    background: #ffffff;
+    border: 1.5px solid var(--status-due-bg);
+    color: var(--status-due-bg);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-danger:hover { background: var(--status-due-bg); border-color: var(--status-due-bg); color: #ffffff; }
+
+.btn-outline-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-primary {
+    background: #ffffff;
+    border: 1.5px solid var(--gold-deep);
+    color: var(--gold-deep);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; }
+
+/* ---- stat bar ---- */
 .stat-bar {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0;
-    border-radius: 8px;
+    border-radius: 18px;
     overflow: hidden;
     margin-bottom: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
 }
 .stat-cell {
-    padding: 0.65rem 0.8rem;
+    padding: 0.75rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
 }
 .stat-cell .s-label {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -288,28 +357,29 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     letter-spacing: 0.01em;
     white-space: nowrap;
 }
-.stat-count { background: var(--fb-green); color: #fff; }
-.stat-sum   { background: var(--fb-gold);  color: #1a1a1a; }
+.stat-count { background: var(--status-paid-bg); color: #fff; }
+.stat-sum   { background: var(--status-total-bg); color: #fff; }
 
 /* ---- chart card ---- */
 .chart-card {
-    background: #fff;
-    border: 2px solid #7c4dff33;
-    border-radius: 12px;
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
     padding: 1rem 1.25rem 0.5rem;
 }
-.chart-legend { display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.85rem; font-weight:600; margin-bottom:0.5rem; }
+.chart-legend { display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.85rem; font-weight:600; margin-bottom:0.5rem; color: var(--bronze-text); }
 .chart-legend .dot { width:11px; height:11px; border-radius:50%; display:inline-block; margin-right:6px; }
 .chart-wrap { position: relative; height: 260px; width: 100%; }
 
 /* ---- total strip ---- */
 .total-strip {
-    background: #eaf5ee;
-    color: var(--fb-green);
+    background: var(--status-paid-light);
+    color: var(--status-paid-bg);
     font-weight: 600;
     font-size: 0.85rem;
     padding: 0.55rem 1rem;
-    border-bottom: 1px solid #e1ece5;
+    border-bottom: 1px solid var(--hairline);
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
@@ -317,9 +387,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 }
 
 /* ---- filter bar ---- */
-.filter-bar { background:#fff; border-bottom:1px solid #eef0f3; padding:0.75rem 1rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:end; }
+.filter-bar { background:#ffffff; border-bottom:1px solid var(--hairline); padding:0.75rem 1rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:end; }
 .filter-bar .filter-field { display:flex; flex-direction:column; gap:0.2rem; }
-.filter-bar label { font-size:0.72rem; color:#6c757d; font-weight:600; margin-bottom:0; }
+.filter-bar label { font-size:0.72rem; color: var(--muted); font-weight:600; margin-bottom:0; }
 .filter-bar .form-select, .filter-bar .form-control { font-size:0.85rem; }
 
 /* ---- expense list row (mobile card-style) ---- */
@@ -328,35 +398,69 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     align-items: center;
     gap: 0.75rem;
     padding: 0.7rem 1rem;
-    border-bottom: 1px solid #eef0f3;
+    border-bottom: 1px solid var(--hairline);
 }
 .expense-row:last-child { border-bottom: none; }
-.expense-row:hover { background: #f8faf9; }
+.expense-row:hover { background: #fdf7ec; }
 .expense-row .er-cat-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .expense-row .er-info { flex: 1; min-width: 0; }
-.expense-row .er-cat { font-weight: 600; font-size: 0.9rem; color: #1a1a1a; }
-.expense-row .er-details { font-size: 0.78rem; color: #8a8f98; }
-.expense-row .er-date { font-size: 0.72rem; color: #9aa0a6; white-space: nowrap; }
-.expense-row .er-amount { font-weight: 700; color: #198754; font-size: 0.92rem; white-space: nowrap; }
+.expense-row .er-cat { font-weight: 600; font-size: 0.9rem; color: var(--bronze-text); }
+.expense-row .er-details { font-size: 0.78rem; color: var(--muted); }
+.expense-row .er-date { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.expense-row .er-amount { font-weight: 700; color: var(--status-total-bg); font-size: 0.92rem; white-space: nowrap; }
 .er-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .er-actions .btn {
     width: 32px; height: 32px; padding: 0; display: inline-flex;
-    align-items: center; justify-content: center; border-radius: 7px; font-size: 0.85rem;
+    align-items: center; justify-content: center; border-radius: 999px; font-size: 0.85rem;
 }
 
 /* ---- desktop table ---- */
-.cat-badge { display:inline-flex; align-items:center; gap:6px; font-weight:600; font-size:0.82rem; }
+.table { --bs-table-hover-bg: #fdf7ec; }
+.table thead.table-light th, .table thead th {
+    background: var(--ivory) !important;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    border-color: var(--hairline) !important;
+    font-weight: 700;
+}
+.table td { border-color: var(--hairline) !important; vertical-align: middle; }
+.table tbody tr:hover { background: #fdf7ec; }
+.cat-badge { display:inline-flex; align-items:center; gap:6px; font-weight:600; font-size:0.82rem; color: var(--bronze-text); }
 .cat-badge .dot { width:9px; height:9px; border-radius:50%; }
-.amount-cell { font-weight: 700; color: #198754; }
+.amount-cell { font-weight: 700; color: var(--status-total-bg); }
+
+/* ---- cards ---- */
+.card { background:#ffffff; border:none; border-radius:18px; box-shadow:0 10px 30px rgba(180,140,50,0.12); }
+.card-header { background: var(--ivory) !important; border-bottom:1px solid var(--hairline); border-radius:18px 18px 0 0 !important; color: var(--bronze-text); }
+.card-footer { background:#ffffff !important; border-top:1px solid var(--hairline); border-radius: 0 0 18px 18px !important; }
+
+/* ---- inputs ---- */
+.form-control, .form-select, .input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18); }
 
 /* ---- modal form styling ---- */
-.modal-header.fb-modal-header { background: var(--fb-green); color: #fff; }
-.modal-header.fb-modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+.modal-content { border-radius: 18px; overflow: hidden; border: none; }
+.modal-header.fb-modal-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+}
+.modal-header.fb-modal-header .modal-title { color: #ffffff; font-weight: 800; }
+.modal-header.fb-modal-header .btn-close { filter: brightness(0) invert(1); }
 .form-label .text-danger { font-weight: 700; }
-.form-control:focus, .form-select:focus { border-color: var(--fb-gold); box-shadow: 0 0 0 0.2rem rgba(220,173,65,0.18); }
+
+/* ---- alerts ---- */
+.alert-danger { background: var(--status-due-light); color: var(--status-due-bg); border: none; border-radius: 12px; }
+.alert-success { background: var(--status-paid-light); color: var(--status-paid-bg); border: none; border-radius: 12px; }
 
 .field-row { display: flex; align-items: center; gap: 0.75rem; }
-.field-row .field-label { flex: 0 0 130px; max-width: 130px; margin-bottom: 0; padding-right: 0.25rem; }
+.field-row .field-label { flex: 0 0 130px; max-width: 130px; margin-bottom: 0; padding-right: 0.25rem; color: var(--bronze-text); }
 .field-row .field-input { flex: 1 1 auto; min-width: 0; }
 @media (max-width: 575.98px) {
     .field-row { align-items: flex-start; }
@@ -367,38 +471,38 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
    Mobile compaction
 --------------------------------------------------------------- */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-inset { padding: 0 0.8rem 1rem; }
 
-    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
-    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .list-header h4 i { display: none; }
-    .list-header small { display: none; }
-    .list-header > button.btn {
-        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    .exchange-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
     }
-    .list-header > button.btn span { display: none; }
+    .exchange-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .exchange-header small { display: none; }
 
     /* Chart mobile adjustment */
-    .chart-card { padding: 0.75rem 0.6rem 0.4rem; border-radius: 10px; }
+    .chart-card { padding: 0.75rem 0.6rem 0.4rem; border-radius: 14px; }
     .chart-legend { font-size: 0.68rem; gap: 0.6rem; }
     .chart-legend .dot { width: 8px; height: 8px; margin-right: 4px; }
     #chartYear { font-size: 0.78rem; padding: 0.25rem 0.5rem; }
     .chart-wrap { height: 220px; width: 100%; }
 
-    /* Stat bar mobile adjustment (matches other list pages) */
-    .stat-bar { margin-bottom: 0.75rem; }
+    /* Stat bar mobile adjustment */
+    .stat-bar { margin-bottom: 0.75rem; border-radius: 14px; }
     .stat-cell { padding: 0.5rem 0.55rem; }
     .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
     .stat-cell .s-value { font-size: 0.85rem; white-space: normal; }
 
-    .card { border-radius: 10px; }
+    .card { border-radius: 14px; }
     .filter-bar { padding: 0.6rem 0.7rem; gap: 0.5rem; }
     .filter-bar .filter-field { flex: 1 1 45%; }
 
     .total-strip { font-size: 0.78rem; padding: 0.45rem 0.85rem; }
 
-    .expense-row { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+    .expense-row { padding: 0.6rem 0.75rem; gap: 0.5rem; border-radius: 12px; }
     .expense-row .er-cat { font-size: 0.84rem; }
     .expense-row .er-details, .expense-row .er-date { font-size: 0.72rem; }
     .er-actions .btn { width: 28px; height: 28px; font-size: 0.75rem; }
@@ -414,10 +518,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
-
-    <div class="list-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
+<div class="container-fluid px-0">
+    <div class="exchange-header">
+        <div class="header-title-block">
             <h4 class="mb-0">
                 <i class="bi bi-wallet2 me-2"></i>
                 <span class="d-none d-md-inline">Expense Tracking</span>
@@ -425,15 +528,18 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </h4>
             <small>FineBullion Desk</small>
         </div>
-        <div class="d-none d-md-flex gap-2">
-            <button type="button" class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#expenseModal" id="btnAddExpense">
+        <div class="header-actions">
+            <button type="button" class="btn btn-fb-primary btn-sm d-none d-md-inline-flex" data-bs-toggle="modal" data-bs-target="#expenseModal" id="btnAddExpense">
                 <i class="bi bi-plus-lg me-1"></i> Add Expenses
             </button>
+            <button type="button" class="btn btn-fb-primary btn-sm d-md-none" data-bs-toggle="modal" data-bs-target="#expenseModal" id="btnAddExpenseMobile">
+                <i class="bi bi-plus-lg me-1"></i><span>Add</span>
+            </button>
         </div>
-        <button type="button" class="btn btn-gold btn-sm d-md-none" data-bs-toggle="modal" data-bs-target="#expenseModal" id="btnAddExpenseMobile">
-            <i class="bi bi-plus-lg me-1"></i><span>Add</span>
-        </button>
     </div>
+</div>
+
+<div class="page-inset py-4">
 
     <!-- CHART -->
     <div class="chart-card mb-4">
@@ -459,11 +565,11 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     </div>
 
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Expenses</span>
             <div class="input-group" style="max-width:300px;">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" id="searchInput" class="form-control" placeholder="Search details…">
                 <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
@@ -486,7 +592,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </div>
             <div class="filter-field">
                 <label>&nbsp;</label>
-                <button class="btn btn-sm btn-outline-secondary" id="resetFilterBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+                <button class="btn btn-sm btn-fb-secondary" id="resetFilterBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
             </div>
         </div>
 
@@ -507,7 +613,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             <!-- ============ DESKTOP TABLE ============ -->
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    <thead>
                         <tr>
                             <th style="width:120px;">Date</th>
                             <th style="width:150px;">Category</th>
@@ -523,7 +629,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </div>
 
         </div>
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
             <small class="text-muted" id="paginationInfo">&nbsp;</small>
             <nav><ul class="pagination pagination-sm mb-0" id="paginationControls"></ul></nav>
         </div>
@@ -575,8 +681,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-danger me-auto d-none" id="deleteExpenseBtn"><i class="bi bi-trash-fill me-1"></i> Delete</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-gold" id="saveExpenseBtn">
+          <button type="button" class="btn btn-fb-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-fb-primary" id="saveExpenseBtn">
             <span class="spinner-border spinner-border-sm d-none me-1" id="saveSpinner"></span>
             <i class="bi bi-check-lg me-1"></i> Add Expense
           </button>
@@ -643,8 +749,14 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         return CAT_COLORS[idx >= 0 ? idx % CAT_COLORS.length : 0];
     }
 
+    function localDateStr(d) {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dy}`;
+    }
     function todayStr() {
-        return new Date().toISOString().slice(0, 10);
+        return localDateStr(new Date());
     }
     function monthStartStr() {
         const d = new Date();

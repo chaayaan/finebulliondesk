@@ -393,122 +393,255 @@ $fullyPaid = $dueAmount <= 0;
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-:root { --fb-green:#0B412A; --fb-gold:#DCAD41; }
-body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
+:root {
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
 
-/* header */
-.sale-header {
-    background:linear-gradient(135deg,var(--fb-green) 0%,#0e5636 100%);
-    color:#fff; border-radius:10px; padding:1.2rem 1.5rem;
+    --status-paid-bg: #1b5238;
+    --status-paid-light: #eaf4ee;
+    --status-due-bg: #93292c;
+    --status-due-light: #fbeceb;
+    --status-total-bg: #b88328;
+    --status-total-light: #fdf6e2;
 }
-.sale-header small { color:rgba(255,255,255,.72); }
 
-/* detail card */
-.detail-card { background:#fff; border:1px solid #e2e5ea; border-radius:10px; padding:1.25rem 1.5rem; }
-.detail-label { font-size:.78rem; color:#888; font-weight:500; white-space:nowrap; }
-.detail-val   { font-size:.97rem; font-weight:600; color:#1a1a1a; word-break:break-word; }
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
 
-/* item table badges */
-.badge-weight  { background:#eaf5ee; color:var(--fb-green); font-weight:600; font-size:.82rem; }
-.badge-purity  { background:#fdf8ec; color:#7a5c10; font-weight:600; font-size:.82rem;
-                 border:1px solid #DCAD41; }
-.badge-price   { background:var(--fb-green); color:#fff; font-weight:600; font-size:.82rem; }
+/* ---- Page header (flush) ---- */
+.fb-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    color: #ffffff !important;
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    border-radius: 0 0 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 1rem;
+}
+.fb-header * { color: #ffffff !important; }
+.fb-header h5 { font-weight: 800; margin-bottom: 0.1rem; }
+.fb-header small { color: rgba(255,255,255,0.85) !important; }
+.fb-header .btn-fb-header {
+    background: rgba(255,255,255,0.16);
+    border: 1.5px solid rgba(255,255,255,0.55);
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.fb-header .btn-fb-header:hover { background: rgba(255,255,255,0.26); }
 
-/* summary ledger */
-.ledger { border:1px solid #dee2e6; border-radius:8px; overflow:hidden; }
-.ledger td { padding:.6rem .9rem; border-bottom:1px solid #eee; vertical-align:middle; }
-.ledger tr:last-child td { border-bottom:none; }
-.l-label { font-size:.83rem; color:#555; width:1%; white-space:nowrap; }
-.l-val   { font-weight:700; font-size:.95rem; text-align:right; }
-.l-price td  { background:#eaf5ee!important; }
-.l-price .l-label,.l-price .l-val { color:var(--fb-green); }
-.l-paid  td  { background:#e8f5e9!important; }
-.l-paid  .l-label { color:#2e7d32; font-weight:600; }
-.l-paid  .l-val   { color:#2e7d32; }
-.l-due   td  { background:var(--fb-green)!important; border-bottom:none; }
-.l-due   .l-label { color:rgba(255,255,255,.85); font-weight:600; }
-.l-due   .l-val   { color:#fff; font-size:1.05rem; }
+/* ---- Page content inset ---- */
+.page-inset { padding: 0 1.5rem; }
 
-/* payment history */
+/* ---- Cards ---- */
+.card {
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
+}
+.card-header {
+    background: var(--ivory) !important;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    color: var(--bronze-text);
+    font-weight: 700;
+}
+
+/* ---- Inputs ---- */
+.form-control,
+.input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus {
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
+}
+
+/* ---- Buttons ---- */
+.btn-fb-primary, .btn-gold {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 999px;
+}
+.btn-fb-primary:hover, .btn-gold:hover {
+    opacity: 0.92;
+    background: var(--gold-deep);
+    border-color: var(--gold-deep);
+    color: #ffffff;
+}
+.btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover {
+    background: #fdf7ec;
+    border-color: var(--hairline);
+    color: var(--bronze-text);
+}
+.btn-remove-item {
+    background: var(--status-due-light);
+    border: 1.5px solid var(--status-due-bg);
+    color: var(--status-due-bg);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-remove-item:hover { background: var(--status-due-bg); color: #ffffff; }
+
+/* ---- detail card ---- */
+.detail-card { background: #fff; border: 1.5px solid var(--hairline); border-radius: 14px; padding: 1.25rem 1.5rem; }
+.detail-label { font-size: .78rem; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.detail-val   { font-size: .97rem; font-weight: 600; color: var(--bronze-text); word-break: break-word; }
+
+/* ---- item table badges ---- */
+.badge-weight  { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: .82rem; }
+.badge-purity  { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: .82rem;
+                 border: 1px solid var(--gold-deep); }
+.badge-price   { background: var(--gold-deep); color: #fff; font-weight: 600; font-size: .82rem; }
+
+/* ---- summary ledger ---- */
+.ledger { border: 1.5px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+.ledger td { padding: .6rem .9rem; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
+.ledger tr:last-child td { border-bottom: none; }
+.l-label { font-size: .83rem; color: var(--muted); width: 1%; white-space: nowrap; }
+.l-val   { font-weight: 700; font-size: .95rem; text-align: right; }
+.l-price td  { background: var(--status-total-light) !important; }
+.l-price .l-label, .l-price .l-val { color: var(--status-total-bg); }
+.l-paid  td  { background: var(--status-paid-light) !important; }
+.l-paid  .l-label { color: var(--status-paid-bg); font-weight: 600; }
+.l-paid  .l-val   { color: var(--status-paid-bg); }
+.l-due   td  { background: var(--gold-deep) !important; border-bottom: none; }
+.l-due   .l-label { color: rgba(255,255,255,.9); font-weight: 600; }
+.l-due   .l-val   { color: #fff; font-size: 1.05rem; }
+
+/* ---- payment history ---- */
 .pmt-item {
-    display:flex; align-items:flex-start; gap:.6rem;
-    padding:.6rem .75rem;
-    border-bottom:1px solid #f0f0f0;
-    font-size:.84rem;
+    display: flex; align-items: flex-start; gap: .6rem;
+    padding: .6rem .75rem;
+    border-bottom: 1px solid var(--hairline);
+    font-size: .84rem;
 }
-.pmt-item:last-child { border-bottom:none; }
-.pmt-date  { color:#6c757d; white-space:nowrap; min-width:85px; font-size:.78rem; }
-.pmt-body  { flex:1; min-width:0; }
-.pmt-ref   { color:#555; font-size:.78rem; }
-.pmt-note  { color:#888; font-size:.75rem; font-style:italic; }
-.pmt-amount{ font-weight:700; color:#2e7d32; white-space:nowrap; }
-.pmt-by    { color:#999; font-size:.73rem; }
+.pmt-item:last-child { border-bottom: none; }
+.pmt-date  { color: var(--muted); white-space: nowrap; min-width: 85px; font-size: .78rem; }
+.pmt-body  { flex: 1; min-width: 0; }
+.pmt-ref   { color: var(--bronze-text); font-size: .78rem; }
+.pmt-note  { color: var(--muted); font-size: .75rem; font-style: italic; }
+.pmt-amount{ font-weight: 700; color: var(--status-paid-bg); white-space: nowrap; }
+.pmt-by    { color: var(--muted); font-size: .73rem; }
 
-/* add payment form */
-.payment-form-card { background:#fafffe; border:1px solid #c3ddd1; border-radius:10px; }
+/* ---- add payment form ---- */
+.payment-form-card { background: var(--status-paid-light); border: 1.5px solid var(--hairline); border-radius: 14px; }
 .payment-form-card .card-header {
-    background:var(--fb-green); color:#fff; font-size:.82rem; border-radius:9px 9px 0 0;
+    background: var(--status-paid-bg) !important; color: #fff; font-size: .82rem; border-radius: 13px 13px 0 0 !important;
 }
+.payment-form-card .card-header * { color: #fff; }
 
-/* buttons */
-.btn-gold { background:var(--fb-gold); border-color:var(--fb-gold); color:#1a1a1a; font-weight:600; }
-.btn-gold:hover { background:#c99a2f; border-color:#c99a2f; color:#1a1a1a; }
-
-/* edit modal item cards */
+/* ---- edit modal item cards ---- */
 .edit-item-card {
-    border:1px solid #e2e5ea; border-radius:10px;
-    padding:1rem 1.1rem; margin-bottom:1rem;
-    background:#fff; position:relative;
+    border: 1.5px solid var(--hairline); border-radius: 14px;
+    padding: 1rem 1.1rem; margin-bottom: 1rem;
+    background: #fff; position: relative;
 }
 .edit-item-badge {
-    position:absolute; top:-10px; left:14px;
-    background:var(--fb-green); color:#fff;
-    font-size:.72rem; font-weight:700;
-    padding:.1rem .6rem; border-radius:10px;
+    position: absolute; top: -10px; left: 14px;
+    background: var(--gold-deep); color: #fff;
+    font-size: .72rem; font-weight: 700;
+    padding: .1rem .6rem; border-radius: 10px;
 }
 .item-price-preview {
-    background:#f4f9f6; border:1px dashed #bcd9c9;
-    border-radius:8px; padding:.5rem .8rem;
-    font-size:.88rem; color:var(--fb-green); font-weight:600;
+    background: var(--status-total-light); border: 1px dashed var(--gold-deep);
+    border-radius: 10px; padding: .5rem .8rem;
+    font-size: .88rem; color: var(--status-total-bg); font-weight: 600;
 }
 
-.purity-row { margin-top:.6rem; }
-.purity-row label { display:block; font-size:.72rem; margin-bottom:.15rem; color:#6c757d; }
+.purity-row { margin-top: .6rem; }
+.purity-row label { display: block; font-size: .72rem; margin-bottom: .15rem; color: var(--muted); }
 .purity-row input.form-control.is-valid,
 .purity-row input.form-control.is-invalid {
-    background-image:none!important; padding-right:.25rem!important;
+    background-image: none !important; padding-right: .25rem !important;
 }
 
 .item-fields-row {
-    display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem;
+    display: grid; grid-template-columns: repeat(4,1fr); gap: .5rem;
 }
 .item-fields-row .field-col label {
-    display:block; font-size:.72rem; margin-bottom:.15rem; color:#6c757d; white-space:nowrap;
+    display: block; font-size: .72rem; margin-bottom: .15rem; color: var(--muted); white-space: nowrap;
 }
 .item-fields-row .field-col input {
-    text-align:center; padding-left:.25rem; padding-right:.25rem;
+    text-align: center; padding-left: .25rem; padding-right: .25rem;
 }
 .item-fields-row input.form-control.is-valid,
 .item-fields-row input.form-control.is-invalid {
-    background-image:none!important; padding-right:.25rem!important;
+    background-image: none !important; padding-right: .25rem !important;
+}
+.form-control.is-valid { border-color: var(--status-paid-bg); }
+.form-control.is-invalid { border-color: var(--status-due-bg); }
+.invalid-feedback { color: var(--status-due-bg); }
+
+/* ---- alerts ---- */
+.alert-success { background: var(--status-paid-light); color: var(--status-paid-bg); border: 1px solid var(--status-paid-bg); border-radius: 12px; }
+.alert-danger  { background: var(--status-due-light);  color: var(--status-due-bg);  border: 1px solid var(--status-due-bg);  border-radius: 12px; }
+
+/* Bootstrap text utilities remapped to design tokens (used by dynamic JS states) */
+.text-danger  { color: var(--status-due-bg) !important; }
+.text-success { color: var(--status-paid-bg) !important; }
+
+/* ---- modal ---- */
+.modal-content {
+    border-radius: 18px;
+    overflow: hidden;
+    border: none;
+}
+.modal-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+}
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
 }
 
 /* mobile */
 @media (max-width: 767.98px) {
     html,body { height:100%; overflow:hidden; }
     .page-content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
-    .page-content .container-fluid {
-        padding:.45rem .5rem!important; display:flex; flex-direction:column;
+    .page-inset {
+        padding: 0 0.8rem; display:flex; flex-direction:column;
         gap:.45rem; flex:1; min-height:0; overflow:hidden;
     }
-    .container-fluid > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
+    .page-inset > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
 
-    .sale-header { padding:.55rem .75rem; border-radius:8px; margin-bottom:0!important; }
-    .sale-header h5 { font-size:1rem; }
-    .sale-header h5 i { display:none; }
-    .sale-header small { display:none; }
-    .sale-header .text-end { display:none; }
-    .sale-header .btn-outline-light { padding:.15rem .42rem; font-size:.8rem; }
+    .fb-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.55rem .75rem !important;
+        border-radius: 0 0 16px 16px;
+        margin-bottom: 0 !important;
+    }
+    .fb-header h5 { font-size:1rem; }
+    .fb-header .text-end { display:none; }
 
     .detail-card-wrap { margin-bottom:0!important; }
     .detail-card-wrap .card-header { padding:.4rem .6rem; }
@@ -521,7 +654,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     .detail-val   { font-size:.85rem; }
     .detail-card .row.g-2 > .col-12 { display:flex; align-items:baseline; gap:.3rem; flex-wrap:nowrap; }
 
-    .card { border-radius:8px; margin-bottom:0!important; }
+    .card { border-radius:14px; margin-bottom:0!important; }
     .card-header { padding:.4rem .6rem; }
     .card-header .fw-semibold { font-size:.85rem; }
     .card-header .badge { font-size:.68rem; }
@@ -538,10 +671,10 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 
     .card.note-card { display:none!important; }
 
-    .sale-header,.detail-card-wrap,.card { flex:0 0 auto; }
+    .fb-header,.detail-card-wrap,.card { flex:0 0 auto; }
     .card:last-of-type { margin-bottom:0!important; }
 
-    .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:8px; }
+    .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:12px; }
     .edit-item-badge { top:-9px; left:12px; font-size:.65rem; padding:.08rem .5rem; }
     .edit-item-card .form-control-sm { font-size:.82rem; padding:.28rem .4rem; }
     .item-fields-row { gap:.4rem; }
@@ -557,7 +690,37 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
+<div class="container-fluid px-0">
+<!-- ================================================================
+     PAGE HEADER
+================================================================ -->
+<div class="fb-header">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <a href="gold_sale_list.php" class="btn btn-sm btn-fb-header py-0 px-2">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h5 class="mb-0">
+                <i class="bi bi-bag-check-fill me-1"></i>
+                Gold Sale
+                <span style="opacity:.85;">&nbsp;#<?= $saleId ?></span>
+            </h5>
+        </div>
+        <small class="d-none d-md-inline">Gold sale detail — FineBullion Desk</small>
+    </div>
+    <div class="text-end">
+        <div style="font-size:.75rem;color:rgba(255,255,255,.85);letter-spacing:.03em;">CREATED BY</div>
+        <div class="fw-semibold" style="font-size:.97rem;">
+            <i class="bi bi-person-circle me-1"></i><?= h($sale['created_by_username'] ?? '—') ?>
+        </div>
+        <div style="font-size:.8rem;color:rgba(255,255,255,.85);">
+            <?= h(fmt_dt($sale['created_at'])) ?>
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="page-inset py-4">
 
 <?php if ($postSuccess): ?>
 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -573,41 +736,11 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <?php endif; ?>
 
 <!-- ================================================================
-     PAGE HEADER
-================================================================ -->
-<div class="sale-header mb-4">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <a href="gold_sale_list.php" class="btn btn-sm btn-outline-light py-0 px-2">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
-                <h5 class="mb-0">
-                    <i class="bi bi-bag-check-fill me-1"></i>
-                    Gold Sale
-                    <span style="opacity:.65;">&nbsp;#<?= $saleId ?></span>
-                </h5>
-            </div>
-            <small>Gold sale detail — FineBullion Desk</small>
-        </div>
-        <div class="text-end">
-            <div style="font-size:.75rem;color:rgba(255,255,255,.6);letter-spacing:.03em;">CREATED BY</div>
-            <div class="fw-semibold" style="font-size:.97rem;">
-                <i class="bi bi-person-circle me-1"></i><?= h($sale['created_by_username'] ?? '—') ?>
-            </div>
-            <div style="font-size:.8rem;color:rgba(255,255,255,.65);">
-                <?= h(fmt_dt($sale['created_at'])) ?>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ================================================================
      CUSTOMER + DETAIL
 ================================================================ -->
 <div class="card shadow-sm mb-4 detail-card-wrap">
     <div class="card-header bg-white fw-semibold d-md-none">
-        <i class="bi bi-person-fill me-1" style="color:var(--fb-green);"></i> Customer
+        <i class="bi bi-person-fill me-1" style="color:var(--gold-deep);"></i> Customer
     </div>
     <div class="detail-card">
 
@@ -688,7 +821,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
         <span class="fw-semibold">
             <i class="bi bi-gem me-1 text-warning"></i>
             Gold Items
-            <span class="badge bg-secondary ms-1"><?= count($items) ?></span>
+            <span class="badge ms-1" style="background:var(--status-total-light);color:var(--status-total-bg)"><?= count($items) ?></span>
         </span>
         <?php if ($isAdmin): ?>
         <button type="button" class="btn btn-sm btn-gold"
@@ -734,7 +867,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 ================================================================ -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white fw-semibold">
-        <i class="bi bi-calculator me-1" style="color:var(--fb-green);"></i>
+        <i class="bi bi-calculator me-1" style="color:var(--gold-deep);"></i>
         Sale Summary
     </div>
     <div class="card-body p-0">
@@ -767,9 +900,9 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span class="fw-semibold">
-            <i class="bi bi-cash-stack me-1" style="color:var(--fb-green);"></i>
+            <i class="bi bi-cash-stack me-1" style="color:var(--gold-deep);"></i>
             Payment History
-            <span class="badge bg-secondary ms-1"><?= count($payments) ?></span>
+            <span class="badge ms-1" style="background:var(--status-total-light);color:var(--status-total-bg)"><?= count($payments) ?></span>
         </span>
         <?php if (!$fullyPaid): ?>
         <button type="button" class="btn btn-sm btn-gold"
@@ -777,7 +910,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
             <i class="bi bi-plus-lg me-1"></i> Add Payment
         </button>
         <?php else: ?>
-        <span class="badge bg-success">
+        <span class="badge" style="background:var(--status-paid-light);color:var(--status-paid-bg)">
             <i class="bi bi-check-circle-fill me-1"></i> Fully Paid
         </span>
         <?php endif; ?>
@@ -810,7 +943,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                     <input type="hidden" name="action"     value="delete_payment">
                     <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                     <input type="hidden" name="payment_id" value="<?= (int)$pmt['id'] ?>">
-                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete payment">
+                    <button type="submit" class="btn btn-sm btn-remove-item py-0 px-1" title="Delete payment">
                         <i class="bi bi-trash3" style="font-size:.75rem;"></i>
                     </button>
                 </form>
@@ -826,7 +959,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 ================================================================ -->
 <div class="card shadow-sm mb-4 note-card">
     <div class="card-header bg-white fw-semibold">
-        <i class="bi bi-pencil-square me-1" style="color:var(--fb-green);"></i>
+        <i class="bi bi-pencil-square me-1" style="color:var(--gold-deep);"></i>
         Note / Remarks
     </div>
     <div class="card-body">
@@ -849,11 +982,11 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <div class="modal fade" id="addPaymentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header" style="background:var(--fb-green);color:#fff;">
+            <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="bi bi-cash-stack me-2"></i>Add Payment — Sale #<?= $saleId ?>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="gold_sale_edit.php?id=<?= $saleId ?>">
                 <input type="hidden" name="action"     value="add_payment">
@@ -861,18 +994,18 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                 <div class="modal-body">
 
                     <!-- Current due summary -->
-                    <div class="alert alert-warning py-2 mb-3" style="font-size:.85rem;">
+                    <div class="alert py-2 mb-3" style="font-size:.85rem;background:var(--status-total-light);color:var(--bronze-text);border:1px solid var(--gold-deep);border-radius:12px;">
                         <div class="d-flex justify-content-between">
                             <span>Total Amount:</span>
                             <strong>৳<?= number_format((float)$sale['total_amount'], 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>Total Paid:</span>
-                            <strong class="text-success">৳<?= number_format((float)$totalPaid, 0) ?></strong>
+                            <strong style="color:var(--status-paid-bg);">৳<?= number_format((float)$totalPaid, 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1">
                             <span class="fw-bold">Due Amount:</span>
-                            <strong class="text-danger" id="modalCurrentDue">৳<?= number_format($dueAmount, 0) ?></strong>
+                            <strong style="color:var(--status-due-bg);" id="modalCurrentDue">৳<?= number_format($dueAmount, 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1" id="dueAfterRow" style="display:none;">
                             <span class="fw-bold">Due After This Payment:</span>
@@ -883,7 +1016,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Paid Amount (BDT) <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text" style="background:var(--fb-green);color:#fff;border-color:var(--fb-green);">৳</span>
+                            <span class="input-group-text" style="background:var(--gold-deep);color:#fff;border-color:var(--gold-deep);">৳</span>
                             <input type="number" name="paid_amount" id="salePayAmountInput" class="form-control"
                                    min="0.01" max="<?= $dueAmount ?>" step="0.01" required
                                    placeholder="Enter payment amount"
@@ -914,7 +1047,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 
                 </div>
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
                     <button type="submit" class="btn btn-gold btn-sm" id="btnRecordSalePayment">
@@ -935,12 +1068,12 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header" style="background:var(--fb-green);color:#fff;">
+            <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="bi bi-pencil-square me-2"></i>
                     Edit Sale Items — #<?= $saleId ?>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <form method="POST" action="gold_sale_edit.php?id=<?= $saleId ?>" id="editItemsForm">
@@ -958,7 +1091,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                             </label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"
-                                      style="background:var(--fb-green);color:#fff;border-color:var(--fb-green);">৳</span>
+                                      style="background:var(--gold-deep);color:#fff;border-color:var(--gold-deep);">৳</span>
                                 <input type="number" name="pure_gold_price" id="pureGoldPriceInput"
                                        min="1" step="1"
                                        value="<?= h((int)$sale['pure_gold_price']) ?>"
@@ -1058,7 +1191,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
                 </div><!-- /modal-body -->
 
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> Cancel
                     </button>
                     <button type="submit" class="btn btn-gold btn-sm">

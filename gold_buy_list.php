@@ -37,7 +37,7 @@ if ($isAjax || $action !== null) {
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo   = trim($_GET['date_to']   ?? '');
         $page     = max(1, (int)($_GET['page'] ?? 1));
-        $perPage  = 20;
+        $perPage  = 50;
         $offset   = ($page - 1) * $perPage;
 
         $conditions = [];
@@ -206,34 +206,107 @@ if ($isAjax || $action !== null) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 :root {
-    --fb-green: #0B412A;
-    --fb-gold:  #DCAD41;
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
+
+    --status-paid-bg: #1b5238;
+    --status-paid-light: #eaf4ee;
+    --status-due-bg: #93292c;
+    --status-due-light: #fbeceb;
+    --status-total-bg: #b88328;
+    --status-total-light: #fdf6e2;
 }
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
 
 /* ---- page header ---- */
-.list-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
-    color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
-    position: relative;
+.fb-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.list-header h4  { color: #fff; }
-.list-header small { color: rgba(255,255,255,0.75); }
+.fb-header h4, .fb-header h4 i { color: #ffffff !important; }
+.fb-header small { color: rgba(255,255,255,0.85) !important; }
+.fb-header .header-title-block { min-width: 0; }
+.fb-header .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 
-/* ---- stat bar (matches image: Weight / Total / Paid / Due) ---- */
+.page-inset { padding: 0 1.5rem; }
+
+/* ---- pill buttons ---- */
+.btn-fb-primary, .btn-gold {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff !important;
+    font-weight: 700;
+    border-radius: 999px;
+}
+.btn-fb-primary:hover, .btn-gold:hover { opacity: 0.92; background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff !important; }
+
+.btn-fb-secondary, .btn-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover, .btn-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-danger {
+    background: #ffffff;
+    border: 1.5px solid var(--status-due-bg);
+    color: var(--status-due-bg);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-danger:hover { background: var(--status-due-bg); border-color: var(--status-due-bg); color: #ffffff; }
+
+.btn-outline-primary {
+    background: #ffffff;
+    border: 1.5px solid var(--gold-deep);
+    color: var(--gold-deep);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; }
+
+/* ---- stat bar (Weight / Total / Paid / Due) ---- */
 .stat-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0;
-    border-radius: 8px;
+    border-radius: 18px;
     overflow: hidden;
     margin-bottom: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
 }
 .stat-cell {
-    padding: 0.65rem 0.8rem;
+    padding: 0.75rem 0.9rem;
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
@@ -252,22 +325,20 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     letter-spacing: 0.01em;
     white-space: nowrap;
 }
-.stat-weight  { background: var(--fb-green);    color: #fff; }
-.stat-total   { background: var(--fb-gold);     color: #1a1a1a; }
-.stat-paid    { background: #2e7d32;            color: #fff; }
-.stat-due     { background: #c0392b;            color: #fff; }
+.stat-weight  { background: var(--status-paid-bg); color: #fff; }
+.stat-total   { background: var(--status-total-bg); color: #fff; }
+.stat-paid    { background: var(--status-paid-bg); color: #fff; opacity: 0.85; }
+.stat-due     { background: var(--status-due-bg); color: #fff; }
 
 /* ---- amount badges ---- */
-.badge-amount { background: #eaf5ee; color: var(--fb-green); font-weight: 600; font-size: 0.82rem; }
-.badge-paid   { background: #e8f5e9; color: #2e7d32;          font-weight: 600; font-size: 0.82rem; }
-.badge-due    { background: #fdecea; color: #c0392b;           font-weight: 600; font-size: 0.82rem; }
-.badge-due.zero { background: #e8f5e9; color: #2e7d32; }
-.badge-weight { background: #f4f9f6; color: var(--fb-green);  font-weight: 600; font-size: 0.82rem;
-                border: 1px solid #bcd9c9; }
+.badge-amount { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-paid   { background: var(--status-paid-light); color: var(--status-paid-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-due    { background: var(--status-due-light); color: var(--status-due-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-due.zero { background: var(--status-paid-light); color: var(--status-paid-bg); }
+.badge-weight { background: var(--ivory); color: var(--bronze-text); font-weight: 600; font-size: 0.82rem;
+                border: 1px solid var(--hairline); }
 
 /* ---- action buttons ---- */
-.btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
-.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
 .btn-actions { display: flex; gap: 4px; justify-content: center; }
 
 /* ---- mobile info cell ---- */
@@ -280,54 +351,90 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     line-height: 1.45;
     white-space: nowrap;
 }
-.buy-info-cell .info-label { color: #6c757d; }
-.buy-info-cell .info-value { font-weight: 600; color: #1a1a1a; }
-.buy-info-cell .info-value.red { color: #c0392b; }
-.buy-info-cell .info-value.green { color: #2e7d32; }
+.buy-info-cell .info-label { color: var(--muted); }
+.buy-info-cell .info-value { font-weight: 600; color: var(--bronze-text); }
+.buy-info-cell .info-value.red { color: var(--status-due-bg); }
+.buy-info-cell .info-value.green { color: var(--status-paid-bg); }
 
 /* ---- modal ledger ---- */
 .ledger-table td { padding: 0.55rem 0.85rem; vertical-align: middle;
-                    border-bottom: 1px solid #e9ecef; --bs-table-bg: transparent; }
+                    border-bottom: 1px solid var(--hairline); --bs-table-bg: transparent; }
 .ledger-table tr:last-child td { border-bottom: none; }
-.ledger-label { font-size: 0.82rem; color: #555; white-space: nowrap; width: 1%; }
+.ledger-label { font-size: 0.82rem; color: var(--muted); white-space: nowrap; width: 1%; }
 .ledger-vorp  { font-weight: 700; font-size: 0.95rem; text-align: right; }
-.ledger-total td { background-color: #eaf5ee !important; }
-.ledger-total .ledger-label { color: var(--fb-green); font-weight: 600; }
-.ledger-total .ledger-vorp  { color: var(--fb-green); }
-.ledger-paid td  { background-color: #e8f5e9 !important; }
-.ledger-paid .ledger-label  { color: #2e7d32; font-weight: 600; }
-.ledger-paid .ledger-vorp   { color: #2e7d32; }
-.ledger-due td   { background-color: var(--fb-green) !important; border-bottom: none; }
+.ledger-total td { background-color: var(--status-total-light) !important; }
+.ledger-total .ledger-label { color: var(--status-total-bg); font-weight: 600; }
+.ledger-total .ledger-vorp  { color: var(--status-total-bg); }
+.ledger-paid td  { background-color: var(--status-paid-light) !important; }
+.ledger-paid .ledger-label  { color: var(--status-paid-bg); font-weight: 600; }
+.ledger-paid .ledger-vorp   { color: var(--status-paid-bg); }
+.ledger-due td   { background-color: var(--status-due-bg) !important; border-bottom: none; }
 .ledger-due .ledger-label   { color: rgba(255,255,255,0.85); font-weight: 600; }
 .ledger-due .ledger-vorp    { color: #fff; font-size: 1.05rem; }
 
 /* ---- filter bar ---- */
-.filter-bar { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0.65rem 1rem;
+.filter-bar { background: #ffffff; border-bottom: 1px solid var(--hairline); padding: 0.65rem 1rem;
               display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.filter-bar label { font-size: 0.75rem; color: #6c757d; margin-bottom: 0; }
+.filter-bar label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0; }
 .filter-bar input[type=date] { font-size: 0.82rem; padding: 0.3rem 0.5rem;
-                                border: 1px solid #dee2e6; border-radius: 6px; }
+                                border: 1.5px solid var(--hairline); border-radius: 10px; }
+
+/* ---- cards ---- */
+.card { background:#ffffff; border:none; border-radius:18px; box-shadow:0 10px 30px rgba(180,140,50,0.12); }
+.card-header { background: var(--ivory) !important; border-bottom:1px solid var(--hairline); border-radius:18px 18px 0 0 !important; color: var(--bronze-text); }
+.card-footer { background:#ffffff !important; border-top:1px solid var(--hairline); border-radius: 0 0 18px 18px !important; }
+
+/* ---- inputs ---- */
+.form-control, .form-select, .input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18); }
+
+/* ---- table ---- */
+.table thead.table-light th, .table thead th {
+    background: var(--ivory) !important;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    border-color: var(--hairline) !important;
+    font-weight: 700;
+}
+.table td { border-color: var(--hairline) !important; vertical-align: middle; }
+.table tbody tr:hover { background: #fdf7ec; }
+
+/* ---- modal ---- */
+.modal-content { border-radius: 18px; overflow: hidden; border: none; }
+.modal-header { background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important; color: #fff !important; }
+.modal-header .modal-title { color: #ffffff; font-weight: 800; }
+.modal-header .btn-close, .modal-header .btn-close-white { filter: brightness(0) invert(1); }
+
+/* ---- badges (bootstrap default overrides) ---- */
+.badge.bg-light { background: var(--ivory) !important; color: var(--muted) !important; border-color: var(--hairline) !important; }
 
 /* ---- mobile ---- */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-inset { padding: 0 0.8rem 1rem; }
 
-    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
-    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .list-header h4 i { display: none; }
-    .list-header small { display: none; }
-    .list-header > a.btn {
-        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    .fb-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
     }
-    .list-header > a.btn span { display: none; }
+    .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .fb-header small { display: none; }
 
-    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; }
+    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; border-radius: 14px; }
     .stat-cell { padding: 0.5rem 0.55rem; }
     .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
     .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
 
-    .card { border-radius: 8px; }
+    .card { border-radius: 14px; }
     .card-header { padding: 0.5rem 0.6rem; }
     .card-header .fw-semibold { font-size: 0.82rem; }
     .card-header .input-group { max-width: 100% !important; width: 100%; }
@@ -351,22 +458,25 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
-
-    <!-- Header -->
-    <div class="list-header mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2 position-relative">
-        <div>
+<div class="container-fluid px-0">
+    <div class="fb-header">
+        <div class="header-title-block">
             <h4 class="mb-0">
                 <i class="bi bi-cash-coin me-2"></i>
                 <span class="d-none d-md-inline">Gold Buy History</span>
-                <span class="d-md-none">GOLD BUY LIST</span>
+                <span class="d-md-none">Gold Buy List</span>
             </h4>
             <small>FineBullion Desk</small>
         </div>
-        <a href="gold_buy.php" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-plus-lg me-1"></i> <span>New Buy</span>
-        </a>
+        <div class="header-actions">
+            <a href="gold_buy.php" class="btn btn-fb-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> <span>New Buy</span>
+            </a>
+        </div>
     </div>
+</div>
+
+<div class="page-inset py-4">
 
     <!-- Stat bar -->
     <div class="stat-bar" id="statBar">
@@ -389,11 +499,11 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     </div>
 
     <!-- Table card -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> Buy Records</span>
             <div class="input-group" style="max-width:300px;">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" id="searchInput" class="form-control" placeholder="Search customer name, phone…">
                 <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
@@ -401,12 +511,12 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
         <!-- Date filter bar -->
         <div class="filter-bar">
-            <span class="d-none d-md-inline" style="font-size:0.8rem;color:#6c757d;">Category</span>
+            <span class="d-none d-md-inline" style="font-size:0.8rem;color:var(--muted);">Category</span>
             <span class="d-none d-md-inline badge bg-light text-dark border" style="font-size:0.75rem;">All</span>
-            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:#6c757d;">From</span>
-            <label class="d-md-none" style="font-size:0.72rem;color:#6c757d;">From</label>
+            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:var(--muted);">From</span>
+            <label class="d-md-none" style="font-size:0.72rem;color:var(--muted);">From</label>
             <input type="date" id="dateFrom">
-            <span style="font-size:0.8rem;color:#6c757d;">To</span>
+            <span style="font-size:0.8rem;color:var(--muted);">To</span>
             <input type="date" id="dateTo">
             <button class="btn btn-sm btn-outline-secondary ms-1" id="clearDatesBtn" title="Clear dates">
                 <i class="bi bi-x-lg"></i>
@@ -416,7 +526,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    <thead>
                         <tr>
                             <th style="width:60px;">#</th>
                             <th>Customer</th>
@@ -439,7 +549,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </div>
         </div>
 
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
             <small class="text-muted" id="paginationInfo">—</small>
             <nav><ul class="pagination pagination-sm mb-0" id="paginationControls"></ul></nav>
         </div>
@@ -454,7 +564,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <div class="modal fade" id="viewModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header" style="background: var(--fb-green); color:#fff;">
+            <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="bi bi-receipt me-2"></i>Buy #<span id="viewId"></span>
                 </h5>
@@ -464,10 +574,10 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                 <div class="text-center text-muted py-4">Loading…</div>
             </div>
             <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                     <i class="bi bi-x-lg me-1"></i>Close
                 </button>
-                <a id="btnOpenEdit" href="#" class="btn btn-gold btn-sm">
+                <a id="btnOpenEdit" href="#" class="btn btn-fb-primary btn-sm">
                     <i class="bi bi-pencil-square me-1"></i>Open Full Detail / Edit
                 </a>
             </div>
@@ -780,14 +890,22 @@ async function openView(id) {
 }
 
 // Set default date range: past 30 days → today
+// NOTE: toISOString() returns UTC which causes a date shift for UTC+6 users
+// (e.g. at 3 AM in Dhaka, UTC is still the previous day).
+// localDateStr() uses the browser's local clock instead.
 (function setDefaultDates() {
+    const localDateStr = d => {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dy}`;
+    };
     const today = new Date();
     const from  = new Date(); from.setDate(today.getDate() - 30);
-    const fmt   = d => d.toISOString().slice(0, 10);
-    document.getElementById('dateFrom').value = fmt(from);
-    document.getElementById('dateTo').value   = fmt(today);
-    currentFrom = fmt(from);
-    currentTo   = fmt(today);
+    document.getElementById('dateFrom').value = localDateStr(from);
+    document.getElementById('dateTo').value   = localDateStr(today);
+    currentFrom = localDateStr(from);
+    currentTo   = localDateStr(today);
 })();
 
 loadList(1);

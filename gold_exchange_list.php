@@ -33,7 +33,7 @@ if ($isAjax || $action !== null) {
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo   = trim($_GET['date_to']   ?? '');
         $page     = max(1, (int)($_GET['page'] ?? 1));
-        $perPage  = 20;
+        $perPage  = 50;
         $offset   = ($page - 1) * $perPage;
 
         $conditions = [];
@@ -194,19 +194,48 @@ body {
     color: var(--bronze-text);
 }
 
-/* ---- page header bar (flush to viewport top) ---- */
-.list-header {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
-    color: #fff;
-    border-radius: 0 0 20px 20px;
-    padding: 1.5rem 1.5rem;
-    margin-top: 0;
+/* ---- page header bar (flush to viewport top) ----
+   Scoped strictly to .list-header and its children so this block is
+   completely self-contained and immune to overrides from navbar.php
+   or any external stylesheet. */
+.list-header,
+.list-header.mb-3 {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    color: #ffffff !important;
+    border-radius: 0 0 20px 20px !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    margin-top: 0 !important;
     top: 0;
-    width: 100%;
+    width: 100% !important;
     position: relative;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
+    box-sizing: border-box;
+    overflow: hidden;
 }
-.list-header h4 { color: #fff; }
-.list-header small { color: rgba(255,255,255,0.8); }
+.list-header > div:first-child {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+    min-width: 0;
+}
+.list-header h4,
+.list-header h4 * { color: #ffffff !important; }
+.list-header h4 {
+    margin-bottom: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.list-header small { color: rgba(255,255,255,0.8) !important; white-space: nowrap; }
+.list-header > a.btn { flex-shrink: 0; }
 
 .page-inset { padding: 0 1.5rem; }
 
@@ -413,12 +442,16 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
     .page-inset { padding: 0 0.75rem; }
     .page-content .container-fluid { padding: 0.6rem 0 1rem; }
 
-    .list-header { padding: 0.85rem 1rem; border-radius: 0 0 16px 16px; justify-content: center !important; }
-    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .list-header h4 i { display: none; }
-    .list-header small { display: none; }
+    .list-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
+    }
+    .list-header h4 { font-size: 0.95rem; margin-bottom: 0; text-align: left; }
+    .list-header small { display: block; font-size: 0.68rem; }
     .list-header > a.btn {
-        position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
         padding: 0.4rem 0.75rem; font-size: 0.75rem;
     }
 
@@ -877,13 +910,18 @@ async function openView(id) {
 
 // Set default date range: past 30 days → today
 (function setDefaultDates() {
+    const localDateStr = d => {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dy}`;
+    };
     const today = new Date();
     const from  = new Date(); from.setDate(today.getDate() - 30);
-    const fmt   = d => d.toISOString().slice(0, 10);
-    document.getElementById('dateFrom').value = fmt(from);
-    document.getElementById('dateTo').value   = fmt(today);
-    currentFrom = fmt(from);
-    currentTo   = fmt(today);
+    document.getElementById('dateFrom').value = localDateStr(from);
+    document.getElementById('dateTo').value   = localDateStr(today);
+    currentFrom = localDateStr(from);
+    currentTo   = localDateStr(today);
 })();
 
 loadList(1);

@@ -287,47 +287,63 @@ html, body {
 }
 
 /* ---------------------------------------------------------------
-   Page-Specific Header (.ge-header) — Unaffected by navbar.php
+   Page-Specific Header (.ge-header) — scoped strictly to .ge-header
+   and its children so this block is completely self-contained and
+   immune to overrides from navbar.php or any external stylesheet.
 --------------------------------------------------------------- */
-.ge-header {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
-    color: #fff;
-    padding: 1.1rem 1.5rem;
+.ge-header,
+.ge-header.d-flex {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    color: #ffffff !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
     margin: 0 0 1.5rem 0 !important;
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
     position: relative;
     top: 0;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 20px !important;
+    border-bottom-right-radius: 20px !important;
     box-shadow: 0 6px 24px rgba(201, 151, 58, 0.22);
     box-sizing: border-box;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
+    overflow: hidden;
 }
 
 .ge-header h4 {
-    color: #fff;
+    color: #ffffff !important;
     font-weight: 800;
     letter-spacing: 0.02em;
     margin: 0 !important;
     text-align: left !important;
     font-size: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ge-header i {
-    color: #fff;
+    color: #ffffff !important;
 }
 
 .ge-header .btn-history {
     border-color: rgba(255, 255, 255, 0.6);
-    color: #fff;
+    color: #ffffff;
     border-radius: 999px;
     font-weight: 600;
+    flex-shrink: 0;
 }
 
 .ge-header .btn-history:hover {
     background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    color: #ffffff;
 }
 
 .page-inset { padding: 0 1.5rem; }
@@ -445,17 +461,35 @@ html, body {
     box-shadow: 0 0 0 0.15rem rgba(255,255,255,0.25);
 }
 
-.btn-gold {
+.btn-gold, .btn-fb-primary {
     background: var(--gold-deep);
-    border: 1px solid var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
     color: #ffffff;
     font-weight: 700;
     border-radius: 999px;
 }
-.btn-gold:hover, .btn-gold:focus { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; opacity: 0.92; }
+.btn-gold:hover, .btn-gold:focus,
+.btn-fb-primary:hover, .btn-fb-primary:focus { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; opacity: 0.92; }
+
+.btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
 
 .btn-outline-danger {
     border-radius: 999px !important;
+    border: 1.5px solid var(--hairline) !important;
+    color: var(--status-due-bg) !important;
+    background: #ffffff !important;
+}
+.btn-outline-danger:hover {
+    background: var(--status-due-light) !important;
+    border-color: var(--status-due-bg) !important;
+    color: var(--status-due-bg) !important;
 }
 
 .card {
@@ -475,6 +509,7 @@ html, body {
     border: 1.5px solid var(--hairline);
     border-radius: 10px;
     color: var(--bronze-text);
+    background: #ffffff;
 }
 .form-control:focus {
     border-color: var(--gold-deep);
@@ -521,11 +556,13 @@ html, body {
     .page-inset { padding: 0 0.8rem; }
 
     .ge-header { 
-        padding: 0.75rem 0.9rem !important; 
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important; 
         border-radius: 0 0 16px 16px !important;
         margin-bottom: 0.8rem !important;
     }
-    .ge-header h4 { font-size: 1.05rem !important; }
+    .ge-header h4 { font-size: 0.95rem !important; }
     .ge-header .btn-history { padding: 0.22rem 0.55rem !important; font-size: 0.72rem !important; }
 
     .row.g-4 { --bs-gutter-y: 0.6rem; }

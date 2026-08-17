@@ -255,28 +255,137 @@ if ($isAjax || $action !== null) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 :root {
-    --fb-green: #0B412A;
-    --fb-gold:  #DCAD41;
-}
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
 
-/* ---- Page header ---- */
-.sale-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
-    color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
+    --status-paid-bg: #1b5238;
+    --status-paid-light: #eaf4ee;
+    --status-due-bg: #93292c;
+    --status-due-light: #fbeceb;
+    --status-total-bg: #b88328;
+    --status-total-light: #fdf6e2;
 }
-.sale-header small { color: rgba(255,255,255,0.75); }
+
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
+
+/* ---- Page header (flush) ---- */
+.fb-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    color: #ffffff !important;
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    border-radius: 0 0 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 1rem;
+}
+.fb-header * { color: #ffffff !important; }
+.fb-header h4 { font-weight: 800; margin-bottom: 0.1rem; }
+.fb-header small { color: rgba(255,255,255,0.85) !important; }
+.fb-header .btn-fb-header {
+    background: rgba(255,255,255,0.16);
+    border: 1.5px solid rgba(255,255,255,0.55);
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.fb-header .btn-fb-header:hover { background: rgba(255,255,255,0.26); }
+
+/* ---- Page content inset ---- */
+.page-inset { padding: 0 1.5rem; }
+
+/* ---- Cards ---- */
+.card {
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
+}
+.card-header {
+    background: var(--ivory) !important;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    color: var(--bronze-text);
+    font-weight: 700;
+}
+
+/* ---- Inputs ---- */
+.form-control,
+.input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus {
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
+}
+.input-group-text {
+    background: var(--gold-deep);
+    color: #ffffff;
+    border-color: var(--gold-deep);
+    font-weight: 600;
+}
+
+/* ---- Buttons ---- */
+.btn-fb-primary, .btn-record, .btn-add-item {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 999px;
+}
+.btn-fb-primary:hover, .btn-record:hover, .btn-add-item:hover {
+    opacity: 0.92;
+    background: var(--gold-deep);
+    border-color: var(--gold-deep);
+    color: #ffffff;
+}
+.btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover {
+    background: #fdf7ec;
+    border-color: var(--hairline);
+    color: var(--bronze-text);
+}
+.btn-remove-item {
+    background: var(--status-due-light);
+    border: 1.5px solid var(--status-due-bg);
+    color: var(--status-due-bg);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-remove-item:hover { background: var(--status-due-bg); color: #ffffff; }
 
 /* ---- Customer autocomplete ---- */
 .customer-results-box {
     position: absolute;
     z-index: 20;
     background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    border: 1.5px solid var(--hairline);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(180,140,50,0.16);
     width: 100%;
     max-height: 260px;
     overflow-y: auto;
@@ -285,23 +394,23 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 .customer-result-item {
     cursor: pointer;
     padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--hairline);
 }
-.customer-result-item:hover { background: #f8f4e8; }
+.customer-result-item:hover { background: #fdf7ec; }
 .customer-result-item:last-child { border-bottom: none; }
 .customer-result-photo {
     width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
-    border: 1px solid #dee2e6; flex-shrink: 0;
+    border: 1px solid var(--hairline); flex-shrink: 0;
 }
 .customer-result-photo-fallback {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-    background: var(--fb-green); color: #fff; font-size: 0.8rem; font-weight: 700;
+    background: var(--gold-deep); color: #fff; font-size: 0.8rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
 }
 .selected-customer-card {
-    border: 1px solid var(--fb-gold);
-    background: #fdf8ec;
-    border-radius: 8px;
+    border: 1.5px solid var(--gold-deep);
+    background: var(--status-total-light);
+    border-radius: 12px;
     padding: 0.75rem 1rem;
     display: none;
     align-items: center;
@@ -310,23 +419,17 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
 /* ---- Pure gold price row ---- */
 .price-row {
-    background: #f9f9f9;
-    border: 1px solid #e2e5ea;
-    border-radius: 8px;
+    background: var(--ivory);
+    border: 1.5px solid var(--hairline);
+    border-radius: 12px;
     padding: 0.75rem 1rem;
 }
-.price-row label { font-size: 0.82rem; color: #6c757d; margin-bottom: 0.2rem; display: block; }
-.price-row .input-group-text {
-    background: var(--fb-green);
-    color: #fff;
-    border-color: var(--fb-green);
-    font-weight: 600;
-}
+.price-row label { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.2rem; display: block; }
 
 /* ---- Gold item card ---- */
 .gold-item-card {
-    border: 1px solid #e2e5ea;
-    border-radius: 10px;
+    border: 1.5px solid var(--hairline);
+    border-radius: 14px;
     padding: 1rem 1.1rem 0.85rem;
     margin-bottom: 1rem;
     background: #fff;
@@ -336,7 +439,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     position: absolute;
     top: -10px;
     left: 14px;
-    background: var(--fb-green);
+    background: var(--gold-deep);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
@@ -359,7 +462,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     display: block;
     font-size: 0.72rem;
     margin-bottom: 0.15rem;
-    color: #6c757d;
+    color: var(--muted);
     white-space: nowrap;
 }
 .weight-grid .field-col input {
@@ -374,6 +477,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     background-image: none !important;
     padding-right: 0.25rem !important;
 }
+.form-control.is-valid { border-color: var(--status-paid-bg); }
+.form-control.is-invalid { border-color: var(--status-due-bg); }
+.invalid-feedback { color: var(--status-due-bg); }
 
 /* Purity row — matches gold_buy.php */
 .purity-row { margin-top: 0.6rem; }
@@ -381,7 +487,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     display: block;
     font-size: 0.72rem;
     margin-bottom: 0.15rem;
-    color: #6c757d;
+    color: var(--muted);
 }
 .purity-row input.form-control.is-valid,
 .purity-row input.form-control.is-invalid {
@@ -391,12 +497,12 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 
 /* Item price result chip */
 .item-price-result {
-    background: #f4f9f6;
-    border: 1px dashed #bcd9c9;
-    border-radius: 8px;
+    background: var(--status-total-light);
+    border: 1px dashed var(--gold-deep);
+    border-radius: 10px;
     padding: 0.45rem 0.8rem;
     font-size: 0.88rem;
-    color: var(--fb-green);
+    color: var(--status-total-bg);
     font-weight: 600;
     margin-top: 0.65rem;
     display: flex;
@@ -405,19 +511,20 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 }
 .item-price-result .weight-sub {
     font-size: 0.75rem;
-    color: #6c757d;
+    color: var(--muted);
     font-weight: 400;
 }
 
 /* ---- Summary panel ---- */
 .summary-card {
     background: #fff;
-    border: 1px solid #e2e5ea;
-    border-radius: 12px;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
     overflow: hidden;
 }
 .summary-card .sum-header {
-    background: var(--fb-green);
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
     color: #fff;
     padding: 0.75rem 1.2rem;
     font-size: 0.78rem;
@@ -431,16 +538,16 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     justify-content: space-between;
     align-items: baseline;
     padding: 0.4rem 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--hairline);
 }
 .summary-row:last-of-type { border-bottom: none; }
-.summary-row .s-label { font-size: 0.83rem; color: #6c757d; }
-.summary-row .s-value { font-weight: 700; font-size: 0.97rem; color: #1a1a1a; }
-.summary-row.s-total .s-value { color: var(--fb-green); font-size: 1.05rem; }
+.summary-row .s-label { font-size: 0.83rem; color: var(--muted); }
+.summary-row .s-value { font-weight: 700; font-size: 0.97rem; color: var(--bronze-text); }
+.summary-row.s-total .s-value { color: var(--status-total-bg); font-size: 1.05rem; }
 
 /* Payment section in summary */
 .payment-section {
-    border-top: 1px dashed #dee2e6;
+    border-top: 1px dashed var(--hairline);
     margin-top: 0.5rem;
     padding-top: 0.75rem;
 }
@@ -449,15 +556,31 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #6c757d;
+    color: var(--muted);
     margin-bottom: 0.5rem;
 }
-.payment-section label { font-size: 0.78rem; color: #6c757d; margin-bottom: 0.2rem; display: block; }
+.payment-section label { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.2rem; display: block; }
 .payment-section input[type="number"],
 .payment-section input[type="date"],
 .payment-section input[type="text"] {
     font-size: 0.88rem;
 }
+
+/* Payment fields — label + input in the same row */
+.payment-field-line {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+.payment-field-line label {
+    margin-bottom: 0;
+    white-space: normal;
+    line-height: 1.2;
+}
+.payment-field-line .input-group-text { padding: 0.25rem 0.5rem; }
+.payment-field-line:last-child { margin-bottom: 0; }
 
 /* Paid amount editable row */
 .paid-row {
@@ -465,23 +588,23 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     justify-content: space-between;
     align-items: center;
     padding: 0.45rem 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--hairline);
 }
-.paid-row .s-label { font-size: 0.83rem; color: #6c757d; }
+.paid-row .s-label { font-size: 0.83rem; color: var(--muted); }
 .paid-row input {
     width: 130px;
     text-align: right;
     font-weight: 700;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
+    border: 1.5px solid var(--hairline);
+    border-radius: 8px;
     padding: 0.25rem 0.5rem;
     font-size: 0.95rem;
-    color: var(--fb-green);
+    color: var(--status-total-bg);
 }
 .paid-row input:focus {
     outline: none;
-    border-color: var(--fb-gold);
-    box-shadow: 0 0 0 0.15rem rgba(220,173,65,.3);
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
 }
 
 /* Due amount row */
@@ -490,50 +613,36 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     justify-content: space-between;
     align-items: baseline;
     padding: 0.5rem 0 0.1rem;
-    border-top: 2px solid var(--fb-green);
+    border-top: 2px solid var(--gold-deep);
     margin-top: 0.2rem;
 }
-.due-row .s-label { font-size: 0.9rem; font-weight: 700; color: var(--fb-green); }
-.due-row .s-value { font-size: 1.2rem; font-weight: 800; color: #c0392b; }
-.due-row .s-value.zero { color: #2e7d32; }
-
-/* Buttons */
-.btn-record {
-    background: var(--fb-gold);
-    border-color: var(--fb-gold);
-    color: #1a1a1a;
-    font-weight: 700;
-    font-size: 1rem;
-    letter-spacing: 0.02em;
-}
-.btn-record:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
-
-.btn-add-item {
-    background: var(--fb-green);
-    border-color: var(--fb-green);
-    color: #fff;
-    font-weight: 600;
-}
-.btn-add-item:hover { background: #09331f; color: #fff; }
+.due-row .s-label { font-size: 0.9rem; font-weight: 700; color: var(--bronze-text); }
+.due-row .s-value { font-size: 1.2rem; font-weight: 800; color: var(--status-due-bg); }
+.due-row .s-value.zero { color: var(--status-paid-bg); }
 
 /* ── Mobile ── */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-inset { padding: 0 0.8rem; }
 
-    .sale-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
-    .sale-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .sale-header small { font-size: 0.7rem; }
-    .sale-header .btn { padding: 0.2rem 0.5rem; font-size: 0.72rem; }
+    .fb-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px;
+    }
+    .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .fb-header small { font-size: 0.7rem; }
+    .fb-header .btn-fb-header { padding: 0.3rem 0.65rem; font-size: 0.72rem; }
 
     .row.g-4 { --bs-gutter-y: 0.6rem; }
-    .card { margin-bottom: 0.6rem !important; border-radius: 8px; }
+    .card { margin-bottom: 0.6rem !important; border-radius: 14px; }
     .card-header { padding: 0.45rem 0.75rem; font-size: 0.82rem; }
     .card-body { padding: 0.6rem 0.75rem; }
 
     #customerSearch { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
     .selected-customer-card { padding: 0.5rem 0.7rem; }
 
-    .gold-item-card { padding: 0.75rem 0.75rem 0.6rem; margin-bottom: 0.5rem; border-radius: 8px; }
+    .gold-item-card { padding: 0.75rem 0.75rem 0.6rem; margin-bottom: 0.5rem; border-radius: 12px; }
     .gold-item-card .item-badge { top: -9px; left: 12px; font-size: 0.65rem; padding: 0.08rem 0.5rem; }
     .gold-item-card .btn-remove-item { top: 6px; right: 6px; padding: 0.15rem 0.4rem; }
     .weight-grid { gap: 0.4rem; }
@@ -542,6 +651,10 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     .summary-card .sum-body { padding: 0.7rem 0.9rem; }
     .paid-row input { width: 110px; font-size: 0.88rem; }
     .due-row .s-value { font-size: 1.05rem; }
+
+    .payment-field-line { grid-template-columns: 78px 1fr; gap: 0.4rem; margin-bottom: 0.4rem; }
+    .payment-field-line label { font-size: 0.72rem; }
+    .payment-field-note { display: none !important; }
 
     #btnSave { padding: 0.5rem; font-size: 0.9rem; margin-top: 0.6rem !important; }
     #noteCard { display: none !important; }
@@ -553,22 +666,24 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
-
+<div class="container-fluid px-0">
     <!-- Page header -->
-    <div class="sale-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="fb-header">
         <div>
             <h4 class="mb-1">
-                <i class="bi bi-bag-check-fill me-2 d-none d-md-inline"></i>
+                <i class="bi bi-bag-check-fill me-2"></i>
                 <span class="d-none d-md-inline">New Gold Sale</span>
                 <span class="d-md-none">GOLD SALE</span>
             </h4>
             <small class="d-none d-md-inline">Sell pure 24k gold to a customer</small>
         </div>
-        <a href="gold_sale_list.php" class="btn btn-outline-light btn-sm d-none d-md-inline-flex align-items-center">
+        <a href="gold_sale_list.php" class="btn btn-fb-header btn-sm d-inline-flex align-items-center">
             <i class="bi bi-list-ul me-1"></i> Sale History
         </a>
     </div>
+</div>
+
+<div class="page-inset py-4">
 
     <form id="saleForm" autocomplete="off">
         <div class="row g-4">
@@ -594,8 +709,8 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                                 <div class="fw-semibold" id="selectedCustomerName">—</div>
                                 <small class="text-muted" id="selectedCustomerPhone">—</small>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearCustomer">
-                                <i class="bi bi-x-lg"></i>
+                            <button type="button" class="btn btn-sm btn-fb-secondary" id="btnClearCustomer">
+                                <i class="bi bi-x-lg me-1"></i> Clear
                             </button>
                         </div>
                     </div>
@@ -669,32 +784,32 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
                                 <i class="bi bi-cash-stack me-1"></i> Initial Payment
                             </div>
 
-                            <div class="mb-2">
-                                <label>Paid Amount (BDT)</label>
+                            <div class="payment-field-line">
+                                <label for="paymentDate">Payment Date</label>
+                                <input type="date" id="paymentDate" name="payment_date"
+                                       class="form-control form-control-sm"
+                                       value="<?= date('Y-m-d') ?>">
+                            </div>
+
+                            <div class="payment-field-line">
+                                <label for="paidAmount">Paid Amount (BDT)</label>
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text" style="background:var(--fb-green);color:#fff;border-color:var(--fb-green);">৳</span>
+                                    <span class="input-group-text">৳</span>
                                     <input type="number" id="paidAmount" name="paid_amount"
                                            class="form-control"
                                            min="0" step="1" value="0" placeholder="0">
                                 </div>
                             </div>
 
-                            <div class="mb-2">
-                                <label>Payment Date</label>
-                                <input type="date" id="paymentDate" name="payment_date"
-                                       class="form-control form-control-sm"
-                                       value="<?= date('Y-m-d') ?>">
-                            </div>
-
-                            <div class="mb-2">
-                                <label>Transaction Ref <small class="text-muted">(cheque / bank / MFS)</small></label>
+                            <div class="payment-field-line">
+                                <label for="transactionRef">Transaction Ref <small class="text-muted">(cheque / bank / MFS)</small></label>
                                 <input type="text" id="transactionRef" name="transaction_ref"
                                        class="form-control form-control-sm"
                                        placeholder="Optional reference…">
                             </div>
 
-                            <div class="mb-0">
-                                <label>Payment Note <small class="text-muted">(optional)</small></label>
+                            <div class="payment-field-line payment-field-note">
+                                <label for="paymentNote">Payment Note <small class="text-muted">(optional)</small></label>
                                 <input type="text" id="paymentNote" name="payment_note"
                                        class="form-control form-control-sm"
                                        placeholder="e.g. bKash, cash, bank transfer…">

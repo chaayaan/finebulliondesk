@@ -39,7 +39,7 @@ if ($isAjax || $action !== null) {
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo   = trim($_GET['date_to']   ?? '');
         $page     = max(1, (int)($_GET['page'] ?? 1));
-        $perPage  = 20;
+        $perPage  = 50;
         $offset   = ($page - 1) * $perPage;
 
         $conditions = [];
@@ -210,31 +210,129 @@ if ($isAjax || $action !== null) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 :root {
-    --fb-green: #0B412A;
-    --fb-gold:  #DCAD41;
-}
-body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
 
-/* ---- page header ---- */
-.list-header {
-    background: linear-gradient(135deg, var(--fb-green) 0%, #0e5636 100%);
-    color: #fff;
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
+    --status-paid-bg: #1b5238;
+    --status-paid-light: #eaf4ee;
+    --status-due-bg: #93292c;
+    --status-due-light: #fbeceb;
+    --status-total-bg: #b88328;
+    --status-total-light: #fdf6e2;
+}
+
+body {
+    background: var(--ivory);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--bronze-text);
+}
+
+/* ---- Page header (flush) ---- */
+.fb-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    color: #ffffff !important;
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    border-radius: 0 0 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 1rem;
     position: relative;
 }
-.list-header h4  { color: #fff; }
-.list-header small { color: rgba(255,255,255,0.75); }
+.fb-header * { color: #ffffff !important; }
+.fb-header h4 { font-weight: 800; margin-bottom: 0.1rem; }
+.fb-header small { color: rgba(255,255,255,0.85) !important; }
+.fb-header .btn-fb-header {
+    background: rgba(255,255,255,0.16);
+    border: 1.5px solid rgba(255,255,255,0.55);
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.fb-header .btn-fb-header:hover { background: rgba(255,255,255,0.26); }
+
+/* ---- Page content inset ---- */
+.page-inset { padding: 0 1.5rem; }
+
+/* ---- Cards ---- */
+.card {
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
+}
+.card-header {
+    background: var(--ivory) !important;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    color: var(--bronze-text);
+    font-weight: 700;
+}
+.card-footer {
+    background: #ffffff !important;
+    border-top: 1px solid var(--hairline);
+}
+
+/* ---- Inputs ---- */
+.form-control,
+.input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus {
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
+}
+
+/* ---- Buttons ---- */
+.btn-fb-primary, .btn-gold {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 999px;
+}
+.btn-fb-primary:hover, .btn-gold:hover {
+    opacity: 0.92;
+    background: var(--gold-deep);
+    border-color: var(--gold-deep);
+    color: #ffffff;
+}
+.btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-fb-secondary:hover {
+    background: #fdf7ec;
+    border-color: var(--hairline);
+    color: var(--bronze-text);
+}
 
 /* ---- stat bar ---- */
 .stat-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0;
-    border-radius: 8px;
+    border-radius: 14px;
     overflow: hidden;
     margin-bottom: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
 }
 .stat-cell {
     padding: 0.65rem 0.8rem;
@@ -256,23 +354,28 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     letter-spacing: 0.01em;
     white-space: nowrap;
 }
-.stat-weight  { background: var(--fb-green);    color: #fff; }
-.stat-total   { background: var(--fb-gold);     color: #1a1a1a; }
-.stat-paid    { background: #2e7d32;            color: #fff; }
-.stat-due     { background: #c0392b;            color: #fff; }
+.stat-weight  { background: var(--status-total-bg); color: #fff; }
+.stat-total   { background: var(--gold-deep);        color: #fff; }
+.stat-paid    { background: var(--status-paid-bg);   color: #fff; }
+.stat-due     { background: var(--status-due-bg);    color: #fff; }
 
 /* ---- amount badges ---- */
-.badge-amount { background: #eaf5ee; color: var(--fb-green); font-weight: 600; font-size: 0.82rem; }
-.badge-paid   { background: #e8f5e9; color: #2e7d32;          font-weight: 600; font-size: 0.82rem; }
-.badge-due    { background: #fdecea; color: #c0392b;           font-weight: 600; font-size: 0.82rem; }
-.badge-due.zero { background: #e8f5e9; color: #2e7d32; }
-.badge-weight { background: #f4f9f6; color: var(--fb-green);  font-weight: 600; font-size: 0.82rem;
-                border: 1px solid #bcd9c9; }
+.badge-amount { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-paid   { background: var(--status-paid-light);  color: var(--status-paid-bg);  font-weight: 600; font-size: 0.82rem; }
+.badge-due    { background: var(--status-due-light);   color: var(--status-due-bg);   font-weight: 600; font-size: 0.82rem; }
+.badge-due.zero { background: var(--status-paid-light); color: var(--status-paid-bg); }
+.badge-weight { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem;
+                border: 1px solid var(--gold-deep); }
 
 /* ---- action buttons ---- */
-.btn-gold { background: var(--fb-gold); border-color: var(--fb-gold); color: #1a1a1a; font-weight: 600; }
-.btn-gold:hover { background: #c99a2f; border-color: #c99a2f; color: #1a1a1a; }
 .btn-actions { display: flex; gap: 4px; justify-content: center; }
+.btn-actions .btn {
+    border-radius: 999px;
+    border: 1.5px solid var(--hairline);
+    background: #fff;
+    color: var(--muted);
+}
+.btn-actions .btn:hover { background: #fdf7ec; color: var(--bronze-text); }
 
 /* ---- mobile info cell ---- */
 .sale-info-cell { min-width: 160px; }
@@ -284,25 +387,25 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     line-height: 1.45;
     white-space: nowrap;
 }
-.sale-info-cell .info-label { color: #6c757d; }
-.sale-info-cell .info-value { font-weight: 600; color: #1a1a1a; }
-.sale-info-cell .info-value.red   { color: #c0392b; }
-.sale-info-cell .info-value.green { color: #2e7d32; }
+.sale-info-cell .info-label { color: var(--muted); }
+.sale-info-cell .info-value { font-weight: 600; color: var(--bronze-text); }
+.sale-info-cell .info-value.red   { color: var(--status-due-bg); }
+.sale-info-cell .info-value.green { color: var(--status-paid-bg); }
 
 /* ---- modal ledger ---- */
 .ledger-table td { padding: 0.55rem 0.85rem; vertical-align: middle;
-                    border-bottom: 1px solid #e9ecef; --bs-table-bg: transparent; }
+                    border-bottom: 1px solid var(--hairline); --bs-table-bg: transparent; }
 .ledger-table tr:last-child td { border-bottom: none; }
-.ledger-label { font-size: 0.82rem; color: #555; white-space: nowrap; width: 1%; }
+.ledger-label { font-size: 0.82rem; color: var(--muted); white-space: nowrap; width: 1%; }
 .ledger-vorp  { font-weight: 700; font-size: 0.95rem; text-align: right; }
-.ledger-total td { background-color: #eaf5ee !important; }
-.ledger-total .ledger-label { color: var(--fb-green); font-weight: 600; }
-.ledger-total .ledger-vorp  { color: var(--fb-green); }
-.ledger-paid td  { background-color: #e8f5e9 !important; }
-.ledger-paid .ledger-label  { color: #2e7d32; font-weight: 600; }
-.ledger-paid .ledger-vorp   { color: #2e7d32; }
-.ledger-due td   { background-color: var(--fb-green) !important; border-bottom: none; }
-.ledger-due .ledger-label   { color: rgba(255,255,255,0.85); font-weight: 600; }
+.ledger-total td { background-color: var(--status-total-light) !important; }
+.ledger-total .ledger-label { color: var(--status-total-bg); font-weight: 600; }
+.ledger-total .ledger-vorp  { color: var(--status-total-bg); }
+.ledger-paid td  { background-color: var(--status-paid-light) !important; }
+.ledger-paid .ledger-label  { color: var(--status-paid-bg); font-weight: 600; }
+.ledger-paid .ledger-vorp   { color: var(--status-paid-bg); }
+.ledger-due td   { background-color: var(--gold-deep) !important; border-bottom: none; }
+.ledger-due .ledger-label   { color: rgba(255,255,255,0.9); font-weight: 600; }
 .ledger-due .ledger-vorp    { color: #fff; font-size: 1.05rem; }
 
 /* ---- payment history in modal ---- */
@@ -311,42 +414,56 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
     align-items: flex-start;
     gap: 0.6rem;
     padding: 0.55rem 0;
-    border-bottom: 1px dashed #e9ecef;
+    border-bottom: 1px dashed var(--hairline);
     font-size: 0.83rem;
 }
 .pmt-row:last-child { border-bottom: none; }
-.pmt-date { color: #6c757d; white-space: nowrap; min-width: 80px; }
-.pmt-amount { font-weight: 700; color: #2e7d32; white-space: nowrap; }
-.pmt-ref { color: #555; font-size: 0.78rem; }
-.pmt-note { color: #888; font-size: 0.76rem; font-style: italic; }
+.pmt-date { color: var(--muted); white-space: nowrap; min-width: 80px; }
+.pmt-amount { font-weight: 700; color: var(--status-paid-bg); white-space: nowrap; }
+.pmt-ref { color: var(--bronze-text); font-size: 0.78rem; }
+.pmt-note { color: var(--muted); font-size: 0.76rem; font-style: italic; }
 
 /* ---- filter bar ---- */
-.filter-bar { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0.65rem 1rem;
+.filter-bar { background: #fff; border-bottom: 1px solid var(--hairline); padding: 0.65rem 1rem;
               display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.filter-bar label { font-size: 0.75rem; color: #6c757d; margin-bottom: 0; }
+.filter-bar label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0; }
 .filter-bar input[type=date] { font-size: 0.82rem; padding: 0.3rem 0.5rem;
-                                border: 1px solid #dee2e6; border-radius: 6px; }
+                                border: 1.5px solid var(--hairline); border-radius: 8px; }
+
+/* ---- modal ---- */
+.modal-content {
+    border-radius: 18px;
+    overflow: hidden;
+    border: none;
+}
+.modal-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+}
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
 
 /* ---- mobile ---- */
 @media (max-width: 767.98px) {
-    .page-content .container-fluid { padding: 0.6rem 0.6rem 1rem; }
+    .page-inset { padding: 0 0.8rem; }
 
-    .list-header { padding: 0.65rem 0.85rem; border-radius: 8px; justify-content: center !important; }
-    .list-header h4 { font-size: 1rem; margin-bottom: 0; text-align: center; }
-    .list-header h4 i { display: none; }
-    .list-header small { display: none; }
-    .list-header > a.btn {
-        position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-        padding: 0.3rem 0.5rem; font-size: 0.75rem;
+    .fb-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px;
     }
-    .list-header > a.btn span { display: none; }
+    .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .fb-header small { font-size: 0.7rem; }
+    .fb-header .btn-fb-header { padding: 0.3rem 0.65rem; font-size: 0.72rem; }
 
     .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; }
     .stat-cell { padding: 0.5rem 0.55rem; }
     .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
     .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
 
-    .card { border-radius: 8px; }
+    .card { border-radius: 14px; }
     .card-header { padding: 0.5rem 0.6rem; }
     .card-header .fw-semibold { font-size: 0.82rem; }
     .card-header .input-group { max-width: 100% !important; width: 100%; }
@@ -370,10 +487,9 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
-
+<div class="container-fluid px-0">
     <!-- Header -->
-    <div class="list-header mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2 position-relative">
+    <div class="fb-header">
         <div>
             <h4 class="mb-0">
                 <i class="bi bi-bag-check-fill me-2"></i>
@@ -382,10 +498,13 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             </h4>
             <small>FineBullion Desk</small>
         </div>
-        <a href="gold_sale.php" class="btn btn-outline-light btn-sm">
+        <a href="gold_sale.php" class="btn btn-fb-header btn-sm d-inline-flex align-items-center">
             <i class="bi bi-plus-lg me-1"></i> <span>New Sale</span>
         </a>
     </div>
+</div>
+
+<div class="page-inset py-4">
 
     <!-- Stat bar -->
     <div class="stat-bar" id="statBar">
@@ -414,7 +533,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             <div class="input-group" style="max-width:300px;">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                 <input type="text" id="searchInput" class="form-control" placeholder="Search customer name, phone…">
-                <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-fb-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
         </div>
 
@@ -427,7 +546,7 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
             <input type="date" id="dateFrom">
             <span style="font-size:0.8rem;color:#6c757d;">To</span>
             <input type="date" id="dateTo">
-            <button class="btn btn-sm btn-outline-secondary ms-1" id="clearDatesBtn" title="Clear dates">
+            <button class="btn btn-sm btn-fb-secondary ms-1" id="clearDatesBtn" title="Clear dates">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
@@ -473,20 +592,20 @@ body { background: #f5f6fa; font-family: "Segoe UI", Arial, sans-serif; }
 <div class="modal fade" id="viewModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header" style="background: var(--fb-green); color:#fff;">
+            <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="bi bi-receipt me-2"></i>Sale #<span id="viewId"></span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="viewBody">
                 <div class="text-center text-muted py-4">Loading…</div>
             </div>
             <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                     <i class="bi bi-x-lg me-1"></i>Close
                 </button>
-                <a id="btnOpenEdit" href="#" class="btn btn-gold btn-sm">
+                <a id="btnOpenEdit" href="#" class="btn btn-fb-primary btn-sm">
                     <i class="bi bi-pencil-square me-1"></i>Open Full Detail / Edit
                 </a>
             </div>
@@ -630,10 +749,10 @@ async function loadList(page = 1) {
                     <td class="small d-none d-md-table-cell">${escHtml(row.created_by_username || '—')}</td>
                     <td>
                         <div class="btn-actions">
-                            <button class="btn btn-sm btn-outline-secondary btn-view" title="Quick view" data-id="${row.id}">
+                            <button class="btn btn-sm btn-view" title="Quick view" data-id="${row.id}">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <a href="gold_sale_edit.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="Edit / detail">
+                            <a href="gold_sale_edit.php?id=${row.id}" class="btn btn-sm" title="Edit / detail">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
                         </div>
@@ -719,7 +838,7 @@ async function openView(id) {
                 <td class="text-muted">${idx + 1}</td>
                 <td>${t.vori}V ${t.ana}A ${t.roti}R ${t.point}P</td>
                 <td class="text-center">
-                    <span class="badge" style="background:#f0f0f0;color:#444;font-weight:600;font-size:0.75rem;">
+                    <span class="badge" style="background:var(--status-total-light);color:var(--status-total-bg);font-weight:600;font-size:0.75rem;">
                         ${purity}K
                     </span>
                 </td>
@@ -792,7 +911,7 @@ async function openView(id) {
 
             <!-- Payment History -->
             <div class="mb-3">
-                <div class="fw-semibold small text-uppercase mb-2" style="letter-spacing:.04em;color:var(--fb-green);">
+                <div class="fw-semibold small text-uppercase mb-2" style="letter-spacing:.04em;color:var(--status-total-bg);">
                     <i class="bi bi-cash-stack me-1"></i> Payment History
                 </div>
                 <div class="border rounded p-2">
@@ -809,13 +928,18 @@ async function openView(id) {
 
 // Set default date range: past 30 days → today
 (function setDefaultDates() {
+    const localDateStr = d => {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dy}`;
+    };
     const today = new Date();
     const from  = new Date(); from.setDate(today.getDate() - 30);
-    const fmt   = d => d.toISOString().slice(0, 10);
-    document.getElementById('dateFrom').value = fmt(from);
-    document.getElementById('dateTo').value   = fmt(today);
-    currentFrom = fmt(from);
-    currentTo   = fmt(today);
+    document.getElementById('dateFrom').value = localDateStr(from);
+    document.getElementById('dateTo').value   = localDateStr(today);
+    currentFrom = localDateStr(from);
+    currentTo   = localDateStr(today);
 })();
 
 loadList(1);

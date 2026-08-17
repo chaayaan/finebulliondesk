@@ -282,72 +282,179 @@ $lossPointsVal = loss_points((float)$ex['loss']);
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-:root { --fb-green:#0B412A; --fb-gold:#DCAD41; }
-body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
+:root {
+    /* Brand Foundation */
+    --gold-deep: #c9973a;
+    --gold-mid: #dcb04a;
+    --gold-light: #e9cd7d;
+    --ivory: #fbf8f2;
+    --bronze-text: #3a2f1a;
+    --muted: #9a8f76;
+    --hairline: #ecdfb8;
 
-/* header */
-.exchange-header {
-    background:linear-gradient(135deg,var(--fb-green) 0%,#0e5636 100%);
-    color:#fff; border-radius:10px; padding:1.2rem 1.5rem;
+    /* Jewel Tone Financial Status Colors */
+    --status-paid-bg: #1b5238;      /* Deep Emerald (Paid / Impure / Loss) */
+    --status-paid-light: #eaf4ee;   /* Soft Emerald Tint */
+    --status-due-bg: #93292c;       /* Deep Ruby (Due / Pure / Outflow) */
+    --status-due-light: #fbeceb;    /* Soft Ruby Tint */
+    --status-total-bg: #b88328;     /* Rich Gold (Totals / Net Output) */
+    --status-total-light: #fdf6e2;  /* Soft Gold Tint */
 }
-.exchange-header small { color:rgba(255,255,255,.72); }
+body  { background: var(--ivory); font-family: 'Inter', system-ui, -apple-system, sans-serif; color: var(--bronze-text); }
+
+/* header — scoped strictly to .exchange-header and its children so this
+   block is completely self-contained and immune to overrides from
+   navbar.php or any external stylesheet. Full width, flush to the
+   viewport top with no top/side margin. */
+.exchange-header,
+.exchange-header.mb-4 {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
+    color: #ffffff !important;
+    border-radius: 0 0 20px 20px !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    margin: 0 !important;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.exchange-header h5,
+.exchange-header h5 * { color: #ffffff !important; }
+.exchange-header small { color: rgba(255,255,255,0.8) !important; }
+.exchange-header .btn-outline-light {
+    border-color: rgba(255,255,255,0.6);
+    color: #ffffff;
+}
+.exchange-header .btn-outline-light:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
+/* Inset spacing for content below the flush full-width header */
+.page-inset { padding-left: 1.5rem; padding-right: 1.5rem; }
 
 /* customer / detail card */
 .detail-card {
-    background:#fff; border:1px solid #e2e5ea;
-    border-radius:10px; padding:1.25rem 1.5rem;
+    background: #ffffff; border: none;
+    border-radius: 18px; padding: 1.25rem 1.5rem;
 }
 .detail-label {
-    font-size:.78rem; color:#888; font-weight:500;
-    white-space:nowrap;
+    font-size: 0.78rem; color: var(--muted); font-weight: 500;
+    white-space: nowrap;
 }
 .detail-val {
-    font-size:.97rem; font-weight:600; color:#1a1a1a;
-    word-break:break-word;
+    font-size: 0.97rem; font-weight: 600; color: var(--bronze-text);
+    word-break: break-word;
 }
 
 /* item table badges */
-.badge-old   { background:#eaf5ee; color:var(--fb-green); font-weight:600; font-size:.82rem; }
-.badge-karat { background:#f0f0f0; color:#444;            font-weight:600; font-size:.82rem; }
-.badge-pure  { background:var(--fb-green); color:#fff;    font-weight:600; font-size:.82rem; }
+.badge-old   { background: var(--status-paid-light); color: var(--status-paid-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-karat { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-pure  { background: var(--status-due-light);  color: var(--status-due-bg);  font-weight: 600; font-size: 0.82rem; }
 
 /* ledger */
-.ledger { border:1px solid #dee2e6; border-radius:8px; overflow:hidden; }
-.ledger td { padding:.6rem .9rem; border-bottom:1px solid #eee; vertical-align:middle; }
-.ledger tr:last-child td { border-bottom:none; }
-.l-label { font-size:.83rem; color:#555; width:1%; white-space:nowrap; }
-.l-rate  { color:#aaa; font-size:.77rem; }
-.l-val   { font-weight:700; font-size:.95rem; text-align:right; }
-.l-total td  { background:#eaf5ee!important; }
-.l-total .l-label,.l-total .l-val { color:var(--fb-green); }
-.l-loss  td  { background:#fdf6ec!important; }
-.l-loss  .l-label { color:#8a5e0a; font-weight:600; }
-.l-loss  .l-val   { color:#96660c; }
-.l-final td  { background:var(--fb-green)!important; border-bottom:none; }
-.l-final .l-label { color:rgba(255,255,255,.85); font-weight:600; }
-.l-final .l-val   { color:#fff; font-size:1.05rem; }
-.l-final .l-rate  { color:rgba(255,255,255,.55); }
+.ledger { border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+.ledger td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--hairline); vertical-align: middle; --bs-table-bg: transparent; }
+.ledger tr:last-child td { border-bottom: none; }
+.l-label { font-size: 0.82rem; color: var(--muted); width: 1%; white-space: nowrap; }
+.l-rate  { color: var(--muted); font-size: 0.78rem; font-weight: 400; }
+.l-val   { font-weight: 700; font-size: 0.95rem; text-align: right; letter-spacing: 0.01em; }
+.l-total td  { background-color: var(--status-due-light) !important; }
+.l-total .l-label, .l-total .l-val { color: var(--status-due-bg); }
+.l-total .l-label { font-weight: 600; }
+.l-loss  td  { background-color: #fdf1e0 !important; }
+.l-loss  .l-label { color: #7a5417; font-weight: 600; }
+.l-loss  .l-val   { color: #7a5417; }
+.l-final td  { background-color: var(--status-total-bg) !important; border-bottom: none; }
+.l-final .l-label { color: rgba(255,255,255,0.88); font-weight: 600; }
+.l-final .l-val   { color: #fff; font-size: 1.05rem; }
+.l-final .l-rate  { color: rgba(255,255,255,0.65); }
 
-/* buttons */
-.btn-gold { background:var(--fb-gold); border-color:var(--fb-gold); color:#1a1a1a; font-weight:600; }
-.btn-gold:hover { background:#c99a2f; border-color:#c99a2f; color:#1a1a1a; }
+/* Primary action buttons (pill, solid gold, white text) */
+.btn-gold, .btn-fb-primary {
+    background: var(--gold-deep);
+    border: 1.5px solid var(--gold-deep);
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 999px;
+}
+.btn-gold:hover, .btn-fb-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; opacity: 0.92; }
+
+/* Secondary / cancel buttons (pill, white, hairline border) */
+.btn-secondary, .btn-fb-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-secondary:hover, .btn-fb-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+/* cards */
+.card {
+    background: #ffffff;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
+}
+.card-header {
+    background: #ffffff !important;
+    border-bottom: 1px solid var(--hairline);
+    border-radius: 18px 18px 0 0 !important;
+    color: var(--bronze-text);
+}
+
+/* tables */
+table.table thead.table-light th {
+    background: var(--ivory) !important;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    border-bottom: 1.5px solid var(--hairline);
+}
+table.table td, table.table th { border-color: var(--hairline); }
+table.table-hover tbody tr:hover { background-color: #fdf7ec; }
+
+/* inputs */
+.form-control, .input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #fff;
+}
+.form-control:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.2rem rgba(201,151,58,0.15); }
+
+/* modal */
+.modal-content { border-radius: 18px; overflow: hidden; border: none; }
+.modal-header { border-bottom: none; }
+
+/* alerts */
+.alert-success { background: var(--status-paid-light); border: 1px solid var(--status-paid-bg); color: var(--status-paid-bg); border-radius: 12px; }
+.alert-danger  { background: var(--status-due-light);  border: 1px solid var(--status-due-bg);  color: var(--status-due-bg);  border-radius: 12px; }
 
 /* edit modal item card — matches gold_exchange.php "gold-item-card" pattern */
 .edit-item-card {
-    border:1px solid #e2e5ea; border-radius:10px;
-    padding:1rem 1.1rem; margin-bottom:1rem;
-    background:#fff; position:relative;
+    border: 1.5px solid var(--hairline); border-radius: 14px;
+    padding: 1rem 1.1rem; margin-bottom: 1rem;
+    background: #ffffff; position: relative;
 }
 .edit-item-badge {
-    position:absolute; top:-10px; left:14px;
-    background:var(--fb-green); color:#fff;
-    font-size:.72rem; font-weight:700;
-    padding:.1rem .6rem; border-radius:10px;
+    position: absolute; top: -10px; left: 14px;
+    background: var(--gold-deep); color: #ffffff;
+    font-size: 0.72rem; font-weight: 700;
+    padding: 0.1rem 0.6rem; border-radius: 999px;
 }
 .item-pure-preview {
-    background:#f4f9f6; border:1px dashed #bcd9c9;
-    border-radius:8px; padding:.5rem .8rem;
-    font-size:.88rem; color:var(--fb-green); font-weight:600;
+    background: var(--status-due-light); border: 1px dashed var(--status-due-bg);
+    border-radius: 10px; padding: 0.5rem 0.8rem;
+    font-size: 0.88rem; color: var(--status-due-bg); font-weight: 600;
 }
 
 /* Vori / Ana / Roti / Point always in ONE row (4 equal columns),
@@ -359,7 +466,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 }
 .item-fields-row .field-col label {
     display:block; font-size:.72rem;
-    margin-bottom:.15rem; color:#6c757d; white-space:nowrap;
+    margin-bottom:.15rem; color:var(--muted); white-space:nowrap;
 }
 .item-fields-row .field-col input {
     text-align:center; padding-left:.25rem; padding-right:.25rem;
@@ -374,7 +481,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 .karat-row { margin-top:.6rem; }
 .karat-row label {
     display:block; font-size:.72rem;
-    margin-bottom:.15rem; color:#6c757d;
+    margin-bottom:.15rem; color:var(--muted);
 }
 
 /* ---------------------------------------------------------------
@@ -386,21 +493,26 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 @media (max-width: 767.98px) {
     html, body { height:100%; overflow:hidden; }
     .page-content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
-    .page-content .container-fluid {
+    .page-content .container-fluid { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+    .page-inset {
         padding:.45rem .5rem !important; display:flex; flex-direction:column;
         gap:.45rem; flex:1; min-height:0; overflow:hidden;
     }
 
     /* alerts collapse tightly if present */
-    .container-fluid > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
+    .page-inset > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
 
     /* header bar */
-    .exchange-header { padding:.55rem .75rem; border-radius:8px; margin-bottom:0!important; }
-    .exchange-header h5 { font-size:1rem; }
-    .exchange-header h5 i { display:none; }
-    .exchange-header small { display:none; }
-    .exchange-header .text-end { display:none; } /* created-by folded into detail card on mobile */
-    .exchange-header .btn-outline-light { padding:.15rem .42rem; font-size:.8rem; }
+    .exchange-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px !important;
+    }
+    .exchange-header h5 { font-size: 0.95rem; }
+    .exchange-header small { display: none; }
+    .exchange-header .text-end { display: none; } /* created-by folded into detail card on mobile */
+    .exchange-header .btn-outline-light { padding: 0.15rem 0.42rem; font-size: 0.8rem; }
 
     /* customer + detail card */
     .detail-card-wrap { margin-bottom:0!important; }
@@ -425,7 +537,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     }
 
     /* items table card */
-    .card { border-radius:8px; margin-bottom:0!important; }
+    .card { border-radius: 14px; margin-bottom: 0 !important; }
     .card-header { padding:.4rem .6rem; }
     .card-header .fw-semibold { font-size:.85rem; }
     .card-header .badge { font-size:.68rem; }
@@ -451,7 +563,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     .card:last-of-type { margin-bottom:0!important; }
 
     /* edit modal item cards — same compaction pattern as gold_exchange.php */
-    .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:8px; }
+    .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:12px; }
     .edit-item-badge { top:-9px; left:12px; font-size:.65rem; padding:.08rem .5rem; }
     .edit-item-card .form-control-sm { font-size:.82rem; padding:.28rem .4rem; }
     .item-fields-row { gap:.4rem; }
@@ -464,26 +576,13 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <?php require_once __DIR__ . '/navbar.php'; ?>
 
 <div class="page-content">
-<div class="container-fluid py-4">
-
-<?php if ($postSuccess): ?>
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    <i class="bi bi-check-circle-fill me-2"></i><?= h($postSuccess) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($postError): ?>
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= $postError ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
+<div class="container-fluid px-0">
 
 <!-- ================================================================
-     PAGE HEADER
+     PAGE HEADER — full width, flush to viewport edges, no top/side margin
 ================================================================ -->
-<div class="exchange-header mb-4">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+<div class="exchange-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="width:100%;">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
                 <a href="gold_exchange_list.php" class="btn btn-sm btn-outline-light py-0 px-2">
@@ -509,12 +608,27 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     </div>
 </div>
 
+<div class="page-inset py-4">
+
+<?php if ($postSuccess): ?>
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i><?= h($postSuccess) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+<?php if ($postError): ?>
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= $postError ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
 <!-- ================================================================
      CUSTOMER + DETAIL — two-column layout
 ================================================================ -->
 <div class="card shadow-sm mb-4 detail-card-wrap">
     <div class="card-header bg-white fw-semibold d-md-none">
-        <i class="bi bi-person-fill me-1" style="color:var(--fb-green);"></i>
+        <i class="bi bi-person-fill me-1" style="color:var(--gold-deep);"></i>
         Customer
     </div>
     <div class="detail-card">
@@ -566,7 +680,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 
         <!-- Vertical divider (md+) -->
         <div class="col-md-1 d-none d-md-flex justify-content-center">
-            <div style="width:1px;background:#e2e5ea;min-height:100%;"></div>
+            <div style="width:1px;background:var(--hairline);min-height:100%;"></div>
         </div>
 
         <!-- Right: date & created-by -->
@@ -601,7 +715,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <span class="fw-semibold">
-            <i class="bi bi-gem me-1" style="color:var(--fb-green);"></i>
+            <i class="bi bi-gem me-1" style="color:var(--gold-deep);"></i>
             Old / Impure Gold Items
             <span class="badge bg-secondary ms-1"><?= count($items) ?></span>
         </span>
@@ -649,7 +763,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 ================================================================ -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white fw-semibold">
-        <i class="bi bi-calculator me-1" style="color:var(--fb-green);"></i>
+        <i class="bi bi-calculator me-1" style="color:var(--gold-deep);"></i>
         Exchange Summary
     </div>
     <div class="card-body p-0">
@@ -682,7 +796,7 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 ================================================================ -->
 <div class="card shadow-sm mb-4 note-card">
     <div class="card-header bg-white fw-semibold">
-        <i class="bi bi-pencil-square me-1" style="color:var(--fb-green);"></i>
+        <i class="bi bi-pencil-square me-1" style="color:var(--gold-deep);"></i>
         Note / Remarks
     </div>
     <div class="card-body">
@@ -698,6 +812,8 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
     </div>
 </div>
 
+</div><!-- /page-inset -->
+
 <?php if ($isAdmin): ?>
 <!-- ================================================================
      EDIT ITEMS MODAL (admin only)
@@ -706,12 +822,13 @@ body  { background:#f5f6fa; font-family:"Segoe UI",Arial,sans-serif; }
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header" style="background:var(--fb-green);color:#fff;">
-                <h5 class="modal-title">
+            <div class="modal-header" style="background:linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);color:#fff;">
+                <h5 class="modal-title" style="color:#fff;">
                     <i class="bi bi-pencil-square me-2"></i>
                     Edit Items — Exchange #<?= $exchangeId ?>
                 </h5>
-                <button type="button" class="btn-close btn-close-white"
+                <button type="button" class="btn-close"
+                        style="filter:brightness(0) invert(1);"
                         data-bs-dismiss="modal"></button>
             </div>
 

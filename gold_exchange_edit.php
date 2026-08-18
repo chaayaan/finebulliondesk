@@ -129,13 +129,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $grams = trad_to_grams($vori, $ana, $roti, $point);
             if ($grams <= 0) $errors[] = "Item $n: Weight must be greater than zero.";
 
+            $purity = round(($karat / 24) * 100, 2); // matches DB column decimal(5,2)
+
             $calcItems[] = [
                 'id'               => $itemId,
                 'old_gold_weight'  => $grams,
-                'old_gold_purity'  => ($karat / 24) * 100,
-                'pure_gold_weight' => $grams * ($karat / 24),
+                'old_gold_purity'  => $purity,
+                'pure_gold_weight' => $grams * ($purity / 100),
             ];
-            $totalPure += $grams * ($karat / 24);
+            $totalPure += $grams * ($purity / 100);
         }
 
         if (empty($calcItems) && empty($errors)) {
@@ -861,7 +863,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                         <div class="text-muted text-center py-3">No items to edit.</div>
                     <?php else: ?>
                         <?php foreach ($items as $idx => $it):
-                            $karat = round(((float)$it['old_gold_purity'] / 100) * 24, 4);
+                            $karat = round(((float)$it['old_gold_purity'] / 100) * 24, 2);
                             $trad  = grams_to_trad((float)$it['old_gold_weight']);
                         ?>
                         <div class="edit-item-card">

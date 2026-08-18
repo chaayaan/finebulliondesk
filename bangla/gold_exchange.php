@@ -88,7 +88,7 @@ function grams_to_traditional(float $grams): array
 
 function format_traditional(array $t): string
 {
-    return "{$t['vori']} ভ {$t['ana']} আ {$t['roti']} র {$t['point']} প";
+    return "{$t['vori']} ভরি {$t['ana']} আনা {$t['roti']} রতি {$t['point']} পয়েন্ট";
 }
 
 // -----------------------------------------------------------------------
@@ -99,14 +99,14 @@ if ($isAjax || $action !== null) {
 
     if ($action === 'customer' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
-        if ($id <= 0) json_out(['success' => false, 'message' => 'অকার্যকর কাস্টমার আইডি।'], 400);
+        if ($id <= 0) json_out(['success' => false, 'message' => 'অকার্যকরকাস্টমার আইডি।'], 400);
 
         $stmt = mysqli_prepare($conn, "SELECT id, name, phone FROM customers WHERE id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
         $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-        if (!$row) json_out(['success' => false, 'message' => 'কাস্টমার পাওয়া যায়নি।'], 404);
+        if (!$row) json_out(['success' => false, 'message' => 'গ্রাহক পাওয়া যায়নি।'], 404);
         json_out(['success' => true, 'data' => $row]);
     }
 
@@ -119,20 +119,20 @@ if ($isAjax || $action !== null) {
                         : 1.0;
 
         if ($customerId <= 0) {
-            json_out(['success' => false, 'message' => 'অনুগ্রহ করে একজন কাস্টমার নির্বাচন করুন।'], 422);
+            json_out(['success' => false, 'message' => 'অনুগ্রহ করে একজনকাস্টমার নির্বাচন করুন।'], 422);
         }
         if (!is_array($items) || count($items) === 0) {
             json_out(['success' => false, 'message' => 'কমপক্ষে একটি সোনার আইটেম যোগ করুন।'], 422);
         }
         if ($lossRate < 0) {
-            json_out(['success' => false, 'message' => 'লসের হার ঋণাত্মক হতে পারে না।'], 422);
+            json_out(['success' => false, 'message' => 'ক্ষতির হার ঋণাত্মক হতে পারবে না।'], 422);
         }
 
         $cstmt = mysqli_prepare($conn, "SELECT id FROM customers WHERE id = ?");
         mysqli_stmt_bind_param($cstmt, 'i', $customerId);
         mysqli_stmt_execute($cstmt);
         if (!mysqli_fetch_assoc(mysqli_stmt_get_result($cstmt))) {
-            json_out(['success' => false, 'message' => 'নির্বাচিত কাস্টমার অস্তিত্বহীন।'], 404);
+            json_out(['success' => false, 'message' => 'নির্বাচিতকাস্টমার বিদ্যমান নেই।'], 404);
         }
 
         $calcItems = [];
@@ -144,7 +144,7 @@ if ($isAjax || $action !== null) {
             foreach (['vori', 'ana', 'roti', 'point'] as $field) {
                 $raw = $item[$field] ?? 0;
                 if (!is_numeric($raw) || (float)$raw != (int)$raw) {
-                    json_out(['success' => false, 'message' => "আইটেম $n: " . ucfirst($field) . " পূর্ণসংখ্যা হতে হবে।"], 422);
+                    json_out(['success' => false, 'message' => "আইটেম $n: " . ucfirst($field) . " অবশ্যই পূর্ণসংখ্যা হতে হবে।"], 422);
                 }
             }
 
@@ -155,7 +155,7 @@ if ($isAjax || $action !== null) {
             $karat = (float)($item['karat'] ?? 0);
 
             if ($vori < 0) {
-                json_out(['success' => false, 'message' => "আইটেম $n: ভরি ঋণাত্মক হতে পারে না।"], 422);
+                json_out(['success' => false, 'message' => "আইটেম $n: ভরি ঋণাত্মক হতে পারবে না।"], 422);
             }
             if ($ana < 0 || $ana > 15) {
                 json_out(['success' => false, 'message' => "আইটেম $n: আনা ০ থেকে ১৫ এর মধ্যে হতে হবে।"], 422);
@@ -221,12 +221,12 @@ if ($isAjax || $action !== null) {
             mysqli_commit($conn);
         } catch (\Throwable $e) {
             mysqli_rollback($conn);
-            json_out(['success' => false, 'message' => 'সোনা বদল সংরক্ষণ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।'], 500);
+            json_out(['success' => false, 'message' => 'এক্সচেঞ্জ সেভ করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।'], 500);
         }
 
         json_out([
             'success' => true,
-            'message' => 'সোনা বদল সংরক্ষিত হয়েছে।',
+            'message' => 'এক্সচেঞ্জ সেভ হয়েছে।',
             'id'      => $exchangeId,
             'summary' => [
                 'total_pure_gold' => $totalPureGrams,
@@ -241,14 +241,14 @@ if ($isAjax || $action !== null) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="bn" translate="no">
+<html lang="bn">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>সোনা এক্সচেঞ্জ — ফাইনবুলিয়ন ডেস্ক</title>
+<title>সোনা বদল — FineBullion Desk</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
     --gold-deep: #c9973a;
@@ -267,12 +267,12 @@ if ($isAjax || $action !== null) {
     --status-total-light: #fdf6e2;
 }
 
-/* Global Reset to eliminate top spacing entirely */
+/* Global Reset */
 html, body {
     margin: 0 !important;
     padding: 0 !important;
     background: var(--ivory);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Noto Sans Bengali', 'Inter', system-ui, -apple-system, sans-serif;
     color: var(--bronze-text);
 }
 
@@ -286,11 +286,7 @@ html, body {
     padding-top: 0 !important;
 }
 
-/* ---------------------------------------------------------------
-   Page-Specific Header (.ge-header) — scoped strictly to .ge-header
-   and its children so this block is completely self-contained and
-   immune to overrides from navbar.php or any external stylesheet.
---------------------------------------------------------------- */
+/* Page Header */
 .ge-header,
 .ge-header.d-flex {
     background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
@@ -418,6 +414,7 @@ html, body {
     color: var(--status-due-bg);
 }
 .gold-item-card .btn-remove-item:hover { background: var(--status-due-light); }
+
 .item-pure-result {
     background: var(--status-paid-light);
     border: 1px dashed var(--status-paid-bg);
@@ -428,38 +425,59 @@ html, body {
     font-weight: 600;
 }
 
+/* ---- Gold Sale Style Summary Card ---- */
 .summary-card {
-    background: var(--status-total-bg);
-    color: #fff;
+    background: #fff;
+    border: none;
     border-radius: 18px;
-    padding: 1.4rem 1.6rem;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.20);
+    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
+    overflow: hidden;
 }
+.summary-card .sum-header {
+    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    color: #fff;
+    padding: 0.75rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.summary-card .sum-body { padding: 0.9rem 1.2rem; }
 .summary-row {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     padding: 0.45rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.18);
+    border-bottom: 1px solid var(--hairline);
 }
-.summary-row:last-child { border-bottom: none; }
-.summary-row .label { color: rgba(255,255,255,0.8); font-size: 0.85rem; }
-.summary-row .value { font-weight: 700; font-size: 1.05rem; }
-.summary-row.final .value { color: #ffffff; font-size: 1.35rem; }
-.summary-row .sub { font-size: 0.75rem; color: rgba(255,255,255,0.65); display:block; }
+.summary-row:last-of-type { border-bottom: none; }
+.summary-row .s-label { font-size: 0.85rem; color: var(--muted); }
+.summary-row .s-value { font-weight: 700; font-size: 0.95rem; color: var(--bronze-text); }
+
 .loss-rate-input {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.35);
-    color: #fff;
+    border: 1.5px solid var(--hairline);
     text-align: right;
-    border-radius: 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    padding: 0.2rem 0.4rem;
+    color: var(--bronze-text);
 }
 .loss-rate-input:focus {
-    background: rgba(255,255,255,0.22);
-    border-color: #ffffff;
-    color: #fff;
-    box-shadow: 0 0 0 0.15rem rgba(255,255,255,0.25);
+    outline: none;
+    border-color: var(--gold-deep);
+    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
 }
+
+.final-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.6rem 0 0.2rem;
+    border-top: 2px solid var(--gold-deep);
+    margin-top: 0.4rem;
+}
+.final-row .s-label { font-size: 0.92rem; font-weight: 700; color: var(--bronze-text); }
+.final-row .s-value { font-size: 1.15rem; font-weight: 800; color: var(--status-total-bg); }
 
 .btn-gold, .btn-fb-primary {
     background: var(--gold-deep);
@@ -583,13 +601,14 @@ html, body {
 
     #note { min-height: 44px; }
 
-    .summary-card { padding: 0.75rem 0.9rem; border-radius: 14px; }
-    .summary-card h6 { font-size: 0.72rem; margin-bottom: 0.5rem !important; }
-    .summary-row { padding: 0.3rem 0; }
-    .summary-row .label { font-size: 0.75rem; }
-    .summary-row .value { font-size: 0.88rem; }
-    .summary-row.final .value { font-size: 1.05rem; }
-    .summary-row .sub { font-size: 0.68rem; }
+    .summary-card { border-radius: 14px; }
+    .summary-card .sum-header { font-size: 0.78rem; padding: 0.6rem 0.9rem; }
+    .summary-card .sum-body { padding: 0.7rem 0.9rem; }
+    .summary-row { padding: 0.35rem 0; }
+    .summary-row .s-label { font-size: 0.78rem; }
+    .summary-row .s-value { font-size: 0.88rem; }
+    .final-row .s-label { font-size: 0.85rem; }
+    .final-row .s-value { font-size: 1.05rem; }
     .loss-rate-input { width: 55px !important; padding: 0.2rem 0.35rem; }
 
     #btnSave { padding: 0.5rem; font-size: 0.9rem; margin-top: 0.6rem !important; }
@@ -608,12 +627,12 @@ html, body {
     <div class="ge-header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-arrow-left-right text-white fs-4"></i>
-            <h4 class="m-0 text-white fw-bold">সোনা এক্সচেঞ্জ</h4>
+            <h4 class="m-0 text-white fw-bold">সোনা বদল</h4>
         </div>
         <div>
             <a href="gold_exchange_list.php" class="btn btn-outline-light btn-history btn-sm d-inline-flex align-items-center gap-1">
                 <i class="bi bi-list-ul"></i>
-                <span>এক্সচেঞ্জ হিস্ট্রি</span>
+                <span>এক্সচেঞ্জ ইতিহাস</span>
             </a>
         </div>
     </div>
@@ -626,7 +645,7 @@ html, body {
                 <!-- Customer -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white fw-semibold">
-                        <i class="bi bi-person-fill me-1"></i> কাস্টমার
+                        <i class="bi bi-person-fill me-1 text-success"></i>কাস্টমার খুঁজুন
                     </div>
                     <div class="card-body">
                         <div class="position-relative">
@@ -651,7 +670,7 @@ html, body {
                 <!-- Old gold items -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold"><i class="bi bi-gem me-1"></i> পুরাতন সোনার আইটেম</span>
+                        <span class="fw-semibold"><i class="bi bi-gem me-1 text-warning"></i> পুরাতন / অপাকা সোনা</span>
                         <button type="button" class="btn btn-sm btn-gold d-inline-flex align-items-center" id="btnAddItem">
                             <i class="bi bi-plus-lg me-1"></i> <span>আইটেম যোগ করুন</span>
                         </button>
@@ -674,40 +693,43 @@ html, body {
 
             <div class="col-lg-4">
                 <div class="summary-card shadow-sm sticky-top" style="top: 1rem;">
-                    <h6 class="mb-3 text-uppercase" style="letter-spacing:0.05em; color: rgba(255,255,255,0.8);">
-                        এক্সচেঞ্জ সারসংক্ষেপ
-                    </h6>
+                    <div class="sum-header">
+                        <i class="bi bi-calculator me-1"></i> এক্সচেঞ্জ সারাংশ
+                    </div>
+                    <div class="sum-body">
+                        <div class="summary-row">
+                            <span class="s-label">মোট পাকা সোনা</span>
+                            <span class="s-value" id="sumTotalPure">০ ভরি ০ আনা ০ রতি ০ পয়েন্ট</span>
+                        </div>
 
-                    <div class="summary-row">
-                        <span class="label">পাকা সোনার ওজন</span>
-                        <span class="value" id="sumTotalPure">০ ভ ০ আ ০ র ০ প</span>
+                        <div class="summary-row align-items-center">
+                            <span class="s-label">ক্ষতি হার (পয়েন্ট/ভরি)</span>
+                            <span class="d-flex align-items-center gap-1">
+                                <input type="number" id="lossRateInput" min="0" step="0.001" value="1"
+                                       class="form-control form-control-sm loss-rate-input" style="width:70px;">
+                                <small class="text-muted">পয়েন্ট/ভরি</small>
+                            </span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span class="s-label">মোট ক্ষতি</span>
+                            <span class="s-value" id="sumLoss">০ পয়েন্ট</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="text-muted" id="sumLossTrad" style="font-size:0.75rem;">০ ভরি ০ আনা ০ রতি ০ পয়েন্ট</span>
+                        </div>
+
+                        <div class="final-row mt-2">
+                            <span class="s-label">অবশিষ্ট পাকা সোনা</span>
+                            <span class="s-value" id="sumFinalPure">০ ভরি ০ আনা ০ রতি ০ পয়েন্ট</span>
+                        </div>
                     </div>
 
-                    <div class="summary-row align-items-center">
-                        <span class="label">লস</span>
-                        <span class="d-flex align-items-center gap-1">
-                            <input type="number" id="lossRateInput" min="0" step="0.001" value="1"
-                                   class="form-control form-control-sm loss-rate-input" style="width:70px;">
-                            <small style="color: rgba(255,255,255,0.7);">পয়েন্ট / ভরি</small>
-                        </span>
+                    <div class="px-3 pb-3 mt-1">
+                        <button type="submit" class="btn btn-gold w-100 py-2" id="btnSave">
+                            <i class="bi bi-save-fill me-1"></i> এক্সচেঞ্জ সেভ করুন
+                        </button>
                     </div>
-
-                    <div class="summary-row">
-                        <span class="label">লস</span>
-                        <span class="value" id="sumLoss">০ প</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="sub" id="sumLossTrad" style="color: rgba(255,255,255,0.6); font-size:0.75rem;">০ ভ ০ আ ০ র ০ প</span>
-                    </div>
-
-                    <div class="summary-row final">
-                        <span class="label">চূড়ান্ত পাকা সোনা</span>
-                        <span class="value" id="sumFinalPure">০ ভ ০ আ ০ র ০ প</span>
-                    </div>
-
-                    <button type="submit" class="btn btn-gold w-100 mt-3" id="btnSave">
-                        <i class="bi bi-save-fill me-1"></i> এক্সচেঞ্জ সংরক্ষণ করুন
-                    </button>
                 </div>
             </div>
         </div>
@@ -721,7 +743,7 @@ html, body {
     <div class="gold-item-card" data-item>
         <span class="item-index">আইটেম <span data-item-num></span></span>
         <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item d-inline-flex align-items-center" data-remove>
-            <i class="bi bi-trash3"></i> <span class="d-none d-sm-inline ms-1">ডিলিট</span>
+            <i class="bi bi-trash3"></i> <span class="d-none d-sm-inline ms-1">মুছে ফেলুন</span>
         </button>
         <div class="item-fields-row mt-2">
             <div class="field-col">
@@ -751,7 +773,7 @@ html, body {
             <div class="invalid-feedback" data-error="karat"></div>
         </div>
         <div class="item-pure-result mt-2" data-pure-result>
-            পাকা সোনা: ০ ভ ০ আ ০ র ০ প
+            পাকা সোনা: ০ ভরি ০ আনা ০ রতি ০ পয়েন্ট
         </div>
     </div>
 </template>
@@ -790,7 +812,7 @@ function gramsToTraditional(grams) {
 }
 
 function formatTraditional(t) {
-    return `${t.vori} ভ ${t.ana} আ ${t.roti} র ${t.point} প`;
+    return `${t.vori} ভরি ${t.ana} আনা ${t.roti} রতি ${t.point} পয়েন্ট`;
 }
 
 const customerSearch  = document.getElementById('customerSearch');
@@ -827,7 +849,7 @@ customerSearch.addEventListener('input', function () {
             const data = await res.json();
 
             if (!data.success) {
-                customerResults.innerHTML = '<div class="p-2 text-danger small">খুঁজতে ব্যর্থ হয়েছে।</div>';
+                customerResults.innerHTML = '<div class="p-2 text-danger small">অনুসন্ধান ব্যর্থ হয়েছে।</div>';
                 customerResults.style.display = 'block';
                 return;
             }
@@ -835,7 +857,7 @@ customerSearch.addEventListener('input', function () {
             const list = data.data || [];
 
             if (list.length === 0) {
-                customerResults.innerHTML = '<div class="p-2 text-muted small">কোনো কাস্টমার পাওয়া যায়নি।</div>';
+                customerResults.innerHTML = '<div class="p-2 text-muted small">কোনোকাস্টমার পাওয়া যায়নি।</div>';
                 customerResults.style.display = 'block';
                 return;
             }
@@ -856,7 +878,7 @@ customerSearch.addEventListener('input', function () {
             `).join('');
             customerResults.style.display = 'block';
         } catch (err) {
-            customerResults.innerHTML = '<div class="p-2 text-danger small">খুঁজতে ব্যর্থ হয়েছে।</div>';
+            customerResults.innerHTML = '<div class="p-2 text-danger small">অনুসন্ধান ব্যর্থ হয়েছে।</div>';
             customerResults.style.display = 'block';
         }
     }, 300);
@@ -911,7 +933,7 @@ function validateField(input, field) {
     if (/[.,]/.test(raw)) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} পূর্ণসংখ্যা হতে হবে (দশমিক নয়)।`;
+        if (errEl) errEl.textContent = `${rules.label} অবশ্যই পূর্ণসংখ্যা হতে হবে (দশমিক নয়)।`;
         return { valid: false, value: 0 };
     }
 
@@ -920,20 +942,20 @@ function validateField(input, field) {
     if (!Number.isFinite(n) || !Number.isInteger(n)) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} পূর্ণসংখ্যা হতে হবে।`;
+        if (errEl) errEl.textContent = `${rules.label} অবশ্যই পূর্ণসংখ্যা হতে হবে।`;
         return { valid: false, value: 0 };
     }
 
     if (n < rules.min) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} ঋণাত্মক হতে পারে না।`;
+        if (errEl) errEl.textContent = `${rules.label} ঋণাত্মক হতে পারবে না।`;
         return { valid: false, value: 0 };
     }
     if (rules.max !== null && n > rules.max) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} সর্বোচ্চ ${rules.max} হতে পারে।`;
+        if (errEl) errEl.textContent = `${rules.label}-এর সর্বোচ্চ মান ${rules.max}।`;
         return { valid: false, value: rules.max };
     }
 
@@ -941,35 +963,6 @@ function validateField(input, field) {
     input.classList.add('is-valid');
     if (errEl) errEl.textContent = '';
     return { valid: true, value: n };
-}
-
-function addItem() {
-    itemCounter++;
-    const node = itemTemplate.content.cloneNode(true);
-    const card = node.querySelector('[data-item]');
-    card.dataset.itemId = itemCounter;
-    node.querySelector('[data-item-num]').textContent = itemCounter;
-
-    card.querySelectorAll('input').forEach(el => {
-        el.addEventListener('input', () => { renderItem(card); renderSummary(); });
-        el.addEventListener('change', () => { renderItem(card); renderSummary(); });
-    });
-
-    node.querySelector('[data-remove]').addEventListener('click', () => {
-        card.remove();
-        renumberItems();
-        renderSummary();
-    });
-
-    itemsContainer.appendChild(node);
-    renderItem(itemsContainer.querySelector(`[data-item-id="${itemCounter}"]`));
-    renderSummary();
-}
-
-function renumberItems() {
-    itemsContainer.querySelectorAll('[data-item]').forEach((card, idx) => {
-        card.querySelector('[data-item-num]').textContent = idx + 1;
-    });
 }
 
 function getItemValues(card) {
@@ -986,10 +979,11 @@ function getItemValues(card) {
     const karatInput = card.querySelector('[data-field="karat"]');
     const karatErrEl = karatInput.parentElement.querySelector('[data-error="karat"]');
     const karat = parseFloat(karatInput.value);
+
     if (isNaN(karat) || karat < 0.01 || karat > 24) {
         karatInput.classList.add('is-invalid');
         karatInput.classList.remove('is-valid');
-        if (karatErrEl) karatErrEl.textContent = 'ক্যারেট ০.০১ – ২৪.০০ এর মধ্যে হতে হবে।';
+        if (karatErrEl) karatErrEl.textContent = 'ক্যারেট ০.০১ থেকে ২৪.০০ এর মধ্যে হতে হবে।';
         allValid = false;
         results.karat = 22;
     } else {
@@ -1003,122 +997,142 @@ function getItemValues(card) {
     return results;
 }
 
-function renderItem(card) {
-    const v = getItemValues(card);
-    const grams    = traditionalToGrams(v.vori, v.ana, v.roti, v.point);
+function calcItemPure(v) {
+    const grams = traditionalToGrams(v.vori, v.ana, v.roti, v.point);
     const pureGrams = grams * (v.karat / 24);
     const pureTrad  = gramsToTraditional(pureGrams);
+    return { grams, pureGrams, pureTrad };
+}
 
-    card.querySelector('[data-pure-result]').innerHTML =
-        `<span>পাকা সোনা: <strong>${formatTraditional(pureTrad)}</strong></span>`;
+function renderItem(card) {
+    const v = getItemValues(card);
+    const { pureTrad } = calcItemPure(v);
+    card.querySelector('[data-pure-result]').textContent = 'পাকা সোনা: ' + formatTraditional(pureTrad);
+}
+
+function renumberItems() {
+    itemsContainer.querySelectorAll('[data-item]').forEach((card, idx) => {
+        card.querySelector('[data-item-num]').textContent = idx + 1;
+    });
+}
+
+function addItem() {
+    itemCounter++;
+    const node = itemTemplate.content.cloneNode(true);
+    const card = node.querySelector('[data-item]');
+    card.dataset.itemId = itemCounter;
+    node.querySelector('[data-item-num]').textContent = itemCounter;
+
+    card.querySelectorAll('input').forEach(el => {
+        el.addEventListener('input',  () => { renderItem(card); renderSummary(); });
+        el.addEventListener('change', () => { renderItem(card); renderSummary(); });
+    });
+
+    node.querySelector('[data-remove]').addEventListener('click', () => {
+        card.remove();
+        renumberItems();
+        renderSummary();
+    });
+
+    itemsContainer.appendChild(node);
+    renderItem(itemsContainer.querySelector(`[data-item-id="${itemCounter}"]`));
+    renderSummary();
 }
 
 document.getElementById('btnAddItem').addEventListener('click', addItem);
 
-const lossRateInput = document.getElementById('lossRateInput');
-lossRateInput.addEventListener('input', renderSummary);
-
-function getLossRate() {
-    const n = parseFloat(lossRateInput.value);
-    return (isNaN(n) || n < 0) ? 0 : n;
-}
+document.getElementById('lossRateInput').addEventListener('input', renderSummary);
 
 function renderSummary() {
     let totalPureGrams = 0;
 
     itemsContainer.querySelectorAll('[data-item]').forEach(card => {
         const v = getItemValues(card);
-        const grams = traditionalToGrams(v.vori, v.ana, v.roti, v.point);
-        totalPureGrams += grams * (v.karat / 24);
+        const { pureGrams } = calcItemPure(v);
+        totalPureGrams += pureGrams;
     });
 
-    const lossRate        = getLossRate();
+    const lossRate = parseFloat(document.getElementById('lossRateInput').value) || 0;
     const totalPureVori   = totalPureGrams / G_PER_VORI;
     const lossPointsExact = totalPureVori * lossRate;
     const lossPointsCeil  = Math.ceil(lossPointsExact);
     const lossGrams       = lossPointsCeil * G_PER_POINT;
+    const finalPureGrams  = Math.max(0, totalPureGrams - lossGrams);
 
-    let finalPureGrams = totalPureGrams - lossGrams;
-    if (finalPureGrams < 0) finalPureGrams = 0;
-
-    const totalTrad = gramsToTraditional(totalPureGrams);
-    const finalTrad = gramsToTraditional(finalPureGrams);
-    const lossTrad  = gramsToTraditional(lossGrams);
-
-    document.getElementById('sumTotalPure').textContent = formatTraditional(totalTrad);
-    document.getElementById('sumLoss').textContent = lossPointsCeil + ' পয়েন্ট  (@ ' + lossRate + ' পয়েন্ট/ভরি)';
-    document.getElementById('sumLossTrad').textContent = formatTraditional(lossTrad);
-    document.getElementById('sumFinalPure').textContent = formatTraditional(finalTrad);
+    document.getElementById('sumTotalPure').textContent = formatTraditional(gramsToTraditional(totalPureGrams));
+    document.getElementById('sumLoss').textContent      = `${lossPointsCeil} পয়েন্ট`;
+    document.getElementById('sumLossTrad').textContent  = formatTraditional(gramsToTraditional(lossGrams));
+    document.getElementById('sumFinalPure').textContent = formatTraditional(gramsToTraditional(finalPureGrams));
 }
 
+// Start with one item
 addItem();
 
+// Save
 document.getElementById('exchangeForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
     if (!customerIdInput.value) {
-        alert('অনুগ্রহ করে একজন কাস্টমার নির্বাচন করুন।');
+        alert('অনুগ্রহ করে একজনকাস্টমার নির্বাচন করুন।');
         return;
     }
 
     const items = [];
-    let hasValidationError = false;
+    let hasError = false;
 
     itemsContainer.querySelectorAll('[data-item]').forEach(card => {
         const v = getItemValues(card);
-        if (!v.allValid) hasValidationError = true;
-        items.push(v);
+        if (!v.allValid) hasError = true;
+        items.push({ vori: v.vori, ana: v.ana, roti: v.roti, point: v.point, karat: v.karat });
     });
 
     if (items.length === 0) {
         alert('কমপক্ষে একটি সোনার আইটেম যোগ করুন।');
         return;
     }
-
-    if (hasValidationError) {
-        alert('সংরক্ষণ করার আগে লাল চিহ্নিত ভুলগুলো সংশোধন করুন।');
+    if (hasError) {
+        alert('অনুগ্রহ করে সেভ করার আগে চিহ্নিত ভুলগুলো ঠিক করুন।');
         return;
     }
 
     for (const it of items) {
-        const grams = traditionalToGrams(it.vori, it.ana, it.roti, it.point);
-        if (grams <= 0) {
+        if (traditionalToGrams(it.vori, it.ana, it.roti, it.point) <= 0) {
             alert('প্রতিটি আইটেমের ওজন শূন্যের চেয়ে বেশি হতে হবে।');
             return;
         }
     }
 
-    const lossRate = getLossRate();
+    const lossRate = parseFloat(document.getElementById('lossRateInput').value) || 0;
 
     const btn = document.getElementById('btnSave');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> সংরক্ষণ হচ্ছে…';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> সেভ হচ্ছে…';
 
     try {
-        const formData = new FormData();
-        formData.append('action', 'save');
-        formData.append('customer_id', customerIdInput.value);
-        formData.append('note', document.getElementById('note').value);
-        formData.append('items', JSON.stringify(items));
-        formData.append('loss_rate', lossRate);
+        const fd = new FormData();
+        fd.append('action', 'save');
+        fd.append('customer_id', customerIdInput.value);
+        fd.append('loss_rate', lossRate);
+        fd.append('note', document.getElementById('note').value);
+        fd.append('items', JSON.stringify(items));
 
         const res = await fetch('gold_exchange.php', {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            body: formData
+            body: fd,
         });
         const data = await res.json();
 
         if (data.success) {
             window.location.href = 'gold_exchange_list.php';
         } else {
-            alert(data.message || 'সোনা বদল সংরক্ষণ করতে ব্যর্থ হয়েছে।');
+            alert(data.message || 'এক্সচেঞ্জ সেভ করতে ব্যর্থ হয়েছে।');
         }
-    } catch (err) {
-        alert('নেটওয়ার্ক সমস্যা। অনুগ্রহ করে আবার চেষ্টা করুন।');
+    } catch {
+        alert('নেটওয়ার্ক ত্রুটি। আবার চেষ্টা করুন।');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-save-fill me-1"></i> এক্সচেঞ্জ সংরক্ষণ করুন';
+        btn.innerHTML = '<i class="bi bi-save-fill me-1"></i> এক্সচেঞ্জ সেভ করুন';
     }
 });
 </script>

@@ -805,7 +805,7 @@ function gramsToTraditional(grams) {
 }
 
 function formatTrad(t) {
-    return `${t.vori}ভ ${t.ana}আ ${t.roti}র ${t.point}প`;
+    return `${t.vori} ভরি ${t.ana} আনা ${t.roti} রতি ${t.point} পয়েন্ট`;
 }
 
 function formatBDT(n) {

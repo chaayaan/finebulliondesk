@@ -90,7 +90,7 @@ if ($isAjax || $action !== null) {
     // ---- Customer quick lookup ----
     if ($action === 'customer' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
-        if ($id <= 0) json_out(['success' => false, 'message' => 'ভুল কাস্টমার ID।'], 400);
+        if ($id <= 0) json_out(['success' => false, 'message' => 'অবৈধ কাস্টমার আইডি।'], 400);
 
         $stmt = mysqli_prepare($conn, "SELECT id, name, phone FROM customers WHERE id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $id);
@@ -106,29 +106,24 @@ if ($isAjax || $action !== null) {
         $customerId      = (int)($_POST['customer_id']       ?? 0);
         $pureGoldPrice   = (float)($_POST['pure_gold_price'] ?? 0);
         $paidAmount      = (float)($_POST['paid_amount']      ?? 0);
-        $paymentDate     = trim($_POST['payment_date']        ?? '');
-        $transactionRef  = trim($_POST['transaction_ref']     ?? '') ?: null;
-        $paymentNote     = trim($_POST['payment_note']        ?? '') ?: null;
+        $paymentDate     = date('Y-m-d'); // Current Date Automatically
+        $transactionRef  = null;
+        $paymentNote     = null;
         $note            = trim($_POST['note'] ?? '') ?: null;
         $items           = json_decode($_POST['items'] ?? '[]', true);
         $userId          = $currentUser['id'];
 
         if ($customerId <= 0) {
-            json_out(['success' => false, 'message' => 'একজন কাস্টমার সিলেক্ট করুন।'], 422);
+            json_out(['success' => false, 'message' => 'অনুগ্রহ করে একজন কাস্টমার নির্বাচন করুন।'], 422);
         }
         if ($pureGoldPrice <= 0) {
-            json_out(['success' => false, 'message' => 'পাকা সোনার দাম অবশ্যই শূন্যের বেশি হতে হবে।'], 422);
+            json_out(['success' => false, 'message' => 'পাকা সোনার দাম শূন্যের বেশি হতে হবে।'], 422);
         }
         if (!is_array($items) || count($items) === 0) {
-            json_out(['success' => false, 'message' => 'কমপক্ষে একটি সোনার আইটেম যোগ করুন।'], 422);
+            json_out(['success' => false, 'message' => 'কমপক্ষে একটি স্বর্ণের আইটেম যোগ করুন।'], 422);
         }
         if ($paidAmount < 0) {
-            json_out(['success' => false, 'message' => 'পরিশোধিত টাকা নেগেটিভ হতে পারবে না।'], 422);
-        }
-
-        // Default payment date to today if not provided
-        if ($paidAmount > 0 && empty($paymentDate)) {
-            $paymentDate = date('Y-m-d');
+            json_out(['success' => false, 'message' => 'পরিবেশন/পরিশোধের পরিমাণ ঋণাত্মক হতে পারে না।'], 422);
         }
 
         // Verify customer exists
@@ -136,7 +131,7 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_bind_param($cstmt, 'i', $customerId);
         mysqli_stmt_execute($cstmt);
         if (!mysqli_fetch_assoc(mysqli_stmt_get_result($cstmt))) {
-            json_out(['success' => false, 'message' => 'সিলেক্ট করা কাস্টমারের কোনো অস্তিত্ব নেই।'], 404);
+            json_out(['success' => false, 'message' => 'নির্বাচিত কাস্টমারের কোনো অস্তিত্ব নেই।'], 404);
         }
 
         $calcItems   = [];
@@ -145,13 +140,10 @@ if ($isAjax || $action !== null) {
         foreach ($items as $i => $item) {
             $n = $i + 1;
 
-            // Vori/Ana/Roti/Point must be whole numbers within boundaries
             foreach (['vori', 'ana', 'roti', 'point'] as $field) {
                 $raw = $item[$field] ?? 0;
                 if (!is_numeric($raw) || (float)$raw != (int)$raw) {
-                    $fieldLabels = ['vori' => 'ভ', 'ana' => 'আ', 'roti' => 'র', 'point' => 'প'];
-                    $fieldLabel = $fieldLabels[$field] ?? ucfirst($field);
-                    json_out(['success' => false, 'message' => "আইটেম $n: $fieldLabel অবশ্যই একটি পূর্ণ সংখ্যা হতে হবে।"], 422);
+                    json_out(['success' => false, 'message' => "আইটেম $n: " . ucfirst($field) . " পূর্ণসংখ্যা হতে হবে।"], 422);
                 }
             }
 
@@ -161,17 +153,17 @@ if ($isAjax || $action !== null) {
             $point  = (int)($item['point']  ?? 0);
             $purity = (float)($item['purity'] ?? 0);
 
-            if ($vori < 0)                json_out(['success' => false, 'message' => "আইটেম $n: ভরি নেগেটিভ হতে পারবে না।"], 422);
-            if ($ana < 0 || $ana > 15)    json_out(['success' => false, 'message' => "আইটেম $n: আনা অবশ্যই 0–15 এর মধ্যে হতে হবে।"], 422);
-            if ($roti < 0 || $roti > 5)   json_out(['success' => false, 'message' => "আইটেম $n: রতি অবশ্যই 0–5 এর মধ্যে হতে হবে।"], 422);
-            if ($point < 0 || $point > 9) json_out(['success' => false, 'message' => "আইটেম $n: পয়েন্ট অবশ্যই 0–9 এর মধ্যে হতে হবে।"], 422);
+            if ($vori < 0)                json_out(['success' => false, 'message' => "আইটেম $n: ভরি ঋণাত্মক হতে পারে না।"], 422);
+            if ($ana < 0 || $ana > 15)    json_out(['success' => false, 'message' => "আইটেম $n: আনা ০–১৫ এর মধ্যে হতে হবে।"], 422);
+            if ($roti < 0 || $roti > 5)   json_out(['success' => false, 'message' => "আইটেম $n: রতি ০–৫ এর মধ্যে হতে হবে।"], 422);
+            if ($point < 0 || $point > 9) json_out(['success' => false, 'message' => "আইটেম $n: পয়েন্ট ০–৯ এর মধ্যে হতে হবে।"], 422);
             if ($purity < 0.01 || $purity > 24) {
-                json_out(['success' => false, 'message' => "আইটেম $n: সোনার মান অবশ্যই 0.01–24.00 এর মধ্যে হতে হবে।"], 422);
+                json_out(['success' => false, 'message' => "আইটেম $n: ক্যারেট (Purity) ০.০১–২৪.০০ হতে হবে।"], 422);
             }
 
             $grams = traditional_to_grams($vori, $ana, $roti, $point);
             if ($grams <= 0) {
-                json_out(['success' => false, 'message' => "আইটেম $n: ওজন অবশ্যই শূন্যের বেশি হতে হবে।"], 422);
+                json_out(['success' => false, 'message' => "আইটেম $n: ওজন শূন্যের বেশি হতে হবে।"], 422);
             }
 
             // price = (grams / G_PER_VORI) * (purity / 24) * pure_gold_price
@@ -187,7 +179,7 @@ if ($isAjax || $action !== null) {
 
         mysqli_begin_transaction($conn);
         try {
-            // Insert gold_sales row — paid_amount cached from payment
+            // Insert gold_sales row
             $stmt = mysqli_prepare($conn,
                 "INSERT INTO gold_sales
                     (customer_id, pure_gold_price, total_amount, paid_amount, note, created_by)
@@ -221,12 +213,12 @@ if ($isAjax || $action !== null) {
             mysqli_commit($conn);
         } catch (\Throwable $e) {
             mysqli_rollback($conn);
-            json_out(['success' => false, 'message' => 'বিক্রি সেভ করা যায়নি। আবার চেষ্টা করুন।'], 500);
+            json_out(['success' => false, 'message' => 'বিক্রি সংরক্ষণ করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।'], 500);
         }
 
         json_out([
             'success' => true,
-            'message' => 'সোনা বিক্রি সেভ হয়েছে।',
+            'message' => 'স্বর্ণ বিক্রি সফলভাবে সংরক্ষিত হয়েছে।',
             'id'      => $saleId,
             'summary' => [
                 'total_amount' => $totalAmount,
@@ -240,7 +232,7 @@ if ($isAjax || $action !== null) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="bn" translate="no">
+<html lang="bn">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -274,31 +266,22 @@ body {
 /* ---- Page header (flush) ---- */
 .fb-header {
     background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
-    color: #ffffff !important;
-    width: 100% !important;
-    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
     min-height: 60px !important;
     max-height: 80px !important;
     padding: 0.85rem 1.75rem !important;
-    border-radius: 0 0 20px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: nowrap;
-    gap: 1rem;
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.fb-header * { color: #ffffff !important; }
-.fb-header h4 { font-weight: 800; margin-bottom: 0.1rem; }
+.fb-header h4, .fb-header h4 i { color: #ffffff !important; font-weight: 800; margin-bottom: 0.1rem; }
 .fb-header small { color: rgba(255,255,255,0.85) !important; }
-.fb-header .btn-fb-header {
-    background: rgba(255,255,255,0.16);
-    border: 1.5px solid rgba(255,255,255,0.55);
-    color: #ffffff !important;
-    font-weight: 600;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.fb-header .btn-fb-header:hover { background: rgba(255,255,255,0.26); }
+.fb-header .header-title-block { min-width: 0; }
+.fb-header .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 
 /* ---- Page content inset ---- */
 .page-inset { padding: 0 1.5rem; }
@@ -363,14 +346,14 @@ body {
     border-color: var(--hairline);
     color: var(--bronze-text);
 }
-.btn-remove-item {
-    background: var(--status-due-light);
+.btn-outline-danger {
+    background: #ffffff;
     border: 1.5px solid var(--status-due-bg);
     color: var(--status-due-bg);
     font-weight: 600;
     border-radius: 999px;
 }
-.btn-remove-item:hover { background: var(--status-due-bg); color: #ffffff; }
+.btn-outline-danger:hover { background: var(--status-due-bg); border-color: var(--status-due-bg); color: #ffffff; }
 
 /* ---- Customer autocomplete ---- */
 .customer-results-box {
@@ -438,7 +421,7 @@ body {
     font-size: 0.72rem;
     font-weight: 700;
     padding: 0.1rem 0.65rem;
-    border-radius: 10px;
+    border-radius: 999px;
 }
 .gold-item-card .btn-remove-item {
     position: absolute;
@@ -452,7 +435,8 @@ body {
     grid-template-columns: repeat(4, 1fr);
     gap: 0.5rem;
 }
-.weight-grid .field-col label {
+.weight-grid .field-col label,
+.purity-row label {
     display: block;
     font-size: 0.72rem;
     margin-bottom: 0.15rem;
@@ -467,7 +451,9 @@ body {
 
 /* Remove Bootstrap icon decorations on validated inputs */
 .weight-grid input.form-control.is-valid,
-.weight-grid input.form-control.is-invalid {
+.weight-grid input.form-control.is-invalid,
+.purity-row input.form-control.is-valid,
+.purity-row input.form-control.is-invalid {
     background-image: none !important;
     padding-right: 0.25rem !important;
 }
@@ -475,19 +461,7 @@ body {
 .form-control.is-invalid { border-color: var(--status-due-bg); }
 .invalid-feedback { color: var(--status-due-bg); }
 
-/* Purity row — matches gold_buy.php */
 .purity-row { margin-top: 0.6rem; }
-.purity-row label {
-    display: block;
-    font-size: 0.72rem;
-    margin-bottom: 0.15rem;
-    color: var(--muted);
-}
-.purity-row input.form-control.is-valid,
-.purity-row input.form-control.is-invalid {
-    background-image: none !important;
-    padding-right: 0.25rem !important;
-}
 
 /* Item price result chip */
 .item-price-result {
@@ -509,9 +483,9 @@ body {
     font-weight: 400;
 }
 
-/* ---- Summary panel ---- */
+/* ---- Summary panel (Exact match to gold_buy.php) ---- */
 .summary-card {
-    background: #fff;
+    background: #ffffff;
     border: none;
     border-radius: 18px;
     box-shadow: 0 10px 30px rgba(180,140,50,0.12);
@@ -539,43 +513,6 @@ body {
 .summary-row .s-value { font-weight: 700; font-size: 0.97rem; color: var(--bronze-text); }
 .summary-row.s-total .s-value { color: var(--status-total-bg); font-size: 1.05rem; }
 
-/* Payment section in summary */
-.payment-section {
-    border-top: 1px dashed var(--hairline);
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
-}
-.payment-section .section-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-}
-.payment-section label { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.2rem; display: block; }
-.payment-section input[type="number"],
-.payment-section input[type="date"],
-.payment-section input[type="text"] {
-    font-size: 0.88rem;
-}
-
-/* Payment fields — label + input in the same row */
-.payment-field-line {
-    display: grid;
-    grid-template-columns: 90px 1fr;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.5rem;
-}
-.payment-field-line label {
-    margin-bottom: 0;
-    white-space: normal;
-    line-height: 1.2;
-}
-.payment-field-line .input-group-text { padding: 0.25rem 0.5rem; }
-.payment-field-line:last-child { margin-bottom: 0; }
-
 /* Paid amount editable row */
 .paid-row {
     display: flex;
@@ -590,10 +527,10 @@ body {
     text-align: right;
     font-weight: 700;
     border: 1.5px solid var(--hairline);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 0.25rem 0.5rem;
     font-size: 0.95rem;
-    color: var(--status-total-bg);
+    color: var(--bronze-text);
 }
 .paid-row input:focus {
     outline: none;
@@ -616,17 +553,17 @@ body {
 
 /* ── Mobile ── */
 @media (max-width: 767.98px) {
-    .page-inset { padding: 0 0.8rem; }
+    .page-inset { padding: 0 0.8rem 1rem; }
 
     .fb-header {
         min-height: 60px !important;
         max-height: 70px !important;
         padding: 0.75rem 1rem !important;
-        border-radius: 0 0 16px 16px;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
     }
     .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
     .fb-header small { font-size: 0.7rem; }
-    .fb-header .btn-fb-header { padding: 0.3rem 0.65rem; font-size: 0.72rem; }
 
     .row.g-4 { --bs-gutter-y: 0.6rem; }
     .card { margin-bottom: 0.6rem !important; border-radius: 14px; }
@@ -646,10 +583,6 @@ body {
     .paid-row input { width: 110px; font-size: 0.88rem; }
     .due-row .s-value { font-size: 1.05rem; }
 
-    .payment-field-line { grid-template-columns: 78px 1fr; gap: 0.4rem; margin-bottom: 0.4rem; }
-    .payment-field-line label { font-size: 0.72rem; }
-    .payment-field-note { display: none !important; }
-
     #btnSave { padding: 0.5rem; font-size: 0.9rem; margin-top: 0.6rem !important; }
     #noteCard { display: none !important; }
 }
@@ -663,17 +596,19 @@ body {
 <div class="container-fluid px-0">
     <!-- Page header -->
     <div class="fb-header">
-        <div>
+        <div class="header-title-block">
             <h4 class="mb-1">
-                <i class="bi bi-bag-check-fill me-2"></i>
+                <i class="bi bi-bag-check-fill me-2 d-none d-md-inline"></i>
                 <span class="d-none d-md-inline">নতুন সোনা বিক্রি</span>
                 <span class="d-md-none">সোনা বিক্রি</span>
             </h4>
-            <small class="d-none d-md-inline">কাস্টমারের কাছে ২৪ ক্যারেট পাকা সোনা বিক্রি করুন</small>
+            <small class="d-none d-md-inline">কাস্টমারের কাছে পাকা ২৪ ক্যারেট সোনা বিক্রি করুন</small>
         </div>
-        <a href="gold_sale_list.php" class="btn btn-fb-header btn-sm d-inline-flex align-items-center">
-            <i class="bi bi-list-ul me-1"></i> বিক্রির হিস্ট্রি
-        </a>
+        <div class="header-actions">
+            <a href="gold_sale_list.php" class="btn btn-fb-secondary btn-sm d-inline-flex align-items-center">
+                <i class="bi bi-list-ul me-1"></i> বিক্রির তালিকা
+            </a>
+        </div>
     </div>
 </div>
 
@@ -687,13 +622,13 @@ body {
 
                 <!-- Customer -->
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white fw-semibold">
+                    <div class="card-header fw-semibold">
                         <i class="bi bi-person-fill me-1 text-success"></i> কাস্টমার খুঁজুন
                     </div>
                     <div class="card-body">
                         <div class="position-relative">
                             <input type="text" class="form-control" id="customerSearch"
-                                   placeholder="কাস্টমারের নাম বা ফোন নম্বর দিয়ে খুঁজুন">
+                                   placeholder="নাম অথবা ফোন নম্বর দিয়ে খুঁজুন">
                             <div class="customer-results-box" id="customerResults"></div>
                         </div>
                         <input type="hidden" id="customerId" name="customer_id">
@@ -703,8 +638,8 @@ body {
                                 <div class="fw-semibold" id="selectedCustomerName">—</div>
                                 <small class="text-muted" id="selectedCustomerPhone">—</small>
                             </div>
-                            <button type="button" class="btn btn-sm btn-fb-secondary" id="btnClearCustomer">
-                                <i class="bi bi-x-lg me-1"></i> মুছুন
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearCustomer">
+                                <i class="bi bi-x-lg"></i>
                             </button>
                         </div>
                     </div>
@@ -712,17 +647,17 @@ body {
 
                 <!-- Pure Gold Price -->
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white fw-semibold">
+                    <div class="card-header fw-semibold">
                         <i class="bi bi-coin me-1 text-warning"></i> পাকা সোনার দাম (২৪ ক্যারেট)
                     </div>
                     <div class="card-body">
                         <div class="price-row">
-                            <label>প্রতি ভরি পাকা সোনার দাম (টাকা)</label>
+                            <label>প্রতি ভরির বিক্রয় মূল্য (টাকা)</label>
                             <div class="input-group">
                                 <span class="input-group-text">৳</span>
                                 <input type="number" class="form-control form-control-lg fw-bold"
                                        id="pureGoldPrice" name="pure_gold_price"
-                                       min="1" step="1" placeholder="যেমন ২৩৬০০০"
+                                       min="1" step="1" placeholder="যেমন: ২৩৬০০০"
                                        style="font-size: 1.25rem;">
                             </div>
                         </div>
@@ -731,9 +666,9 @@ body {
 
                 <!-- Sale Items -->
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <span class="fw-semibold">
-                            <i class="bi bi-gem me-1 text-warning"></i> সোনার আইটেম
+                            <i class="bi bi-gem me-1 text-warning"></i> স্বর্ণের আইটেম
                         </span>
                         <button type="button" class="btn btn-sm btn-add-item" id="btnAddItem">
                             <i class="bi bi-plus-lg me-1"></i> যোগ করুন
@@ -746,25 +681,25 @@ body {
 
                 <!-- Note (hidden on mobile) -->
                 <div class="card shadow-sm mb-4" id="noteCard">
-                    <div class="card-header bg-white fw-semibold">
+                    <div class="card-header fw-semibold">
                         <i class="bi bi-pencil-square me-1"></i> নোট / মন্তব্য
                     </div>
                     <div class="card-body">
                         <textarea class="form-control" id="note" name="note" rows="2"
-                                  placeholder="নোট লিখুন (ঐচ্ছিক)…"></textarea>
+                                  placeholder="ঐচ্ছিক মন্তব্য..."></textarea>
                     </div>
                 </div>
             </div>
 
-            <!-- ── Right column: Summary ── -->
+            <!-- ── Right column: Summary (Exact match to gold_buy summary) ── -->
             <div class="col-lg-4">
                 <div class="summary-card shadow-sm sticky-top" style="top: 1rem;">
-                    <div class="sum-header">সামারি</div>
+                    <div class="sum-header">সারসংক্ষেপ</div>
                     <div class="sum-body">
 
                         <div class="summary-row">
-                            <span class="s-label">মোট সোনার ওজন</span>
-                            <span class="s-value" id="sumTotalWeight">০ ভ ০ আ ০ র ০ প</span>
+                            <span class="s-label">মোট ওজন</span>
+                            <span class="s-value" id="sumTotalWeight">০ভরি ০আনা ০রতি ০পয়েন্ট</span>
                         </div>
 
                         <div class="summary-row s-total">
@@ -772,45 +707,13 @@ body {
                             <span class="s-value" id="sumTotalPrice">৳০</span>
                         </div>
 
-                        <!-- Initial Payment Section -->
-                        <div class="payment-section">
-                            <div class="section-title">
-                                <i class="bi bi-cash-stack me-1"></i> প্রাথমিক পেমেন্ট
-                            </div>
-
-                            <div class="payment-field-line">
-                                <label for="paymentDate">পেমেন্টের তারিখ</label>
-                                <input type="date" id="paymentDate" name="payment_date"
-                                       class="form-control form-control-sm"
-                                       value="<?= date('Y-m-d') ?>">
-                            </div>
-
-                            <div class="payment-field-line">
-                                <label for="paidAmount">পরিশোধিত টাকা (টাকা)</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text">৳</span>
-                                    <input type="number" id="paidAmount" name="paid_amount"
-                                           class="form-control"
-                                           min="0" step="1" value="0" placeholder="0">
-                                </div>
-                            </div>
-
-                            <div class="payment-field-line">
-                                <label for="transactionRef">ট্রানজেকশন রেফারেন্স <small class="text-muted">(চেক / ব্যাংক / MFS)</small></label>
-                                <input type="text" id="transactionRef" name="transaction_ref"
-                                       class="form-control form-control-sm"
-                                       placeholder="রেফারেন্স নম্বর (ঐচ্ছিক)…">
-                            </div>
-
-                            <div class="payment-field-line payment-field-note">
-                                <label for="paymentNote">পেমেন্ট নোট <small class="text-muted">(ঐচ্ছিক)</small></label>
-                                <input type="text" id="paymentNote" name="payment_note"
-                                       class="form-control form-control-sm"
-                                       placeholder="যেমন bKash, নগদ, ব্যাংক ট্রান্সফার…">
-                            </div>
+                        <div class="paid-row">
+                            <span class="s-label">পরিশোধিত টাকা:</span>
+                            <input type="number" id="paidAmount" name="paid_amount"
+                                   min="0" step="1" value="0" placeholder="0">
                         </div>
 
-                        <div class="due-row mt-2">
+                        <div class="due-row">
                             <span class="s-label">বকেয়া টাকা:</span>
                             <span class="s-value" id="sumDueAmount">৳০</span>
                         </div>
@@ -818,7 +721,7 @@ body {
 
                     <div class="px-3 pb-3 mt-1">
                         <button type="submit" class="btn btn-record w-100 py-2" id="btnSave">
-                            <i class="bi bi-check2-circle me-1"></i> সোনা বিক্রি রেকর্ড করুন
+                            <i class="bi bi-check2-circle me-1"></i> বিক্রি সেভ করুন
                         </button>
                     </div>
                 </div>
@@ -834,7 +737,7 @@ body {
 <template id="itemTemplate">
     <div class="gold-item-card" data-item>
         <span class="item-badge">আইটেম <span data-item-num></span></span>
-        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-remove title="ডিলিট">
+        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-remove title="মুছে ফেলুন">
             <i class="bi bi-trash3"></i>
         </button>
 
@@ -866,18 +769,18 @@ body {
             </div>
         </div>
 
-        <!-- Purity (karat) — same as buy form -->
+        <!-- Purity (karat) -->
         <div class="purity-row">
-            <label>সোনার মান (ক্যারেট)</label>
+            <label>প্যুরিটি (ক্যারেট)</label>
             <input type="number" min="0.01" max="24" step="0.01"
                    class="form-control form-control-sm" data-field="purity" value="24"
-                   placeholder="যেমন ১৮, ২২, ২৪">
+                   placeholder="যেমন: ১৮, ২২, ২৪">
             <div class="invalid-feedback" data-error="purity"></div>
         </div>
 
         <div class="item-price-result" data-price-result>
             <span>আইটেমের দাম : <strong data-price-value>৳০</strong></span>
-            <span class="weight-sub" data-weight-sub>0g</span>
+            <span class="weight-sub" data-weight-sub>০ গ্রাম</span>
         </div>
     </div>
 </template>
@@ -916,7 +819,7 @@ function gramsToTraditional(grams) {
     return { vori, ana, roti, point };
 }
 
-function formatTrad(t) { return `${t.vori} ভ ${t.ana} আ ${t.roti} র ${t.point} প`; }
+function formatTrad(t) { return `${t.vori} ভরি ${t.ana} আনা ${t.roti} রতি ${t.point} পয়েন্ট`; }
 function formatBDT(n)  { return '৳' + Math.round(n).toLocaleString('bn-BD'); }
 
 // ── Customer search ──
@@ -942,12 +845,12 @@ customerSearch.addEventListener('input', function () {
             const res  = await fetch('customer_search.php?q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const data = await res.json();
             if (!data.success) {
-                customerResults.innerHTML = '<div class="p-2 text-danger small">খুঁজতে ব্যর্থ হয়েছে।</div>';
+                customerResults.innerHTML = '<div class="p-2 text-danger small">অনুসন্ধান ব্যর্থ হয়েছে।</div>';
                 customerResults.style.display = 'block'; return;
             }
             const list = data.data || [];
             if (list.length === 0) {
-                customerResults.innerHTML = '<div class="p-2 text-muted small">কোনো কাস্টমার পাওয়া যায়নি।</div>';
+                customerResults.innerHTML = '<div class="p-2 text-muted small">কোন কাস্টমার পাওয়া যায়নি।</div>';
                 customerResults.style.display = 'block'; return;
             }
             customerResults.innerHTML = list.map(c => `
@@ -963,7 +866,7 @@ customerSearch.addEventListener('input', function () {
                 </div>`).join('');
             customerResults.style.display = 'block';
         } catch {
-            customerResults.innerHTML = '<div class="p-2 text-danger small">খুঁজতে ব্যর্থ হয়েছে।</div>';
+            customerResults.innerHTML = '<div class="p-2 text-danger small">অনুসন্ধান ব্যর্থ হয়েছে।</div>';
             customerResults.style.display = 'block';
         }
     }, 300);
@@ -1010,7 +913,7 @@ const FIELD_RULES = {
     vori:  { min: 0, max: null, label: 'ভরি'  },
     ana:   { min: 0, max: 15,   label: 'আনা'   },
     roti:  { min: 0, max: 5,    label: 'রতি'  },
-    point: { min: 0, max: 9,    label: 'পয়েন্ট' },
+    point: { min: 0, max: 9,    label: 'পয়েন্ট' },
 };
 
 function validateField(input, field) {
@@ -1025,18 +928,18 @@ function validateField(input, field) {
     }
     if (/[.,]/.test(raw)) {
         input.classList.add('is-invalid'); input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} অবশ্যই একটি পূর্ণ সংখ্যা হতে হবে।`;
+        if (errEl) errEl.textContent = `${rules.label} পূর্ণসংখ্যা হতে হবে।`;
         return { valid: false, value: 0 };
     }
     const n = Number(raw);
     if (!Number.isFinite(n) || !Number.isInteger(n)) {
         input.classList.add('is-invalid'); input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} অবশ্যই একটি পূর্ণ সংখ্যা হতে হবে।`;
+        if (errEl) errEl.textContent = `${rules.label} পূর্ণসংখ্যা হতে হবে।`;
         return { valid: false, value: 0 };
     }
     if (n < rules.min) {
         input.classList.add('is-invalid'); input.classList.remove('is-valid');
-        if (errEl) errEl.textContent = `${rules.label} নেগেটিভ হতে পারবে না।`;
+        if (errEl) errEl.textContent = `${rules.label} ঋণাত্মক হতে পারে না।`;
         return { valid: false, value: 0 };
     }
     if (rules.max !== null && n > rules.max) {
@@ -1067,7 +970,7 @@ function getItemValues(card) {
     const purity = parseFloat(purityInput.value);
     if (isNaN(purity) || purity < 0.01 || purity > 24) {
         purityInput.classList.add('is-invalid'); purityInput.classList.remove('is-valid');
-        if (purityErrEl) purityErrEl.textContent = 'সোনার মান অবশ্যই 0.01 – 24.00 এর মধ্যে হতে হবে।';
+        if (purityErrEl) purityErrEl.textContent = 'প্যুরিটি ০.০১ – ২৪.০০ এর মধ্যে হতে হবে।';
         allValid = false;
         results.purity = 24;
     } else {
@@ -1162,10 +1065,10 @@ addItem();
 document.getElementById('saleForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    if (!customerIdInput.value) { alert('একজন কাস্টমার সিলেক্ট করুন।'); return; }
+    if (!customerIdInput.value) { alert('অনুগ্রহ করে একজন কাস্টমার নির্বাচন করুন।'); return; }
 
     const price24k = getPureGoldPrice();
-    if (price24k <= 0) { alert('পাকা সোনার দাম (২৪ ক্যারেট) লিখুন।'); return; }
+    if (price24k <= 0) { alert('অনুগ্রহ করে পাকা সোনার দাম দিন (২৪ ক্যারেট)।'); return; }
 
     const items = [];
     let hasError = false;
@@ -1176,8 +1079,8 @@ document.getElementById('saleForm').addEventListener('submit', async function (e
         items.push({ vori: v.vori, ana: v.ana, roti: v.roti, point: v.point, purity: v.purity });
     });
 
-    if (items.length === 0) { alert('কমপক্ষে একটি সোনার আইটেম যোগ করুন।'); return; }
-    if (hasError)           { alert('সেভ করার আগে হাইলাইট করা ভুলগুলো ঠিক করুন।'); return; }
+    if (items.length === 0) { alert('কমপক্ষে একটি স্বর্ণের আইটেম যোগ করুন।'); return; }
+    if (hasError)           { alert('অনুগ্রহ করে চিহ্নিত ভুলগুলো সংশোধন করুন।'); return; }
 
     for (const it of items) {
         if (traditionalToGrams(it.vori, it.ana, it.roti, it.point) <= 0) {
@@ -1190,7 +1093,7 @@ document.getElementById('saleForm').addEventListener('submit', async function (e
 
     const btn = document.getElementById('btnSave');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> সেভ হচ্ছে…';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> সেভ হচ্ছে...';
 
     try {
         const fd = new FormData();
@@ -1198,9 +1101,6 @@ document.getElementById('saleForm').addEventListener('submit', async function (e
         fd.append('customer_id',     customerIdInput.value);
         fd.append('pure_gold_price', price24k);
         fd.append('paid_amount',     paid);
-        fd.append('payment_date',    document.getElementById('paymentDate').value);
-        fd.append('transaction_ref', document.getElementById('transactionRef').value);
-        fd.append('payment_note',    document.getElementById('paymentNote').value);
         fd.append('note',            document.getElementById('note').value);
         fd.append('items',           JSON.stringify(items));
 
@@ -1214,13 +1114,13 @@ document.getElementById('saleForm').addEventListener('submit', async function (e
         if (data.success) {
             window.location.href = 'gold_sale_list.php';
         } else {
-            alert(data.message || 'সোনা বিক্রি সেভ করা যায়নি।');
+            alert(data.message || 'বিক্রি সেভ করতে ব্যর্থ হয়েছে।');
         }
     } catch {
-        alert('নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।');
+        alert('নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> সোনা বিক্রি রেকর্ড করুন';
+        btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> বিক্রি সেভ করুন';
     }
 });
 </script>

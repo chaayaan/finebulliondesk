@@ -276,7 +276,7 @@ $lossRate      = (float)$ex['loss_rate_points_per_vori'];
 $lossPointsVal = loss_points((float)$ex['loss']);
 ?>
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="bn" translate="no">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

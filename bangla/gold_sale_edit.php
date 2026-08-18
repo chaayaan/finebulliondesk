@@ -385,7 +385,7 @@ $dueAmount = round((float)$sale['due_amount'], 2);
 $fullyPaid = $dueAmount <= 0;
 ?>
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="bn" translate="no">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

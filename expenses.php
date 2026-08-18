@@ -252,6 +252,19 @@ if ($isAjax || $action !== null) {
     --status-due-light: #fbeceb;
     --status-total-bg: #b88328;     /* Rich Gold (Totals / Net Output) */
     --status-total-light: #fdf6e2;
+
+    /* ---- FineBullion Desk summary-card spec tokens ---- */
+    --sc-bg: #F8F7F3;
+    --sc-card: #FFFFFF;
+    --sc-gold: #C9972B;
+    --sc-gold-dark: #A97816;
+    --sc-gold-light: #FBF5E7;
+    --sc-text: #252525;
+    --sc-text-2: #77736A;
+    --sc-border: #ECE8DF;
+    --sc-due-bg: #FDF0F0;
+    --sc-due-text: #B33A3A;
+    --sc-success: #246047;
 }
 body {
     background: var(--ivory);
@@ -327,38 +340,89 @@ body {
 }
 .btn-outline-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; }
 
-/* ---- stat bar ---- */
-.stat-bar {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0;
-    border-radius: 18px;
+/* ---- FineBullion Desk summary-card spec (§2–§5) ---- */
+.section-block { margin-bottom: 10px; }
+
+.sc-card {
+    background: var(--sc-card);
+    border: 1px solid var(--sc-border);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(37, 37, 37, 0.03);
     overflow: hidden;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
 }
-.stat-cell {
-    padding: 0.75rem 1rem;
+
+.sc-header {
     display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--sc-border);
 }
-.stat-cell .s-label {
-    font-size: 0.72rem;
+.sc-header-left { display: flex; align-items: center; gap: 10px; }
+.sc-icon {
+    width: 32px; height: 32px; min-width: 32px;
+    border-radius: 50%;
+    background: var(--sc-gold-light);
+    border: 1px solid var(--sc-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    color: var(--sc-gold);
+}
+.section-label {
+    font-size: 13px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.92;
-    white-space: nowrap;
+    letter-spacing: 0.05em;
+    color: var(--sc-gold-dark);
+    margin: 0;
+}
+.sc-header-icon { color: var(--sc-gold); font-size: 1rem; opacity: 0.8; }
+
+/* ---- stat bar / metric cells ---- */
+.stat-bar { display: grid; grid-template-columns: repeat(2, 1fr); }
+
+.stat-cell {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    border-right: 1px solid var(--sc-border);
+    background: var(--sc-card);
+}
+.stat-cell:last-child { border-right: none; }
+
+.stat-cell .s-icon {
+    width: 32px; height: 32px; min-width: 32px;
+    border-radius: 50%;
+    background: rgba(201, 151, 43, 0.09);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.88rem;
+    color: var(--sc-gold-dark);
+}
+.stat-cell .s-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat-cell .s-label {
+    font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--sc-text-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .stat-cell .s-value {
-    font-size: 0.95rem;
-    font-weight: 800;
-    letter-spacing: 0.01em;
+    font-size: 16px; font-weight: 800; letter-spacing: 0.01em;
+    color: var(--sc-text);
     white-space: nowrap;
 }
-.stat-count { background: var(--status-paid-bg); color: #fff; }
-.stat-sum   { background: var(--status-total-bg); color: #fff; }
+
+/* Emphasis: headline output/amount metric */
+.stat-cell.stat-emphasis { background: var(--sc-gold-light); }
+.stat-cell.stat-emphasis .s-value { color: var(--sc-gold-dark); }
+.stat-cell.stat-emphasis .s-icon { background: #ffffff; }
+
+/* Due / outstanding metric */
+.stat-cell.stat-due { background: var(--sc-due-bg); }
+.stat-cell.stat-due .s-value { color: var(--sc-due-text); }
+.stat-cell.stat-due .s-icon { background: #ffffff; color: var(--sc-due-text); }
 
 /* ---- chart card ---- */
 .chart-card {
@@ -467,6 +531,14 @@ body {
     .field-row .field-label { flex-basis: 92px; max-width: 92px; font-size: 0.85rem; padding-top: 0.4rem; }
 }
 
+/* ---- FineBullion Desk summary-card spec: tablet 768–992px (§5) ---- */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-cell { border-right: 1px solid var(--sc-border); border-bottom: 1px solid var(--sc-border); }
+    .stat-bar .stat-cell:nth-child(2n) { border-right: none; }
+    .stat-bar .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+}
+
 /* ---------------------------------------------------------------
    Mobile compaction
 --------------------------------------------------------------- */
@@ -490,15 +562,57 @@ body {
     #chartYear { font-size: 0.78rem; padding: 0.25rem 0.5rem; }
     .chart-wrap { height: 220px; width: 100%; }
 
-    /* Stat bar mobile adjustment */
-    .stat-bar { margin-bottom: 0.75rem; border-radius: 14px; }
-    .stat-cell { padding: 0.5rem 0.55rem; }
-    .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
-    .stat-cell .s-value { font-size: 0.85rem; white-space: normal; }
+    /* ---- FineBullion Desk summary-card spec: mobile <768px (§5) ---- */
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-cell {
+        padding: 10px 11px; gap: 8px;
+        border-right: 1px solid var(--sc-border);
+        border-bottom: 1px solid var(--sc-border);
+    }
+    .stat-bar .stat-cell:nth-child(2n) { border-right: none; }
+    .stat-bar .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .stat-cell .s-icon { width: 26px; height: 26px; min-width: 26px; font-size: 0.72rem; }
+    .stat-cell .s-label { font-size: 9.5px; }
+    .stat-cell .s-value { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .sc-card { border-radius: 12px; }
+    .sc-header { padding: 10px 12px; }
+    .sc-icon { width: 26px; height: 26px; font-size: 0.78rem; }
+    .section-label { font-size: 11.5px; letter-spacing: 0.03em; }
+    .sc-header-icon { font-size: 0.88rem; }
+    .section-block { margin-bottom: 8px; }
 
     .card { border-radius: 14px; }
-    .filter-bar { padding: 0.6rem 0.7rem; gap: 0.5rem; }
-    .filter-bar .filter-field { flex: 1 1 45%; }
+
+    /* ---- Expenses header: title + search on one line ---- */
+    .card-header { flex-wrap: nowrap !important; padding: 0.6rem 0.7rem; gap: 0.5rem !important; }
+    .card-header .fw-semibold { font-size: 0.95rem; white-space: nowrap; flex-shrink: 0; }
+    .card-header .input-group { max-width: none !important; flex: 1 1 auto; min-width: 0; }
+    .card-header .input-group-text { padding: 0.3rem 0.5rem; }
+    .card-header #searchInput { font-size: 0.8rem; padding: 0.3rem 0.5rem; min-width: 0; }
+    .card-header #clearSearchBtn { padding: 0.3rem 0.55rem; }
+
+    /* ---- Filter bar: Category on row 1, From/To/Reset on row 2 (matches ref image) ---- */
+    .filter-bar { padding: 0.6rem 0.7rem; gap: 0.5rem 0.4rem; flex-wrap: wrap; }
+    .filter-bar .filter-field { flex-direction: row; align-items: center; gap: 0.4rem; min-width: 0; }
+    .filter-bar .filter-field label {
+        display: block; font-size: 0.72rem; font-weight: 700; color: var(--bronze-text);
+        white-space: nowrap; flex-shrink: 0;
+    }
+    .filter-bar .filter-field-reset label { display: none; }
+
+    /* row 1: Category takes the full line */
+    .filter-bar .filter-field-category { flex: 1 1 100%; order: 1; }
+    .filter-bar select#filterCategory { flex: 1 1 auto; min-width: 0; }
+
+    /* row 2: From, To, Reset share the line */
+    .filter-bar .filter-field-from { flex: 1 1 0; min-width: 0; order: 2; }
+    .filter-bar .filter-field-to { flex: 1 1 0; min-width: 0; order: 3; }
+    .filter-bar .filter-field-reset { flex: 0 0 auto; order: 4; }
+
+    .filter-bar .form-select, .filter-bar .form-control { font-size: 0.78rem; padding: 0.3rem 0.45rem; min-width: 0; }
+    .filter-bar input#filterFrom, .filter-bar input#filterTo { flex: 1 1 auto; min-width: 0; font-size: 0.72rem; padding: 0.3rem 0.35rem; }
+    .filter-bar #resetFilterBtn { flex: 0 0 auto; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.85rem; }
 
     .total-strip { font-size: 0.78rem; padding: 0.45rem 0.85rem; }
 
@@ -552,15 +666,32 @@ body {
         </div>
     </div>
 
-    <!-- Stat bar -->
-    <div class="stat-bar" id="statBar">
-        <div class="stat-cell stat-count">
-            <span class="s-label">Total Transaction</span>
-            <span class="s-value" id="summaryTotalCount">0</span>
-        </div>
-        <div class="stat-cell stat-sum">
-            <span class="s-label">Total Expenses</span>
-            <span class="s-value" id="summaryTotalSum">৳0</span>
+    <!-- Summary card -->
+    <div class="section-block">
+        <div class="sc-card">
+            <div class="sc-header">
+                <div class="sc-header-left">
+                    <div class="sc-icon"><i class="bi bi-wallet2"></i></div>
+                    <p class="section-label">Expense Summary</p>
+                </div>
+                <i class="bi bi-cash-coin sc-header-icon"></i>
+            </div>
+            <div class="stat-bar" id="statBar">
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-receipt"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Transaction</span>
+                        <span class="s-value" id="summaryTotalCount">0</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-emphasis">
+                    <div class="s-icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Expenses</span>
+                        <span class="s-value" id="summaryTotalSum">৳0</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -576,23 +707,26 @@ body {
         </div>
 
         <div class="filter-bar">
-            <div class="filter-field">
+            <div class="filter-field filter-field-category">
                 <label for="filterCategory">Category</label>
                 <select id="filterCategory" class="form-select form-select-sm" style="min-width:150px;">
                     <option value="0">All</option>
                 </select>
             </div>
-            <div class="filter-field">
+            <div class="filter-field filter-field-from">
                 <label for="filterFrom">From</label>
                 <input type="date" id="filterFrom" class="form-control form-control-sm">
             </div>
-            <div class="filter-field">
+            <div class="filter-field filter-field-to">
                 <label for="filterTo">To</label>
                 <input type="date" id="filterTo" class="form-control form-control-sm">
             </div>
-            <div class="filter-field">
-                <label>&nbsp;</label>
-                <button class="btn btn-sm btn-fb-secondary" id="resetFilterBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+            <div class="filter-field filter-field-reset">
+                <label class="d-none d-md-block">&nbsp;</label>
+                <button class="btn btn-sm btn-fb-secondary" id="resetFilterBtn" title="Reset filters">
+                    <i class="bi bi-arrow-counterclockwise d-md-none"></i>
+                    <i class="bi bi-arrow-counterclockwise me-1 d-none d-md-inline"></i><span class="d-none d-md-inline">Reset</span>
+                </button>
             </div>
         </div>
 

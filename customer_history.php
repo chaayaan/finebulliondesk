@@ -298,10 +298,23 @@ $totalDue = (float)$summary['buy_due'] + (float)$summary['sale_due'];
     --status-due-light: #fbeceb;
     --status-total-bg: #b88328;
     --status-total-light: #fdf6e2;
+
+    /* Premium summary-card palette (Gold Exchange / Buy / Sale) */
+    --sc-bg: #F8F7F3;
+    --sc-card: #FFFFFF;
+    --sc-gold: #C9972B;
+    --sc-gold-dark: #A97816;
+    --sc-gold-light: #FBF5E7;
+    --sc-text: #252525;
+    --sc-text-2: #77736A;
+    --sc-border: #ECE8DF;
+    --sc-due-bg: #FDF0F0;
+    --sc-due-text: #B33A3A;
+    --sc-success: #246047;
 }
 
 body {
-    background: var(--ivory);
+    background: var(--sc-bg);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: var(--bronze-text);
 }
@@ -340,60 +353,124 @@ body {
 .detail-label { font-size:.78rem; color: var(--muted); font-weight:500; white-space:nowrap; }
 .detail-val   { font-size:.97rem; font-weight:600; color: var(--bronze-text); word-break:break-word; }
 
-/* ---- section stat blocks ---- */
+/* ---- summary cards: Gold Exchange / Gold Buy / Gold Sale ---- */
 .section-block {
-    margin-bottom: 1rem;
+    margin-bottom: 10px;
+}
+.sc-card {
+    background: var(--sc-card);
+    border: 1px solid var(--sc-border);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(37, 37, 37, 0.03);
+    overflow: hidden;
+}
+.sc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--sc-border);
+}
+.sc-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sc-icon {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    background: var(--sc-gold-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--sc-gold);
+    border: 1px solid var(--sc-border);
 }
 .section-label {
-    font-size: 0.78rem;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--gold-deep);
-    padding: 0.35rem 0.6rem;
-    background: var(--status-total-light);
-    border-left: 4px solid var(--gold-deep);
-    border-radius: 10px 10px 0 0;
-    margin-bottom: 0;
+    letter-spacing: 0.05em;
+    color: var(--sc-gold-dark);
+    margin: 0;
 }
+.sc-header-icon {
+    color: var(--sc-gold);
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
 .stat-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    border-radius: 0 0 18px 18px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
 }
 .stat-cell {
-    padding: 0.65rem 0.8rem;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    border-right: 1px solid var(--sc-border);
+    background: var(--sc-card);
+}
+.stat-cell:last-child { border-right: none; }
+
+.stat-cell .s-icon {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    background: rgba(201, 151, 43, 0.09);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    color: var(--sc-gold-dark);
+}
+.stat-cell .s-text {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 1px;
+    min-width: 0;
 }
 .stat-cell .s-label {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 9px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.92;
-    white-space: normal;
+    letter-spacing: 0.03em;
+    color: var(--sc-text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .stat-cell .s-value {
-    font-size: 0.95rem;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.01em;
+    color: var(--sc-text);
     white-space: nowrap;
 }
-/* Exchange colours — jewel-tone palette */
-.stat-impure  { background: var(--status-paid-bg); color: #fff; }
-.stat-output  { background: var(--status-total-bg); color: #fff; }
-.stat-loss    { background: var(--status-due-bg);   color: #fff; }
-.stat-pure    { background: var(--status-paid-bg);  color: #fff; }
-/* Buy / Sale colours */
-.stat-weight  { background: var(--status-paid-bg);  color: #fff; }
-.stat-total   { background: var(--status-total-bg); color: #fff; }
-.stat-paid    { background: var(--status-paid-bg);  color: #fff; }
-.stat-due     { background: var(--status-due-bg);   color: #fff; }
+.stat-cell .s-rule { display: none; }
+
+/* highlighted / emphasis cells (net output, amount) */
+.stat-cell.stat-emphasis {
+    background: var(--sc-gold-light);
+}
+.stat-cell.stat-emphasis .s-value { color: var(--sc-gold-dark); }
+.stat-cell.stat-emphasis .s-icon { background: #ffffff; }
+
+/* due / outstanding cells */
+.stat-cell.stat-due {
+    background: var(--sc-due-bg);
+}
+.stat-cell.stat-due .s-value { color: var(--sc-due-text); }
+.stat-cell.stat-due .s-icon { background: #ffffff; color: var(--sc-due-text); }
+
+/* neutral cells keep dark text, gold rule/icon accents by default above */
 
 /* ---- tabs ---- */
 .history-tabs { border-bottom: 2px solid var(--hairline); margin-bottom: 0; }
@@ -471,6 +548,16 @@ table.table tbody tr:hover { background: #fdf7ec; }
 
 .badge.bg-light { background: var(--ivory) !important; color: var(--muted); border-color: var(--hairline) !important; }
 
+/* ---- tablet: 2 metrics per row ---- */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-cell {
+        border-right: 1px solid var(--sc-border);
+        border-bottom: 1px solid var(--sc-border);
+    }
+    .stat-bar .stat-cell:nth-child(2n) { border-right: none; }
+    .stat-bar .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+}
 /* ---- mobile ---- */
 @media (max-width: 767.98px) {
     .page-content .container-fluid { padding: 0 0 1rem; }
@@ -488,11 +575,23 @@ table.table tbody tr:hover { background: #fdf7ec; }
     .detail-card { padding: 0.75rem 0.9rem; }
 
     .stat-bar { grid-template-columns: repeat(2, 1fr); }
-    .section-block { margin-bottom: 0.75rem; }
-    .section-label { font-size: 0.7rem; padding: 0.28rem 0.5rem; }
-    .stat-cell { padding: 0.5rem 0.55rem; }
-    .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
-    .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
+    .section-block { margin-bottom: 8px; }
+    .sc-card { border-radius: 12px; }
+    .sc-header { padding: 8px 10px; }
+    .sc-icon { width: 22px; height: 22px; font-size: 0.65rem; }
+    .section-label { font-size: 10px; letter-spacing: 0.03em; }
+    .sc-header-icon { font-size: 0.75rem; }
+    .stat-cell {
+        padding: 8px 9px;
+        gap: 6px;
+        border-right: 1px solid var(--sc-border);
+        border-bottom: 1px solid var(--sc-border);
+    }
+    .stat-bar .stat-cell:nth-child(2n) { border-right: none; }
+    .stat-bar .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .stat-cell .s-icon { width: 22px; height: 22px; min-width: 22px; font-size: 0.62rem; }
+    .stat-cell .s-label { font-size: 8px; }
+    .stat-cell .s-value { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .history-tabs .nav-link { font-size: 0.78rem; padding: 0.6rem 0.6rem; }
     .history-tabs .nav-link .badge { display: none; }
@@ -557,69 +656,129 @@ table.table tbody tr:hover { background: #fdf7ec; }
 
     <!-- ── GOLD EXCHANGE stat block ── -->
     <div class="section-block" id="statBlockExchange">
-        <div class="section-label"><i class="bi bi-arrow-left-right me-1"></i> GOLD EXCHANGE</div>
-        <div class="stat-bar" id="statBarExchange">
-            <div class="stat-cell stat-impure">
-                <span class="s-label">Total Impure Gold</span>
-                <span class="s-value" id="statExImpure">—</span>
+        <div class="sc-card">
+            <div class="sc-header">
+                <div class="sc-header-left">
+                    <div class="sc-icon"><i class="bi bi-arrow-left-right"></i></div>
+                    <p class="section-label">Gold Exchange</p>
+                </div>
+                <i class="bi bi-slash-lg sc-header-icon" style="transform:rotate(90deg) scaleX(0.6);"></i>
             </div>
-            <div class="stat-cell stat-pure">
-                <span class="s-label">Total Pure Gold</span>
-                <span class="s-value" id="statExPure">—</span>
-            </div>
-            <div class="stat-cell stat-loss">
-                <span class="s-label">Total Loss</span>
-                <span class="s-value" id="statExLoss">—</span>
-            </div>
-            <div class="stat-cell stat-output">
-                <span class="s-label">Net Pure Gold Output</span>
-                <span class="s-value" id="statExNet">—</span>
+            <div class="stat-bar" id="statBarExchange">
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-bricks"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Impure Gold</span>
+                        <span class="s-value" id="statExImpure">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-gem"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Pure Gold</span>
+                        <span class="s-value" id="statExPure">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-graph-down-arrow"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Loss</span>
+                        <span class="s-value" id="statExLoss">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-emphasis">
+                    <div class="s-icon"><i class="bi bi-bullseye"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Net Pure Gold Output</span>
+                        <span class="s-value" id="statExNet">—</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- ── GOLD BUY stat block ── -->
     <div class="section-block" id="statBlockBuy">
-        <div class="section-label"><i class="bi bi-cart me-1"></i> GOLD BUY</div>
-        <div class="stat-bar" id="statBarBuy">
-            <div class="stat-cell stat-weight">
-                <span class="s-label">Weight</span>
-                <span class="s-value" id="statBuyWeight">—</span>
+        <div class="sc-card">
+            <div class="sc-header">
+                <div class="sc-header-left">
+                    <div class="sc-icon"><i class="bi bi-cart"></i></div>
+                    <p class="section-label">Gold Buy</p>
+                </div>
+                <i class="bi bi-bag-check sc-header-icon"></i>
             </div>
-            <div class="stat-cell stat-total">
-                <span class="s-label">Total Amount:</span>
-                <span class="s-value" id="statBuyTotal">—</span>
-            </div>
-            <div class="stat-cell stat-paid">
-                <span class="s-label">Total Paid:</span>
-                <span class="s-value" id="statBuyPaid">—</span>
-            </div>
-            <div class="stat-cell stat-due">
-                <span class="s-label">Total Due:</span>
-                <span class="s-value" id="statBuyDue">—</span>
+            <div class="stat-bar" id="statBarBuy">
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-speedometer"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Weight</span>
+                        <span class="s-value" id="statBuyWeight">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-emphasis">
+                    <div class="s-icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Amount</span>
+                        <span class="s-value" id="statBuyTotal">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-wallet2"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Paid</span>
+                        <span class="s-value" id="statBuyPaid">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-due">
+                    <div class="s-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Due</span>
+                        <span class="s-value" id="statBuyDue">—</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- ── GOLD SALE stat block ── -->
     <div class="section-block" id="statBlockSale">
-        <div class="section-label"><i class="bi bi-cash-coin me-1"></i> GOLD SALE</div>
-        <div class="stat-bar" id="statBarSale">
-            <div class="stat-cell stat-weight">
-                <span class="s-label">Weight</span>
-                <span class="s-value" id="statSaleWeight">—</span>
+        <div class="sc-card">
+            <div class="sc-header">
+                <div class="sc-header-left">
+                    <div class="sc-icon"><i class="bi bi-tag"></i></div>
+                    <p class="section-label">Gold Sale</p>
+                </div>
+                <i class="bi bi-graph-up-arrow sc-header-icon"></i>
             </div>
-            <div class="stat-cell stat-total">
-                <span class="s-label">Total Amount:</span>
-                <span class="s-value" id="statSaleTotal">—</span>
-            </div>
-            <div class="stat-cell stat-paid">
-                <span class="s-label">Total Paid:</span>
-                <span class="s-value" id="statSalePaid">—</span>
-            </div>
-            <div class="stat-cell stat-due">
-                <span class="s-label">Total Due:</span>
-                <span class="s-value" id="statSaleDue">—</span>
+            <div class="stat-bar" id="statBarSale">
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-speedometer"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Weight</span>
+                        <span class="s-value" id="statSaleWeight">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-emphasis">
+                    <div class="s-icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Amount</span>
+                        <span class="s-value" id="statSaleTotal">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-wallet2"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Paid</span>
+                        <span class="s-value" id="statSalePaid">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-due">
+                    <div class="s-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Due</span>
+                        <span class="s-value" id="statSaleDue">—</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

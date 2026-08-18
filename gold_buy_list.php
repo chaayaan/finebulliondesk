@@ -220,6 +220,19 @@ if ($isAjax || $action !== null) {
     --status-due-light: #fbeceb;
     --status-total-bg: #b88328;
     --status-total-light: #fdf6e2;
+
+    /* Premium summary-card palette (matches customer_history.php) */
+    --sc-bg: #F8F7F3;
+    --sc-card: #FFFFFF;
+    --sc-gold: #C9972B;
+    --sc-gold-dark: #A97816;
+    --sc-gold-light: #FBF5E7;
+    --sc-text: #252525;
+    --sc-text-2: #77736A;
+    --sc-border: #ECE8DF;
+    --sc-due-bg: #FDF0F0;
+    --sc-due-text: #B33A3A;
+    --sc-success: #246047;
 }
 body {
     background: var(--ivory);
@@ -295,40 +308,89 @@ body {
 }
 .btn-outline-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; }
 
-/* ---- stat bar (Weight / Total / Paid / Due) ---- */
+/* ---- summary card (Weight / Total / Paid / Due) ---- */
+.section-block { margin-bottom: 1.25rem; }
+.sc-card {
+    background: var(--sc-card);
+    border: 1px solid var(--sc-border);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(37, 37, 37, 0.03);
+    overflow: hidden;
+}
+.sc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--sc-border);
+}
+.sc-header-left { display: flex; align-items: center; gap: 8px; }
+.sc-icon {
+    width: 26px; height: 26px; min-width: 26px;
+    border-radius: 50%;
+    background: var(--sc-gold-light);
+    border: 1px solid var(--sc-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    color: var(--sc-gold);
+}
+.section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sc-gold-dark);
+    margin: 0;
+}
+.sc-header-icon { color: var(--sc-gold); font-size: 0.85rem; opacity: 0.8; }
+
 .stat-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    border-radius: 18px;
-    overflow: hidden;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
 }
 .stat-cell {
-    padding: 0.75rem 0.9rem;
+    padding: 10px 12px;
     display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    border-right: 1px solid var(--sc-border);
+    background: var(--sc-card);
 }
+.stat-cell:last-child { border-right: none; }
+.stat-cell .s-icon {
+    width: 26px; height: 26px; min-width: 26px;
+    border-radius: 50%;
+    background: rgba(201, 151, 43, 0.09);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem;
+    color: var(--sc-gold-dark);
+}
+.stat-cell .s-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .stat-cell .s-label {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 9px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.92;
+    letter-spacing: 0.03em;
+    color: var(--sc-text-2);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .stat-cell .s-value {
-    font-size: 0.95rem;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: 0.01em;
+    color: var(--sc-text);
     white-space: nowrap;
 }
-.stat-weight  { background: var(--status-paid-bg); color: #fff; }
-.stat-total   { background: var(--status-total-bg); color: #fff; }
-.stat-paid    { background: var(--status-paid-bg); color: #fff; opacity: 0.85; }
-.stat-due     { background: var(--status-due-bg); color: #fff; }
+.stat-cell.stat-emphasis { background: var(--sc-gold-light); }
+.stat-cell.stat-emphasis .s-value { color: var(--sc-gold-dark); }
+.stat-cell.stat-emphasis .s-icon { background: #ffffff; }
+.stat-cell.stat-due { background: var(--sc-due-bg); }
+.stat-cell.stat-due .s-value { color: var(--sc-due-text); }
+.stat-cell.stat-due .s-icon { background: #ffffff; color: var(--sc-due-text); }
 
 /* ---- amount badges ---- */
 .badge-amount { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem; }
@@ -416,6 +478,17 @@ body {
 .badge.bg-light { background: var(--ivory) !important; color: var(--muted) !important; border-color: var(--hairline) !important; }
 
 /* ---- mobile ---- */
+/* ---- tablet: 2 metrics per row ---- */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-cell {
+        border-right: 1px solid var(--sc-border);
+        border-bottom: 1px solid var(--sc-border);
+    }
+    .stat-bar .stat-cell:nth-child(2n) { border-right: none; }
+    .stat-bar .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+}
+
 @media (max-width: 767.98px) {
     .page-inset { padding: 0 0.8rem 1rem; }
 
@@ -429,10 +502,24 @@ body {
     .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
     .fb-header small { display: none; }
 
-    .stat-bar { grid-template-columns: repeat(2, 1fr); margin-bottom: 0.75rem; border-radius: 14px; }
-    .stat-cell { padding: 0.5rem 0.55rem; }
-    .stat-cell .s-label { font-size: 0.62rem; white-space: normal; }
-    .stat-cell .s-value { font-size: 0.78rem; white-space: normal; }
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    .section-block { margin-bottom: 0.75rem; }
+    .sc-card { border-radius: 12px; }
+    .sc-header { padding: 8px 10px; }
+    .sc-icon { width: 22px; height: 22px; font-size: 0.65rem; }
+    .section-label { font-size: 10px; letter-spacing: 0.03em; }
+    .sc-header-icon { font-size: 0.75rem; }
+    .stat-cell {
+        padding: 8px 9px;
+        gap: 6px;
+        border-right: 1px solid var(--sc-border);
+        border-bottom: 1px solid var(--sc-border);
+    }
+    .stat-bar .stat-cell:nth-child(2n) { border-right: none; }
+    .stat-bar .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .stat-cell .s-icon { width: 22px; height: 22px; min-width: 22px; font-size: 0.62rem; }
+    .stat-cell .s-label { font-size: 8px; }
+    .stat-cell .s-value { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .card { border-radius: 14px; }
     .card-header { padding: 0.5rem 0.6rem; }
@@ -478,23 +565,46 @@ body {
 
 <div class="page-inset py-4">
 
-    <!-- Stat bar -->
-    <div class="stat-bar" id="statBar">
-        <div class="stat-cell stat-weight">
-            <span class="s-label">Weight</span>
-            <span class="s-value" id="statWeight">—</span>
-        </div>
-        <div class="stat-cell stat-total">
-            <span class="s-label">Total Amount:</span>
-            <span class="s-value" id="statTotal">—</span>
-        </div>
-        <div class="stat-cell stat-paid">
-            <span class="s-label">Total Paid:</span>
-            <span class="s-value" id="statPaid">—</span>
-        </div>
-        <div class="stat-cell stat-due">
-            <span class="s-label">Total Due:</span>
-            <span class="s-value" id="statDue">—</span>
+    <!-- Summary card -->
+    <div class="section-block">
+        <div class="sc-card">
+            <div class="sc-header">
+                <div class="sc-header-left">
+                    <div class="sc-icon"><i class="bi bi-cart"></i></div>
+                    <p class="section-label">Gold Buy</p>
+                </div>
+                <i class="bi bi-bag-check sc-header-icon"></i>
+            </div>
+            <div class="stat-bar" id="statBar">
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-speedometer"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Weight</span>
+                        <span class="s-value" id="statWeight">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-emphasis">
+                    <div class="s-icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Amount</span>
+                        <span class="s-value" id="statTotal">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell">
+                    <div class="s-icon"><i class="bi bi-wallet2"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Paid</span>
+                        <span class="s-value" id="statPaid">—</span>
+                    </div>
+                </div>
+                <div class="stat-cell stat-due">
+                    <div class="s-icon"><i class="bi bi-file-earmark-text"></i></div>
+                    <div class="s-text">
+                        <span class="s-label">Total Due</span>
+                        <span class="s-value" id="statDue">—</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

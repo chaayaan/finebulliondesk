@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CSRF token check
     $token = $_POST['csrf_token'] ?? '';
     if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-        $_SESSION['flash_error'] = 'অকার্যকর অনুরোধ। অনুগ্রহ করে আবার চেষ্টা করুন।';
+        $_SESSION['flash_error'] = 'অনুরোধটি সঠিক নয়। আবার চেষ্টা করুন।';
         header("Location: gold_exchange_edit.php?id={$exchangeId}");
         exit;
     }
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Each submitted item must map to a real existing item for THIS exchange
             if ($itemId <= 0) {
-                $errors[] = "আইটেম $n: আইডি পাওয়া যায়নি।";
+                $errors[] = "আইটেম $n: আইডি পাওয়া যায়নি।";
                 continue;
             }
 
@@ -120,11 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $point = (int)($item['point'] ?? 0);
             $karat = (float)($item['karat'] ?? 0);
 
-            if ($vori < 0)               $errors[] = "আইটেম $n: ভরির পরিমাণ ঋণাত্মক হতে পারবে না।";
-            if ($ana  < 0 || $ana  > 15) $errors[] = "আইটেম $n: আনা ০০০–১৫ হতে হবে।";
+            if ($vori < 0)               $errors[] = "আইটেম $n: ভরি ঋণাত্মক হতে পারবে না।";
+            if ($ana  < 0 || $ana  > 15) $errors[] = "আইটেম $n: আনা ০–১৫ হতে হবে।";
             if ($roti < 0 || $roti > 5)  $errors[] = "আইটেম $n: রতি ০–৫ হতে হবে।";
             if ($point < 0 || $point > 9) $errors[] = "আইটেম $n: পয়েন্ট ০–৯ হতে হবে।";
-            if ($karat < 0.01 || $karat > 24) $errors[] = "আইটেম $n: ক্যারেট ০.০১–২৪ হতে হবে।";
+            if ($karat < 0.01 || $karat > 24) $errors[] = "আইটেম $n: মান (ক্যারেট) ০.০১–২৪ হতে হবে।";
 
             $grams = trad_to_grams($vori, $ana, $roti, $point);
             if ($grams <= 0) $errors[] = "আইটেম $n: ওজন শূন্যের বেশি হতে হবে।";
@@ -304,10 +304,7 @@ $lossPointsVal = loss_points((float)$ex['loss']);
 }
 body  { background: var(--ivory); font-family: 'Inter', system-ui, -apple-system, sans-serif; color: var(--bronze-text); }
 
-/* header — scoped strictly to .exchange-header and its children so this
-   block is completely self-contained and immune to overrides from
-   navbar.php or any external stylesheet. Full width, flush to the
-   viewport top with no top/side margin. */
+/* header */
 .exchange-header,
 .exchange-header.mb-4 {
     background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
@@ -357,14 +354,14 @@ body  { background: var(--ivory); font-family: 'Inter', system-ui, -apple-system
 
 /* item table badges */
 .badge-old   { background: var(--status-paid-light); color: var(--status-paid-bg); font-weight: 600; font-size: 0.82rem; }
-.badge-karat { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem; }
+.badge-karat { background: var(--ivory); color: var(--muted); font-weight: 600; font-size: 0.82rem; border: 1px solid var(--hairline); }
 .badge-pure  { background: var(--status-due-light);  color: var(--status-due-bg);  font-weight: 600; font-size: 0.82rem; }
 
 /* ledger */
-.ledger { border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; }
+.ledger { border: 1.5px solid var(--hairline); border-radius: 12px; overflow: hidden; }
 .ledger td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--hairline); vertical-align: middle; --bs-table-bg: transparent; }
 .ledger tr:last-child td { border-bottom: none; }
-.l-label { font-size: 0.82rem; color: var(--muted); width: 1%; white-space: nowrap; }
+.l-label { font-size: 0.83rem; color: var(--muted); width: 1%; white-space: nowrap; }
 .l-rate  { color: var(--muted); font-size: 0.78rem; font-weight: 400; }
 .l-val   { font-weight: 700; font-size: 0.95rem; text-align: right; letter-spacing: 0.01em; }
 .l-total td  { background-color: var(--status-due-light) !important; }
@@ -382,11 +379,11 @@ body  { background: var(--ivory); font-family: 'Inter', system-ui, -apple-system
 .btn-gold, .btn-fb-primary {
     background: var(--gold-deep);
     border: 1.5px solid var(--gold-deep);
-    color: #ffffff;
+    color: #ffffff !important;
     font-weight: 700;
     border-radius: 999px;
 }
-.btn-gold:hover, .btn-fb-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #fff; opacity: 0.92; }
+.btn-gold:hover, .btn-fb-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff !important; opacity: 0.92; }
 
 /* Secondary / cancel buttons (pill, white, hairline border) */
 .btn-secondary, .btn-fb-secondary {
@@ -406,7 +403,7 @@ body  { background: var(--ivory); font-family: 'Inter', system-ui, -apple-system
     box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
 }
 .card-header {
-    background: #ffffff !important;
+    background: var(--ivory) !important;
     border-bottom: 1px solid var(--hairline);
     border-radius: 18px 18px 0 0 !important;
     color: var(--bronze-text);
@@ -425,23 +422,25 @@ table.table td, table.table th { border-color: var(--hairline); }
 table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 
 /* inputs */
-.form-control, .input-group-text {
+.form-control, .form-select, .input-group-text {
     border: 1.5px solid var(--hairline);
     border-radius: 10px;
     color: var(--bronze-text);
     background: #fff;
 }
-.form-control:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.2rem rgba(201,151,58,0.15); }
+.form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18); }
 
-/* modal */
+/* modals */
 .modal-content { border-radius: 18px; overflow: hidden; border: none; }
-.modal-header { border-bottom: none; }
+.modal-header { background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important; color: #fff !important; }
+.modal-header .modal-title { color: #ffffff; font-weight: 800; }
+.modal-header .btn-close, .modal-header .btn-close-white { filter: brightness(0) invert(1); }
 
 /* alerts */
-.alert-success { background: var(--status-paid-light); border: 1px solid var(--status-paid-bg); color: var(--status-paid-bg); border-radius: 12px; }
-.alert-danger  { background: var(--status-due-light);  border: 1px solid var(--status-due-bg);  color: var(--status-due-bg);  border-radius: 12px; }
+.alert-success { background: var(--status-paid-light); border: none; color: var(--status-paid-bg); border-radius: 12px; }
+.alert-danger  { background: var(--status-due-light);  border: none; color: var(--status-due-bg);  border-radius: 12px; }
 
-/* edit modal item card — matches gold_exchange.php "gold-item-card" pattern */
+/* edit modal item cards */
 .edit-item-card {
     border: 1.5px solid var(--hairline); border-radius: 14px;
     padding: 1rem 1.1rem; margin-bottom: 1rem;
@@ -454,13 +453,12 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
     padding: 0.1rem 0.6rem; border-radius: 999px;
 }
 .item-pure-preview {
-    background: var(--status-due-light); border: 1px dashed var(--status-due-bg);
+    background: var(--status-paid-light); border: 1px dashed var(--status-paid-bg);
     border-radius: 10px; padding: 0.5rem 0.8rem;
-    font-size: 0.88rem; color: var(--status-due-bg); font-weight: 600;
+    font-size: 0.88rem; color: var(--status-paid-bg); font-weight: 600;
 }
 
-/* Vori / Ana / Roti / Point always in ONE row (4 equal columns),
-   Karat as its own full-width row underneath — mirrors gold_exchange.php */
+/* Vori / Ana / Roti / Point grid */
 .item-fields-row {
     display:grid;
     grid-template-columns:repeat(4, 1fr);
@@ -486,12 +484,6 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
     margin-bottom:.15rem; color:var(--muted);
 }
 
-/* ---------------------------------------------------------------
-   Mobile — compact single-screen layout (no scroll), structured
-   like the reference: tight header, stacked customer/date block,
-   compact items table, compact summary table — all visible without
-   scrolling. Note card is hidden on mobile to fit everything.
---------------------------------------------------------------- */
 @media (max-width: 767.98px) {
     html, body { height:100%; overflow:hidden; }
     .page-content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
@@ -501,10 +493,8 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
         gap:.45rem; flex:1; min-height:0; overflow:hidden;
     }
 
-    /* alerts collapse tightly if present */
     .page-inset > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
 
-    /* header bar */
     .exchange-header {
         min-height: 60px !important;
         max-height: 70px !important;
@@ -513,10 +503,9 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
     }
     .exchange-header h5 { font-size: 0.95rem; }
     .exchange-header small { display: none; }
-    .exchange-header .text-end { display: none; } /* created-by folded into detail card on mobile */
+    .exchange-header .text-end { display: none; }
     .exchange-header .btn-outline-light { padding: 0.15rem 0.42rem; font-size: 0.8rem; }
 
-    /* customer + detail card */
     .detail-card-wrap { margin-bottom:0!important; }
     .detail-card-wrap .card-header { padding:.4rem .6rem; }
     .detail-card-wrap .card-header.fw-semibold,
@@ -538,7 +527,6 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
         white-space:nowrap; min-width:0;
     }
 
-    /* items table card */
     .card { border-radius: 14px; margin-bottom: 0 !important; }
     .card-header { padding:.4rem .6rem; }
     .card-header .fw-semibold { font-size:.85rem; }
@@ -550,21 +538,17 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
     table.table th, table.table td { padding:.32rem .38rem; }
     .badge-old, .badge-karat, .badge-pure { font-size:.74rem; padding:.32em .52em; }
 
-    /* summary ledger */
     .ledger td { padding:.38rem .6rem; font-size:.8rem; }
     .l-label { font-size:.76rem; }
     .l-rate { font-size:.66rem; }
     .l-val { font-size:.85rem; }
     .l-final .l-val { font-size:.92rem; }
 
-    /* hide note card on mobile to keep everything on one screen */
     .card.note-card { display:none!important; }
 
-    /* tighten vertical rhythm so header+customer+items+summary fit one screen */
     .exchange-header, .detail-card-wrap, .card { flex:0 0 auto; }
     .card:last-of-type { margin-bottom:0!important; }
 
-    /* edit modal item cards — same compaction pattern as gold_exchange.php */
     .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:12px; }
     .edit-item-badge { top:-9px; left:12px; font-size:.65rem; padding:.08rem .5rem; }
     .edit-item-card .form-control-sm { font-size:.82rem; padding:.28rem .4rem; }
@@ -581,7 +565,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 <div class="container-fluid px-0">
 
 <!-- ================================================================
-     PAGE HEADER — full width, flush to viewport edges, no top/side margin
+     PAGE HEADER
 ================================================================ -->
 <div class="exchange-header">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="width:100%;">
@@ -626,16 +610,15 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 <?php endif; ?>
 
 <!-- ================================================================
-     CUSTOMER + DETAIL — two-column layout
+     CUSTOMER + DETAIL
 ================================================================ -->
 <div class="card shadow-sm mb-4 detail-card-wrap">
-    <div class="card-header bg-white fw-semibold d-md-none">
+    <div class="card-header fw-semibold d-md-none">
         <i class="bi bi-person-fill me-1" style="color:var(--gold-deep);"></i>
         কাস্টমার
     </div>
     <div class="detail-card">
 
-    <!-- Mobile-only: Date & Time, Name, Phone, Address in that exact order -->
     <div class="row g-2 d-md-none">
         <div class="col-12">
             <span class="detail-label">তারিখ ও সময়:</span>
@@ -657,10 +640,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
         </div>
     </div>
 
-    <!-- Desktop: two-column layout (customer info left, date/created-by right) -->
     <div class="row g-0 d-none d-md-flex">
-
-        <!-- Left: customer info -->
         <div class="col-md-7 pe-md-4">
             <div class="row g-2">
                 <div class="col-12">
@@ -680,12 +660,10 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
             </div>
         </div>
 
-        <!-- Vertical divider (md+) -->
         <div class="col-md-1 d-none d-md-flex justify-content-center">
             <div style="width:1px;background:var(--hairline);min-height:100%;"></div>
         </div>
 
-        <!-- Right: date & created-by -->
         <div class="col-md-4 ps-md-3">
             <div class="row g-2">
                 <div class="col-12">
@@ -706,25 +684,24 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                 <?php endif; ?>
             </div>
         </div>
-
     </div>
-    </div><!-- /detail-card -->
-</div><!-- /detail-card-wrap -->
+    </div>
+</div>
 
 <!-- ================================================================
      GOLD ITEMS TABLE
 ================================================================ -->
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <span class="fw-semibold">
             <i class="bi bi-gem me-1" style="color:var(--gold-deep);"></i>
-            পুরাতন সোনা / খাদযুক্ত সোনা
+            পুরাতন সোনার আইটেমসমূহ
             <span class="badge bg-secondary ms-1"><?= count($items) ?></span>
         </span>
         <?php if ($isAdmin): ?>
         <button type="button" class="btn btn-sm btn-gold"
                 data-bs-toggle="modal" data-bs-target="#editModal">
-            <i class="bi bi-pencil-square me-1"></i> এডিট করুন
+            <i class="bi bi-pencil-square me-1"></i> আইটেম এডিট করুন
         </button>
         <?php endif; ?>
     </div>
@@ -734,8 +711,8 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                 <thead class="table-light">
                     <tr>
                         <th style="width:38px;">#</th>
-                        <th>পুরাতন সোনার ওজন</th>
-                        <th style="width:90px;">ক্যারেট</th>
+                        <th>পুরাতন সোনার ওজন (ভ-আ-র-প)</th>
+                        <th style="width:90px;">সোনার মান</th>
                         <th>পাকা সোনার ওজন</th>
                     </tr>
                 </thead>
@@ -764,7 +741,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
      EXCHANGE SUMMARY
 ================================================================ -->
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white fw-semibold">
+    <div class="card-header fw-semibold">
         <i class="bi bi-calculator me-1" style="color:var(--gold-deep);"></i>
         হিসাব বিবরণী
     </div>
@@ -797,7 +774,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
      NOTE
 ================================================================ -->
 <div class="card shadow-sm mb-4 note-card">
-    <div class="card-header bg-white fw-semibold">
+    <div class="card-header fw-semibold">
         <i class="bi bi-pencil-square me-1" style="color:var(--gold-deep);"></i>
         নোট / মন্তব্য
     </div>
@@ -806,7 +783,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
             <input type="hidden" name="action"     value="save_note">
             <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <textarea class="form-control mb-2" name="note" rows="3"
-                      placeholder="ঐচ্ছিক নোট লিখুন…"><?= h($ex['note'] ?? '') ?></textarea>
+                      placeholder="ঐচ্ছিক নোট…"><?= h($ex['note'] ?? '') ?></textarea>
             <button type="submit" class="btn btn-gold btn-sm">
                 <i class="bi bi-save-fill me-1"></i> নোট সংরক্ষণ করুন
             </button>
@@ -819,46 +796,40 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 <?php if ($isAdmin): ?>
 <!-- ================================================================
      EDIT ITEMS MODAL (admin only)
-     Only existing items — no add/remove.
+     Standardized UI/UX pattern matching Gold Buy modal exactly.
 ================================================================ -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header" style="background:linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);color:#fff;">
-                <h5 class="modal-title" style="color:#fff;">
+                <h5 class="modal-title">
                     <i class="bi bi-pencil-square me-2"></i>
-                    আইটেম এডিট — এক্সচেঞ্জ #<?= $exchangeId ?>
+                    আইটেম এডিট করুন — #<?= $exchangeId ?>
                 </h5>
-                <button type="button" class="btn-close"
-                        style="filter:brightness(0) invert(1);"
-                        data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
 
-            <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>"
-                  id="editItemsForm">
+            <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>" id="editItemsForm">
                 <input type="hidden" name="action"     value="save_items">
                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
 
                 <div class="modal-body">
 
                     <!-- Loss rate -->
-                    <div class="d-flex align-items-end gap-3 mb-4">
-                        <div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-12">
                             <label class="form-label small fw-semibold mb-1">
                                 লসের হার
                                 <small class="text-muted fw-normal">(ভরি প্রতি পয়েন্ট)</small>
                             </label>
                             <input type="number" name="loss_rate" id="lossRateInput"
                                    min="0" step="0.001" value="<?= h($lossRate) ?>"
-                                   class="form-control form-control-sm" style="width:120px;"
+                                   class="form-control form-control-sm"
                                    oninput="recalcSummary()">
                         </div>
-                        <small class="text-muted pb-1">
-                            লস = ceil(মোট পাকা ভরি × হার) পয়েন্ট
-                        </small>
                     </div>
 
-                    <!-- Existing items only -->
+                    <!-- Existing items -->
                     <?php if (empty($items)): ?>
                         <div class="text-muted text-center py-3">এডিট করার মতো কোনো আইটেম নেই।</div>
                     <?php else: ?>
@@ -868,15 +839,13 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                         ?>
                         <div class="edit-item-card">
                             <span class="edit-item-badge">আইটেম <?= $idx + 1 ?></span>
-                            <!-- item ID is fixed — prevents adding new rows -->
-                            <input type="hidden"
-                                   name="items[<?= $idx ?>][id]"
+                            <input type="hidden" name="items[<?= $idx ?>][id]"
                                    value="<?= (int)$it['id'] ?>">
+
                             <div class="item-fields-row mt-2">
                                 <div class="field-col">
                                     <label>ভরি</label>
-                                    <input type="number"
-                                           name="items[<?= $idx ?>][vori]"
+                                    <input type="number" name="items[<?= $idx ?>][vori]"
                                            class="form-control form-control-sm"
                                            min="0" step="1" inputmode="numeric"
                                            value="<?= $trad['v'] ?>"
@@ -884,8 +853,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 </div>
                                 <div class="field-col">
                                     <label>আনা</label>
-                                    <input type="number"
-                                           name="items[<?= $idx ?>][ana]"
+                                    <input type="number" name="items[<?= $idx ?>][ana]"
                                            class="form-control form-control-sm"
                                            min="0" max="15" step="1" inputmode="numeric"
                                            value="<?= $trad['a'] ?>"
@@ -893,8 +861,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 </div>
                                 <div class="field-col">
                                     <label>রতি</label>
-                                    <input type="number"
-                                           name="items[<?= $idx ?>][roti]"
+                                    <input type="number" name="items[<?= $idx ?>][roti]"
                                            class="form-control form-control-sm"
                                            min="0" max="5" step="1" inputmode="numeric"
                                            value="<?= $trad['r'] ?>"
@@ -902,25 +869,25 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 </div>
                                 <div class="field-col">
                                     <label>পয়েন্ট</label>
-                                    <input type="number"
-                                           name="items[<?= $idx ?>][point]"
+                                    <input type="number" name="items[<?= $idx ?>][point]"
                                            class="form-control form-control-sm"
                                            min="0" max="9" step="1" inputmode="numeric"
                                            value="<?= $trad['p'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
                             </div>
+
                             <div class="karat-row">
-                                <label>ক্যারেট</label>
-                                <input type="number"
-                                       name="items[<?= $idx ?>][karat]"
+                                <label>সোনার মান (ক্যারেট)</label>
+                                <input type="number" name="items[<?= $idx ?>][karat]"
                                        class="form-control form-control-sm"
                                        min="0.01" max="24" step="0.01"
-                                       placeholder="যেমন: ১৯.০০"
+                                       placeholder="যেমন: ২২"
                                        value="<?= h($karat) ?>"
                                        oninput="recalcItem(<?= $idx ?>)">
                             </div>
-                            <div class="item-pure-preview" id="itemPreview_<?= $idx ?>">
+
+                            <div class="item-pure-preview mt-2" id="itemPreview_<?= $idx ?>">
                                 পাকা সোনার ওজন: <?= h(fmt_trad((float)$it['pure_gold_weight'])) ?>
                             </div>
                         </div>
@@ -930,7 +897,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                     <!-- Live summary preview -->
                     <div class="mt-3 pt-3 border-top">
                         <div class="text-muted small fw-semibold text-uppercase mb-2"
-                             style="letter-spacing:.04em;">খসড়া হিসাব</div>
+                             style="letter-spacing:.04em;">সারসংক্ষেপ প্রিভিউ</div>
                         <table class="table table-sm mb-0 ledger">
                             <tbody>
                                 <tr class="l-total">
@@ -955,8 +922,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                 </div><!-- /modal-body -->
 
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-sm"
-                            data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> বাতিল
                     </button>
                     <button type="submit" class="btn btn-gold btn-sm">
@@ -964,7 +930,6 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                     </button>
                 </div>
             </form>
-
         </div>
     </div>
 </div>
@@ -972,69 +937,80 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 'use strict';
-
-const G_VORI  = 11.664, G_ANA = 0.729, G_ROTI = 0.1215, G_POINT = 0.01215;
+const G_VORI = 11.664, G_ANA = 0.729, G_ROTI = 0.1215, G_POINT = 0.01215;
 const ITEM_COUNT = <?= count($items) ?>;
 
+function tradToGrams(v, a, r, p) {
+    return v * G_VORI + a * G_ANA + r * G_ROTI + p * G_POINT;
+}
+
 function gramsToTrad(g) {
-    g = Math.max(0, parseFloat(g) || 0);
+    g = Math.max(0, g);
     const EPS = 1e-9;
-    const tv = g / G_VORI;
+    let tv = g / G_VORI;
     let v  = Math.floor(tv + EPS);
     let ta = Math.max(0, tv - v) * 16;
     let a  = Math.floor(ta + EPS);
     let tr = Math.max(0, ta - a) * 6;
     let r  = Math.floor(tr + EPS);
     let p  = Math.round(Math.max(0, tr - r) * 10);
-    if (p >= 10){p-=10;r++;} if (r>=6){r-=6;a++;} if (a>=16){a-=16;v++;}
-    return {v,a,r,p};
-}
-function tradToGrams(v,a,r,p){
-    return v*G_VORI + a*G_ANA + r*G_ROTI + p*G_POINT;
-}
-function fmtTrad(g) {
-    const t = gramsToTrad(g);
-    return `${t.v} ভ ${t.a} আ ${t.r} র ${t.p} প`;
+    if (p >= 10) { p -= 10; r++; }
+    if (r >= 6)  { r -= 6;  a++; }
+    if (a >= 16) { a -= 16; v++; }
+    return `${v} ভ ${a} আ ${r} র ${p} প`;
 }
 
 function getItemInputs(idx) {
     return {
-        v: parseInt(document.querySelector(`[name="items[${idx}][vori]"]`)?.value)  || 0,
-        a: parseInt(document.querySelector(`[name="items[${idx}][ana]"]`)?.value)   || 0,
-        r: parseInt(document.querySelector(`[name="items[${idx}][roti]"]`)?.value)  || 0,
-        p: parseInt(document.querySelector(`[name="items[${idx}][point]"]`)?.value) || 0,
+        v: parseInt(document.querySelector(`[name="items[${idx}][vori]"]`)?.value)   || 0,
+        a: parseInt(document.querySelector(`[name="items[${idx}][ana]"]`)?.value)    || 0,
+        r: parseInt(document.querySelector(`[name="items[${idx}][roti]"]`)?.value)   || 0,
+        p: parseInt(document.querySelector(`[name="items[${idx}][point]"]`)?.value)  || 0,
         k: parseFloat(document.querySelector(`[name="items[${idx}][karat]"]`)?.value) || 0,
     };
 }
 
+function getLossRate() {
+    return Math.max(0, parseFloat(document.getElementById('lossRateInput')?.value) || 0);
+}
+
 function recalcItem(idx) {
-    const {v,a,r,p,k} = getItemInputs(idx);
-    const grams    = tradToGrams(v, a, r, p);
-    const pureGrams = grams * (k / 24);
+    const {v, a, r, p, k} = getItemInputs(idx);
+    const oldGrams = tradToGrams(v, a, r, p);
+    const pureGrams = oldGrams * (k / 24);
     const el = document.getElementById('itemPreview_' + idx);
-    if (el) el.textContent = 'পাকা সোনার ওজন: ' + fmtTrad(pureGrams);
+    if (el) el.textContent = 'পাকা সোনার ওজন: ' + gramsToTrad(pureGrams);
     recalcSummary();
 }
 
-function recalcSummary() {
-    let totalPure = 0;
-    for (let i = 0; i < ITEM_COUNT; i++) {
-        const {v,a,r,p,k} = getItemInputs(i);
-        totalPure += tradToGrams(v, a, r, p) * (k / 24);
-    }
-    const lossRate       = Math.max(0, parseFloat(document.getElementById('lossRateInput').value) || 0);
-    const lossPointsCeil = Math.ceil((totalPure / G_VORI) * lossRate);
-    const lossGrams      = lossPointsCeil * G_POINT;
-    const finalPure      = Math.max(0, totalPure - lossGrams);
-
-    document.getElementById('previewTotal').textContent    = fmtTrad(totalPure);
-    document.getElementById('previewLossRate').textContent = `(${lossPointsCeil} পয়েন্ট @ ${lossRate} প/ভ)`;
-    document.getElementById('previewLoss').textContent     = fmtTrad(lossGrams);
-    document.getElementById('previewFinal').textContent    = fmtTrad(finalPure);
+function recalcAll() {
+    for (let i = 0; i < ITEM_COUNT; i++) recalcItem(i);
 }
 
-// Init preview when modal opens
-document.getElementById('editModal').addEventListener('shown.bs.modal', recalcSummary);
+function recalcSummary() {
+    let totalPureGrams = 0;
+    for (let i = 0; i < ITEM_COUNT; i++) {
+        const {v, a, r, p, k} = getItemInputs(i);
+        totalPureGrams += tradToGrams(v, a, r, p) * (k / 24);
+    }
+
+    const lossRate = getLossRate();
+    const lossPointsCeil = Math.ceil((totalPureGrams / G_VORI) * lossRate);
+    const lossGrams = lossPointsCeil * G_POINT;
+    const finalPureGrams = Math.max(0, totalPureGrams - lossGrams);
+
+    const elTotal = document.getElementById('previewTotal');
+    const elLoss = document.getElementById('previewLoss');
+    const elLossRate = document.getElementById('previewLossRate');
+    const elFinal = document.getElementById('previewFinal');
+
+    if (elTotal) elTotal.textContent = gramsToTrad(totalPureGrams);
+    if (elLoss) elLoss.textContent = gramsToTrad(lossGrams);
+    if (elLossRate) elLossRate.textContent = `(${lossPointsCeil} পয়েন্ট @ ${lossRate} প/ভ)`;
+    if (elFinal) elFinal.textContent = gramsToTrad(finalPureGrams);
+}
+
+document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAll);
 </script>
 
 <?php else: ?>

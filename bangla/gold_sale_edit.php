@@ -64,7 +64,7 @@ function sync_paid_amount(mysqli $conn, int $saleId): void {
          SET paid_amount = (
              SELECT COALESCE(SUM(paid_amount), 0)
              FROM gold_sale_payments
-             WHERE gold_sale_id = ?
+             WHERE gold_sale_id = ?" . h("") . "
          ), updated_at = NOW()
          WHERE id = ?");
     mysqli_stmt_bind_param($stmt, 'ii', $saleId, $saleId);
@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $calcItems = [];
         $totalAmt  = 0.0;
 
-        if ($pureGoldPrice <= 0) $errors[] = 'পাকা সোনার দাম শূন্যের চেয়ে বেশি হতে হবে।';
+        if ($pureGoldPrice <= 0) $errors[] = 'পাকা সোনার দাম শূন্যের বেশি হতে হবে।';
 
         foreach ($rawItems as $i => $item) {
             $n      = $i + 1;
@@ -226,13 +226,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $purity = (float)($item['purity'] ?? 0);
 
             if ($vori < 0)                $errors[] = "আইটেম $n: ভরি ঋণাত্মক হতে পারবে না।";
-            if ($ana < 0 || $ana > 15)    $errors[] = "আইটেম $n: আনা ০–১৫ এর মধ্যে হতে হবে।";
-            if ($roti < 0 || $roti > 5)   $errors[] = "আইটেম $n: রতি ০–৫ এর মধ্যে হতে হবে।";
-            if ($point < 0 || $point > 9) $errors[] = "আইটেম $n: পয়েন্ট ০–৯ এর মধ্যে হতে হবে।";
-            if ($purity < 0.01 || $purity > 24) $errors[] = "আইটেম $n: সোনার মান ০.০১–২৪ এর মধ্যে হতে হবে।";
+            if ($ana < 0 || $ana > 15)    $errors[] = "আইটেম $n: আনা ০–১৫ হতে হবে।";
+            if ($roti < 0 || $roti > 5)   $errors[] = "আইটেম $n: রতি ০–৫ হতে হবে।";
+            if ($point < 0 || $point > 9) $errors[] = "আইটেম $n: পয়েন্ট ০–৯ হতে হবে।";
+            if ($purity < 0.01 || $purity > 24) $errors[] = "আইটেম $n: মান (ক্যারেট) ০.০১–২৪ হতে হবে।";
 
             $grams = trad_to_grams($vori, $ana, $roti, $point);
-            if ($grams <= 0) $errors[] = "আইটেম $n: ওজন শূন্যের চেয়ে বেশি হতে হবে।";
+            if ($grams <= 0) $errors[] = "আইটেম $n: ওজন শূন্যের বেশি হতে হবে।";
 
             $price = ($grams / G_VORI) * ($purity / 24) * $pureGoldPrice;
             $totalAmt += $price;
@@ -265,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_close($chk);
 
                 if ((int)$matchCount !== count($ids)) {
-                    throw new \RuntimeException('আইটেম আইডি মিলছে না — পরিবর্তন করার চেষ্টা করা হয়ে থাকতে পারে।');
+                    throw new \RuntimeException('Item ID mismatch — possible tamper attempt.');
                 }
 
                 // UPDATE each item
@@ -298,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_close($updSale);
 
                 mysqli_commit($conn);
-                $_SESSION['flash_success'] = 'আইটেম সফলভাবে আপডেট করা হয়েছে।';
+                $_SESSION['flash_success'] = 'আইটেমসমূহ সফলভাবে আপডেট করা হয়েছে।';
             } catch (\Throwable $e) {
                 mysqli_rollback($conn);
                 $_SESSION['flash_error'] = 'সংরক্ষণ করতে ব্যর্থ হয়েছে: ' . h($e->getMessage());
@@ -389,7 +389,7 @@ $fullyPaid = $dueAmount <= 0;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>সোনা বিক্রি #<?= $saleId ?> — FineBullion Desk</title>
+<title>বিক্রি #<?= $saleId ?> — ফাইনবুলিয়ন ডেস্ক</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -416,219 +416,197 @@ body {
     color: var(--bronze-text);
 }
 
-/* ---- Page header (flush) ---- */
+/* header */
 .fb-header {
     background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
-    color: #ffffff !important;
-    width: 100% !important;
-    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
     min-height: 60px !important;
     max-height: 80px !important;
     padding: 0.85rem 1.75rem !important;
-    border-radius: 0 0 20px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: nowrap;
-    gap: 1rem;
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.fb-header * { color: #ffffff !important; }
-.fb-header h5 { font-weight: 800; margin-bottom: 0.1rem; }
+.fb-header h5, .fb-header h5 i, .fb-header a { color: #ffffff !important; }
 .fb-header small { color: rgba(255,255,255,0.85) !important; }
-.fb-header .btn-fb-header {
-    background: rgba(255,255,255,0.16);
-    border: 1.5px solid rgba(255,255,255,0.55);
+.fb-header .header-title-block { min-width: 0; }
+.fb-header .header-side { text-align: right; flex-shrink: 0; }
+.fb-header .header-side-label { font-size: 0.72rem; color: rgba(255,255,255,0.75) !important; letter-spacing: 0.03em; }
+.fb-header .header-side-value { font-weight: 600; font-size: 0.95rem; color: #ffffff !important; }
+.fb-header .header-side-sub { font-size: 0.8rem; color: rgba(255,255,255,0.8) !important; }
+.fb-header .btn-back {
+    background: rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.4);
     color: #ffffff !important;
-    font-weight: 600;
     border-radius: 999px;
-    white-space: nowrap;
+    padding: 0.15rem 0.55rem;
 }
-.fb-header .btn-fb-header:hover { background: rgba(255,255,255,0.26); }
+.fb-header .btn-back:hover { background: rgba(255,255,255,0.28); }
 
-/* ---- Page content inset ---- */
 .page-inset { padding: 0 1.5rem; }
 
-/* ---- Cards ---- */
-.card {
-    background: #ffffff;
-    border: none;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
-}
-.card-header {
-    background: var(--ivory) !important;
-    border-bottom: 1px solid var(--hairline);
-    border-radius: 18px 18px 0 0 !important;
-    color: var(--bronze-text);
-    font-weight: 700;
-}
-
-/* ---- Inputs ---- */
-.form-control,
-.input-group-text {
-    border: 1.5px solid var(--hairline);
-    border-radius: 10px;
-    color: var(--bronze-text);
-    background: #ffffff;
-}
-.form-control:focus {
-    border-color: var(--gold-deep);
-    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
-}
-
-/* ---- Buttons ---- */
+/* ---- pill buttons ---- */
 .btn-fb-primary, .btn-gold {
     background: var(--gold-deep);
     border: 1.5px solid var(--gold-deep);
-    color: #ffffff;
+    color: #ffffff !important;
     font-weight: 700;
     border-radius: 999px;
 }
-.btn-fb-primary:hover, .btn-gold:hover {
-    opacity: 0.92;
-    background: var(--gold-deep);
-    border-color: var(--gold-deep);
-    color: #ffffff;
-}
-.btn-fb-secondary {
+.btn-fb-primary:hover, .btn-gold:hover { opacity: 0.92; background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff !important; }
+
+.btn-fb-secondary, .btn-secondary {
     background: #ffffff;
     border: 1.5px solid var(--hairline);
     color: var(--muted);
     font-weight: 600;
     border-radius: 999px;
 }
-.btn-fb-secondary:hover {
-    background: #fdf7ec;
-    border-color: var(--hairline);
-    color: var(--bronze-text);
-}
-.btn-remove-item {
-    background: var(--status-due-light);
+.btn-fb-secondary:hover, .btn-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-danger {
+    background: #ffffff;
     border: 1.5px solid var(--status-due-bg);
     color: var(--status-due-bg);
     font-weight: 600;
     border-radius: 999px;
 }
-.btn-remove-item:hover { background: var(--status-due-bg); color: #ffffff; }
+.btn-outline-danger:hover { background: var(--status-due-bg); border-color: var(--status-due-bg); color: #ffffff; }
 
-/* ---- detail card ---- */
-.detail-card { background: #fff; border: 1.5px solid var(--hairline); border-radius: 14px; padding: 1.25rem 1.5rem; }
-.detail-label { font-size: .78rem; color: var(--muted); font-weight: 500; white-space: nowrap; }
-.detail-val   { font-size: .97rem; font-weight: 600; color: var(--bronze-text); word-break: break-word; }
+/* detail card */
+.detail-card { background:#ffffff; border:none; border-radius:18px; padding:1.25rem 1.5rem; }
+.detail-label { font-size:.78rem; color: var(--muted); font-weight:500; white-space:nowrap; }
+.detail-val   { font-size:.97rem; font-weight:600; color: var(--bronze-text); word-break:break-word; }
 
-/* ---- item table badges ---- */
-.badge-weight  { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: .82rem; }
-.badge-purity  { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: .82rem;
-                 border: 1px solid var(--gold-deep); }
-.badge-price   { background: var(--gold-deep); color: #fff; font-weight: 600; font-size: .82rem; }
+/* item table badges */
+.badge-weight { background: var(--status-paid-light); color: var(--status-paid-bg); font-weight:600; font-size:.82rem; }
+.badge-purity { background: var(--ivory); color: var(--muted); font-weight:600; font-size:.82rem; border: 1px solid var(--hairline); }
+.badge-price  { background: var(--status-total-bg); color:#fff; font-weight:600; font-size:.82rem; }
 
-/* ---- summary ledger ---- */
-.ledger { border: 1.5px solid var(--hairline); border-radius: 12px; overflow: hidden; }
-.ledger td { padding: .6rem .9rem; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
-.ledger tr:last-child td { border-bottom: none; }
-.l-label { font-size: .83rem; color: var(--muted); width: 1%; white-space: nowrap; }
-.l-val   { font-weight: 700; font-size: .95rem; text-align: right; }
+/* summary ledger */
+.ledger { border:1.5px solid var(--hairline); border-radius:12px; overflow:hidden; }
+.ledger td { padding:.6rem .9rem; border-bottom:1px solid var(--hairline); vertical-align:middle; }
+.ledger tr:last-child td { border-bottom:none; }
+.l-label { font-size:.83rem; color: var(--muted); width:1%; white-space:nowrap; }
+.l-val   { font-weight:700; font-size:.95rem; text-align:right; }
 .l-price td  { background: var(--status-total-light) !important; }
-.l-price .l-label, .l-price .l-val { color: var(--status-total-bg); }
+.l-price .l-label,.l-price .l-val { color: var(--status-total-bg); }
 .l-paid  td  { background: var(--status-paid-light) !important; }
-.l-paid  .l-label { color: var(--status-paid-bg); font-weight: 600; }
+.l-paid  .l-label { color: var(--status-paid-bg); font-weight:600; }
 .l-paid  .l-val   { color: var(--status-paid-bg); }
-.l-due   td  { background: var(--gold-deep) !important; border-bottom: none; }
-.l-due   .l-label { color: rgba(255,255,255,.9); font-weight: 600; }
-.l-due   .l-val   { color: #fff; font-size: 1.05rem; }
+.l-due   td  { background: var(--status-due-bg) !important; border-bottom:none; }
+.l-due   .l-label { color:rgba(255,255,255,.85); font-weight:600; }
+.l-due   .l-val   { color:#fff; font-size:1.05rem; }
 
-/* ---- payment history ---- */
+/* payment history */
 .pmt-item {
-    display: flex; align-items: flex-start; gap: .6rem;
-    padding: .6rem .75rem;
-    border-bottom: 1px solid var(--hairline);
-    font-size: .84rem;
+    display:flex; align-items:flex-start; gap:.6rem;
+    padding:.6rem .75rem;
+    border-bottom:1px solid var(--hairline);
+    font-size:.84rem;
 }
-.pmt-item:last-child { border-bottom: none; }
-.pmt-date  { color: var(--muted); white-space: nowrap; min-width: 85px; font-size: .78rem; }
-.pmt-body  { flex: 1; min-width: 0; }
-.pmt-ref   { color: var(--bronze-text); font-size: .78rem; }
-.pmt-note  { color: var(--muted); font-size: .75rem; font-style: italic; }
-.pmt-amount{ font-weight: 700; color: var(--status-paid-bg); white-space: nowrap; }
-.pmt-by    { color: var(--muted); font-size: .73rem; }
+.pmt-item:last-child { border-bottom:none; }
+.pmt-date  { color: var(--muted); white-space:nowrap; min-width:85px; font-size:.78rem; }
+.pmt-body  { flex:1; min-width:0; }
+.pmt-ref   { color: var(--bronze-text); font-size:.78rem; }
+.pmt-note  { color: var(--muted); font-size:.75rem; font-style:italic; }
+.pmt-amount{ font-weight:700; color: var(--status-paid-bg); white-space:nowrap; }
+.pmt-by    { color: var(--muted); font-size:.73rem; }
 
-/* ---- add payment form ---- */
-.payment-form-card { background: var(--status-paid-light); border: 1.5px solid var(--hairline); border-radius: 14px; }
+/* add payment form */
+.payment-form-card { background:#ffffff; border:1.5px solid var(--hairline); border-radius:14px; }
 .payment-form-card .card-header {
-    background: var(--status-paid-bg) !important; color: #fff; font-size: .82rem; border-radius: 13px 13px 0 0 !important;
+    background: var(--gold-deep); color:#fff; font-size:.82rem; border-radius:12px 12px 0 0;
 }
-.payment-form-card .card-header * { color: #fff; }
 
-/* ---- edit modal item cards ---- */
+/* edit modal item cards */
 .edit-item-card {
-    border: 1.5px solid var(--hairline); border-radius: 14px;
-    padding: 1rem 1.1rem; margin-bottom: 1rem;
-    background: #fff; position: relative;
+    border:1.5px solid var(--hairline); border-radius:14px;
+    padding:1rem 1.1rem; margin-bottom:1rem;
+    background:#ffffff; position:relative;
 }
 .edit-item-badge {
-    position: absolute; top: -10px; left: 14px;
-    background: var(--gold-deep); color: #fff;
-    font-size: .72rem; font-weight: 700;
-    padding: .1rem .6rem; border-radius: 10px;
+    position:absolute; top:-10px; left:14px;
+    background: var(--gold-deep); color:#fff;
+    font-size:.72rem; font-weight:700;
+    padding:.1rem .6rem; border-radius:999px;
 }
 .item-price-preview {
-    background: var(--status-total-light); border: 1px dashed var(--gold-deep);
-    border-radius: 10px; padding: .5rem .8rem;
-    font-size: .88rem; color: var(--status-total-bg); font-weight: 600;
-}
-
-.purity-row { margin-top: .6rem; }
-.purity-row label { display: block; font-size: .72rem; margin-bottom: .15rem; color: var(--muted); }
-.purity-row input.form-control.is-valid,
-.purity-row input.form-control.is-invalid {
-    background-image: none !important; padding-right: .25rem !important;
+    background: var(--status-paid-light); border:1px dashed var(--status-paid-bg);
+    border-radius:10px; padding:.5rem .8rem;
+    font-size:.88rem; color: var(--status-paid-bg); font-weight:600;
 }
 
 .item-fields-row {
-    display: grid; grid-template-columns: repeat(4,1fr); gap: .5rem;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem;
 }
 .item-fields-row .field-col label {
-    display: block; font-size: .72rem; margin-bottom: .15rem; color: var(--muted); white-space: nowrap;
+    display:block; font-size:.72rem; margin-bottom:.15rem; color: var(--muted); white-space:nowrap;
 }
 .item-fields-row .field-col input {
-    text-align: center; padding-left: .25rem; padding-right: .25rem;
+    text-align:center; padding-left:.25rem; padding-right:.25rem;
 }
 .item-fields-row input.form-control.is-valid,
-.item-fields-row input.form-control.is-invalid {
-    background-image: none !important; padding-right: .25rem !important;
+.item-fields-row input.form-control.is-invalid,
+.purity-row input.form-control.is-valid,
+.purity-row input.form-control.is-invalid {
+    background-image:none!important; padding-right:.25rem!important;
 }
-.form-control.is-valid { border-color: var(--status-paid-bg); }
-.form-control.is-invalid { border-color: var(--status-due-bg); }
-.invalid-feedback { color: var(--status-due-bg); }
+.purity-row { margin-top:.6rem; }
+.purity-row label { display:block; font-size:.72rem; margin-bottom:.15rem; color: var(--muted); }
+
+/* preview total row inside modal */
+.preview-total-row {
+    background: var(--status-paid-light); border:1px solid var(--status-paid-bg); border-radius:10px;
+    padding:.5rem .85rem; font-size:.88rem;
+    display:flex; justify-content:space-between; align-items:center;
+}
+.preview-total-row .pt-label { color: var(--muted); }
+.preview-total-row .pt-value { font-weight:700; color: var(--status-paid-bg); }
+
+/* ---- cards ---- */
+.card { background:#ffffff; border:none; border-radius:18px; box-shadow:0 10px 30px rgba(180,140,50,0.12); }
+.card-header { background: var(--ivory) !important; border-bottom:1px solid var(--hairline); border-radius:18px 18px 0 0 !important; color: var(--bronze-text); }
+
+/* ---- inputs ---- */
+.form-control, .form-select, .input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18); }
+
+/* ---- modals ---- */
+.modal-content { border-radius: 18px; overflow: hidden; border: none; }
+.modal-header { background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important; color: #fff !important; }
+.modal-header .modal-title { color: #ffffff; font-weight: 800; }
+.modal-header .btn-close, .modal-header .btn-close-white { filter: brightness(0) invert(1); }
 
 /* ---- alerts ---- */
-.alert-success { background: var(--status-paid-light); color: var(--status-paid-bg); border: 1px solid var(--status-paid-bg); border-radius: 12px; }
-.alert-danger  { background: var(--status-due-light);  color: var(--status-due-bg);  border: 1px solid var(--status-due-bg);  border-radius: 12px; }
+.alert-danger { background: var(--status-due-light); color: var(--status-due-bg); border: none; border-radius: 12px; }
+.alert-success { background: var(--status-paid-light); color: var(--status-paid-bg); border: none; border-radius: 12px; }
+.alert-warning { background: var(--status-total-light); color: var(--status-total-bg); border: none; border-radius: 12px; }
 
-/* Bootstrap text utilities remapped to design tokens (used by dynamic JS states) */
-.text-danger  { color: var(--status-due-bg) !important; }
+/* badges */
+.badge.bg-secondary { background: var(--muted) !important; }
+.badge.bg-success { background: var(--status-paid-bg) !important; }
+
+/* bootstrap text/utility overrides used inline or by JS classList */
 .text-success { color: var(--status-paid-bg) !important; }
-
-/* ---- modal ---- */
-.modal-content {
-    border-radius: 18px;
-    overflow: hidden;
-    border: none;
-}
-.modal-header {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
-    color: #fff;
-}
-.modal-header .btn-close {
-    filter: brightness(0) invert(1);
-}
+.text-danger  { color: var(--status-due-bg) !important; }
+.text-muted   { color: var(--muted) !important; }
 
 /* mobile */
 @media (max-width: 767.98px) {
     html,body { height:100%; overflow:hidden; }
     .page-content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
     .page-inset {
-        padding: 0 0.8rem; display:flex; flex-direction:column;
+        padding:.45rem .5rem 1rem!important; display:flex; flex-direction:column;
         gap:.45rem; flex:1; min-height:0; overflow:hidden;
     }
     .page-inset > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
@@ -636,12 +614,12 @@ body {
     .fb-header {
         min-height: 60px !important;
         max-height: 70px !important;
-        padding: 0.55rem .75rem !important;
-        border-radius: 0 0 16px 16px;
-        margin-bottom: 0 !important;
+        padding:.55rem .75rem !important; border-radius: 0 0 16px 16px !important;
     }
     .fb-header h5 { font-size:1rem; }
-    .fb-header .text-end { display:none; }
+    .fb-header small { display:none; }
+    .fb-header .header-side { display:none; }
+    .fb-header .btn-back { padding:.15rem .42rem; font-size:.8rem; }
 
     .detail-card-wrap { margin-bottom:0!important; }
     .detail-card-wrap .card-header { padding:.4rem .6rem; }
@@ -691,45 +669,42 @@ body {
 
 <div class="page-content">
 <div class="container-fluid px-0">
-<!-- ================================================================
-     PAGE HEADER
-================================================================ -->
-<div class="fb-header">
-    <div>
-        <div class="d-flex align-items-center gap-2 mb-1">
-            <a href="gold_sale_list.php" class="btn btn-sm btn-fb-header py-0 px-2">
+    <div class="fb-header">
+        <div class="header-title-block d-flex align-items-center gap-2">
+            <a href="gold_sale_list.php" class="btn btn-sm btn-back py-0 px-2">
                 <i class="bi bi-arrow-left"></i>
             </a>
-            <h5 class="mb-0">
-                <i class="bi bi-bag-check-fill me-1"></i>
-                সোনা বিক্রি
-                <span style="opacity:.85;">&nbsp;#<?= $saleId ?></span>
-            </h5>
+            <div>
+                <h5 class="mb-0">
+                    <i class="bi bi-bag-check-fill me-1"></i>
+                    সোনা বিক্রি
+                    <span style="opacity:.75;">&nbsp;#<?= $saleId ?></span>
+                </h5>
+                <small>সোনা বিক্রির বিবরণ — ফাইনবুলিয়ন ডেস্ক</small>
+            </div>
         </div>
-        <small class="d-none d-md-inline">সোনা বিক্রির বিস্তারিত — FineBullion Desk</small>
+        <div class="header-side">
+            <div class="header-side-label">তৈরি করেছেন</div>
+            <div class="header-side-value">
+                <i class="bi bi-person-circle me-1"></i><?= h($sale['created_by_username'] ?? '—') ?>
+            </div>
+            <div class="header-side-sub">
+                <?= h(fmt_dt($sale['created_at'])) ?>
+            </div>
+        </div>
     </div>
-    <div class="text-end">
-        <div style="font-size:.75rem;color:rgba(255,255,255,.85);letter-spacing:.03em;">তৈরি করেছেন</div>
-        <div class="fw-semibold" style="font-size:.97rem;">
-            <i class="bi bi-person-circle me-1"></i><?= h($sale['created_by_username'] ?? '—') ?>
-        </div>
-        <div style="font-size:.8rem;color:rgba(255,255,255,.85);">
-            <?= h(fmt_dt($sale['created_at'])) ?>
-        </div>
-    </div>
-</div>
 </div>
 
 <div class="page-inset py-4">
 
 <?php if ($postSuccess): ?>
-<div class="alert alert-success alert-dismissible fade show" role="alert">
+<div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
     <i class="bi bi-check-circle-fill me-2"></i><?= h($postSuccess) ?>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
 <?php if ($postError): ?>
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
+<div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
     <i class="bi bi-exclamation-triangle-fill me-2"></i><?= $postError ?>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
@@ -739,7 +714,7 @@ body {
      CUSTOMER + DETAIL
 ================================================================ -->
 <div class="card shadow-sm mb-4 detail-card-wrap">
-    <div class="card-header bg-white fw-semibold d-md-none">
+    <div class="card-header fw-semibold d-md-none">
         <i class="bi bi-person-fill me-1" style="color:var(--gold-deep);"></i> কাস্টমার
     </div>
     <div class="detail-card">
@@ -747,7 +722,7 @@ body {
     <!-- Mobile-only: Date & Time, Name, Phone, Address in that exact order -->
     <div class="row g-2 d-md-none">
         <div class="col-12">
-            <span class="detail-label">তারিখ ও সময়:</span>
+            <span class="detail-label">তারিখ ও সময়:</span>
             <span class="detail-val ms-1"><?= h(fmt_dt($sale['created_at'])) ?></span>
         </div>
         <div class="col-12">
@@ -760,7 +735,7 @@ body {
         </div>
         <div class="col-12">
             <span class="detail-label">ঠিকানা:</span>
-            <span class="detail-val ms-1" style="font-weight:400;color:#555;">
+            <span class="detail-val ms-1" style="font-weight:400;color:var(--muted);">
                 <?= h($sale['customer_address'] ?: '—') ?>
             </span>
         </div>
@@ -768,6 +743,7 @@ body {
 
     <!-- Desktop: two-column layout (customer info left, date/created-by right) -->
     <div class="row g-0 d-none d-md-flex">
+        <!-- Left: customer info -->
         <div class="col-md-7 pe-md-4">
             <div class="row g-2">
                 <div class="col-12">
@@ -780,19 +756,23 @@ body {
                 </div>
                 <div class="col-12">
                     <span class="detail-label">ঠিকানা:</span>
-                    <span class="detail-val ms-1" style="font-weight:400;color:#555;">
+                    <span class="detail-val ms-1" style="font-weight:400;color:var(--muted);">
                         <?= h($sale['customer_address'] ?: '—') ?>
                     </span>
                 </div>
             </div>
         </div>
+
+        <!-- Vertical divider (md+) -->
         <div class="col-md-1 d-none d-md-flex justify-content-center">
-            <div style="width:1px;background:#e2e5ea;min-height:100%;"></div>
+            <div style="width:1px;background:var(--hairline);min-height:100%;"></div>
         </div>
+
+        <!-- Right: date + created-by -->
         <div class="col-md-4 ps-md-3">
             <div class="row g-2">
                 <div class="col-12">
-                    <span class="detail-label">তারিখ ও সময়:</span>
+                    <span class="detail-label">তারিখ ও সময়:</span>
                     <span class="detail-val ms-1"><?= h(fmt_dt($sale['created_at'])) ?></span>
                 </div>
                 <div class="col-12">
@@ -801,8 +781,8 @@ body {
                 </div>
                 <?php if ($sale['updated_at'] && $sale['updated_at'] !== $sale['created_at']): ?>
                 <div class="col-12">
-                    <span class="detail-label">সংশোধনের সময়:</span>
-                    <span class="ms-1" style="font-size:.88rem;color:#888;">
+                    <span class="detail-label">আপডেট করা হয়েছে:</span>
+                    <span class="ms-1" style="font-size:.88rem;color:var(--muted);">
                         <?= h(fmt_dt($sale['updated_at'])) ?>
                     </span>
                 </div>
@@ -817,16 +797,16 @@ body {
      GOLD SALE ITEMS TABLE
 ================================================================ -->
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <span class="fw-semibold">
-            <i class="bi bi-gem me-1 text-warning"></i>
-            সোনার আইটেম
-            <span class="badge ms-1" style="background:var(--status-total-light);color:var(--status-total-bg)"><?= count($items) ?></span>
+            <i class="bi bi-gem me-1" style="color:var(--gold-deep);"></i>
+            সোনার আইটেমসমূহ
+            <span class="badge bg-secondary ms-1"><?= count($items) ?></span>
         </span>
         <?php if ($isAdmin): ?>
         <button type="button" class="btn btn-sm btn-gold"
                 data-bs-toggle="modal" data-bs-target="#editModal">
-            <i class="bi bi-pencil-square me-1"></i> আইটেম এডিট
+            <i class="bi bi-pencil-square me-1"></i> আইটেম এডিট করুন
         </button>
         <?php endif; ?>
     </div>
@@ -836,8 +816,8 @@ body {
                 <thead class="table-light">
                     <tr>
                         <th style="width:38px;">#</th>
-                        <th>সোনার ওজন (ভ-আ-র-প)</th>
-                        <th style="width:90px;" class="text-center">সোনার মান</th>
+                        <th>ওজন (ভ-আ-র-প)</th>
+                        <th style="width:90px;">সোনার মান</th>
                         <th class="text-end">দাম</th>
                     </tr>
                 </thead>
@@ -849,9 +829,7 @@ body {
                     <tr>
                         <td class="text-muted small"><?= $idx + 1 ?></td>
                         <td><span class="badge badge-weight"><?= h(fmt_trad((float)$it['weight'])) ?></span></td>
-                        <td class="text-center">
-                            <span class="badge badge-purity"><?= h(number_format((float)$it['purity'], 2)) ?> ক্যারেট</span>
-                        </td>
+                        <td><span class="badge badge-purity"><?= h(number_format((float)$it['purity'], 2)) ?> ক্যারেট</span></td>
                         <td class="text-end"><span class="badge badge-price">৳<?= number_format((float)$it['price'], 0) ?></span></td>
                     </tr>
                     <?php endforeach; ?>
@@ -866,7 +844,7 @@ body {
      SALE SUMMARY LEDGER
 ================================================================ -->
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white fw-semibold">
+    <div class="card-header fw-semibold">
         <i class="bi bi-calculator me-1" style="color:var(--gold-deep);"></i>
         বিক্রির সারসংক্ষেপ
     </div>
@@ -874,7 +852,7 @@ body {
         <table class="table table-sm mb-0 ledger" style="border-radius:0;">
             <tbody>
                 <tr class="l-price">
-                    <td class="l-label">পাকা সোনার দাম (২৪ ক্যারেট / ভরি)</td>
+                    <td class="l-label">২৪ ক্যারেট পাকা সোনার দাম (প্রতি ভরি)</td>
                     <td class="l-val">৳<?= number_format((float)$sale['pure_gold_price'], 0) ?></td>
                 </tr>
                 <tr class="l-price">
@@ -898,11 +876,11 @@ body {
      PAYMENT HISTORY
 ================================================================ -->
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <span class="fw-semibold">
             <i class="bi bi-cash-stack me-1" style="color:var(--gold-deep);"></i>
             পেমেন্টের ইতিহাস
-            <span class="badge ms-1" style="background:var(--status-total-light);color:var(--status-total-bg)"><?= count($payments) ?></span>
+            <span class="badge bg-secondary ms-1"><?= count($payments) ?></span>
         </span>
         <?php if (!$fullyPaid): ?>
         <button type="button" class="btn btn-sm btn-gold"
@@ -910,14 +888,14 @@ body {
             <i class="bi bi-plus-lg me-1"></i> পেমেন্ট যোগ করুন
         </button>
         <?php else: ?>
-        <span class="badge" style="background:var(--status-paid-light);color:var(--status-paid-bg)">
-            <i class="bi bi-check-circle-fill me-1"></i> সম্পূর্ণ পরিশোধিত
+        <span class="badge bg-success">
+            <i class="bi bi-check-circle-fill me-1"></i>পরিশোধিত
         </span>
         <?php endif; ?>
     </div>
     <div class="card-body p-0">
         <?php if (empty($payments)): ?>
-            <div class="text-center text-muted py-4 small fst-italic">এখনও কোনো পেমেন্ট জমা হয়নি।</div>
+            <div class="text-center text-muted py-4 small fst-italic">এখনো কোনো পেমেন্ট রেকর্ড করা হয়নি।</div>
         <?php else: ?>
             <?php foreach ($payments as $pmt): ?>
             <div class="pmt-item">
@@ -932,18 +910,18 @@ body {
                         <div class="pmt-note"><?= h($pmt['note']) ?></div>
                     <?php endif; ?>
                     <?php if ($pmt['received_by_username']): ?>
-                        <div class="pmt-by">গ্রহীতা <?= h($pmt['received_by_username']) ?> · <?= h(fmt_dt($pmt['created_at'])) ?></div>
+                        <div class="pmt-by">গ্রহণ করেছেন <?= h($pmt['received_by_username']) ?> · <?= h(fmt_dt($pmt['created_at'])) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="pmt-amount">৳<?= number_format((float)$pmt['paid_amount'], 0) ?></div>
                 <?php if ($isAdmin): ?>
                 <form method="POST" action="gold_sale_edit.php?id=<?= $saleId ?>"
-                      onsubmit="return confirm('আপনি কি নিশ্চিত এই পেমেন্ট ডিলিট করবেন?')"
+                      onsubmit="return confirm('আপনি কি এই পেমেন্ট রেকর্ডটি ডিলিট করতে নিশ্চিত?')"
                       class="ms-2">
                     <input type="hidden" name="action"     value="delete_payment">
                     <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                     <input type="hidden" name="payment_id" value="<?= (int)$pmt['id'] ?>">
-                    <button type="submit" class="btn btn-sm btn-remove-item py-0 px-1" title="পেমেন্ট ডিলিট করুন">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" title="পেমেন্ট ডিলিট করুন">
                         <i class="bi bi-trash3" style="font-size:.75rem;"></i>
                     </button>
                 </form>
@@ -958,7 +936,7 @@ body {
      NOTE
 ================================================================ -->
 <div class="card shadow-sm mb-4 note-card">
-    <div class="card-header bg-white fw-semibold">
+    <div class="card-header fw-semibold">
         <i class="bi bi-pencil-square me-1" style="color:var(--gold-deep);"></i>
         নোট / মন্তব্য
     </div>
@@ -967,7 +945,7 @@ body {
             <input type="hidden" name="action"     value="save_note">
             <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <textarea class="form-control mb-2" name="note" rows="3"
-                      placeholder="নোট লিখুন (ঐচ্ছিক)…"><?= h($sale['note'] ?? '') ?></textarea>
+                      placeholder="ঐচ্ছিক নোট…"><?= h($sale['note'] ?? '') ?></textarea>
             <button type="submit" class="btn btn-gold btn-sm">
                 <i class="bi bi-save-fill me-1"></i> নোট সংরক্ষণ করুন
             </button>
@@ -982,11 +960,11 @@ body {
 <div class="modal fade" id="addPaymentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="background:linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);color:#fff;">
                 <h5 class="modal-title">
                     <i class="bi bi-cash-stack me-2"></i>পেমেন্ট যোগ করুন — বিক্রি #<?= $saleId ?>
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="gold_sale_edit.php?id=<?= $saleId ?>">
                 <input type="hidden" name="action"     value="add_payment">
@@ -994,21 +972,21 @@ body {
                 <div class="modal-body">
 
                     <!-- Current due summary -->
-                    <div class="alert py-2 mb-3" style="font-size:.85rem;background:var(--status-total-light);color:var(--bronze-text);border:1px solid var(--gold-deep);border-radius:12px;">
+                    <div class="alert alert-warning py-2 mb-3" style="font-size:.85rem;">
                         <div class="d-flex justify-content-between">
                             <span>মোট দাম:</span>
                             <strong>৳<?= number_format((float)$sale['total_amount'], 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>মোট পরিশোধিত টাকা:</span>
-                            <strong style="color:var(--status-paid-bg);">৳<?= number_format((float)$totalPaid, 0) ?></strong>
+                            <strong class="text-success">৳<?= number_format((float)$totalPaid, 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1">
                             <span class="fw-bold">বকেয়া টাকা:</span>
-                            <strong style="color:var(--status-due-bg);" id="modalCurrentDue">৳<?= number_format($dueAmount, 0) ?></strong>
+                            <strong class="text-danger" id="modalCurrentDue">৳<?= number_format($dueAmount, 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1" id="dueAfterRow" style="display:none;">
-                            <span class="fw-bold">পেমেন্ট এর পর বকেয়া টাকা:</span>
+                            <span class="fw-bold">এই পেমেন্টের পর অবশিষ্ট বকেয়া:</span>
                             <strong id="dueAfterValue">—</strong>
                         </div>
                     </div>
@@ -1032,8 +1010,8 @@ body {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">ট্রানজেকশন রেফারেন্স
-                            <small class="fw-normal text-muted">(চেক নম্বর, ব্যাংক রেফারেন্স, বিকাশ ট্রানজেকশন আইডি)</small>
+                        <label class="form-label fw-semibold">লেনদেনের রেফারেন্স
+                            <small class="fw-normal text-muted">(চেক নম্বর, ব্যাংক রেফ., মোবাইল ব্যাংকিং ট্রানজেকশন আইডি)</small>
                         </label>
                         <input type="text" name="transaction_ref" class="form-control"
                                placeholder="ঐচ্ছিক রেফারেন্স…">
@@ -1047,11 +1025,11 @@ body {
 
                 </div>
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> বাতিল
                     </button>
                     <button type="submit" class="btn btn-gold btn-sm" id="btnRecordSalePayment">
-                        <i class="bi bi-save-fill me-1"></i> পেমেন্ট জমা করুন
+                        <i class="bi bi-save-fill me-1"></i> পেমেন্ট সংরক্ষণ করুন
                     </button>
                 </div>
             </form>
@@ -1068,12 +1046,12 @@ body {
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="background:linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);color:#fff;">
                 <h5 class="modal-title">
                     <i class="bi bi-pencil-square me-2"></i>
-                    বিক্রির আইটেম এডিট করুন — #<?= $saleId ?>
+                    আইটেম এডিট করুন — #<?= $saleId ?>
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
 
             <form method="POST" action="gold_sale_edit.php?id=<?= $saleId ?>" id="editItemsForm">
@@ -1086,12 +1064,11 @@ body {
                     <div class="row g-3 mb-4">
                         <div class="col-sm-12">
                             <label class="form-label small fw-semibold mb-1">
-                                পাকা সোনার দাম (২৪ ক্যারেট / ভরি)
+                                ২৪ ক্যারেট পাকা সোনার দাম (প্রতি ভরি)
                                 <small class="text-muted fw-normal">(টাকা)</small>
                             </label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text"
-                                      style="background:var(--gold-deep);color:#fff;border-color:var(--gold-deep);">৳</span>
+                                <span class="input-group-text" style="background:var(--gold-deep);color:#fff;border-color:var(--gold-deep);">৳</span>
                                 <input type="number" name="pure_gold_price" id="pureGoldPriceInput"
                                        min="1" step="1"
                                        value="<?= h((int)$sale['pure_gold_price']) ?>"
@@ -1154,7 +1131,7 @@ body {
                                 <input type="number" name="items[<?= $idx ?>][purity]"
                                        class="form-control form-control-sm"
                                        min="0.01" max="24" step="0.01"
-                                       placeholder="যেমন: ১৮, ২২, ২৪"
+                                       placeholder="যেমন: ২২"
                                        value="<?= h($karat) ?>"
                                        oninput="recalcItem(<?= $idx ?>)">
                             </div>
@@ -1191,7 +1168,7 @@ body {
                 </div><!-- /modal-body -->
 
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> বাতিল
                     </button>
                     <button type="submit" class="btn btn-gold btn-sm">
@@ -1217,10 +1194,10 @@ function fmtBDT(n){ return '৳' + Math.round(n).toLocaleString('en-BD'); }
 
 function getItemInputs(idx){
     return {
-        v: parseInt(document.querySelector(`[name="items[${idx}][vori]"]`)?.value)    || 0,
-        a: parseInt(document.querySelector(`[name="items[${idx}][ana]"]`)?.value)     || 0,
-        r: parseInt(document.querySelector(`[name="items[${idx}][roti]"]`)?.value)    || 0,
-        p: parseInt(document.querySelector(`[name="items[${idx}][point]"]`)?.value)   || 0,
+        v: parseInt(document.querySelector(`[name="items[${idx}][vori]"]`)?.value)   || 0,
+        a: parseInt(document.querySelector(`[name="items[${idx}][ana]"]`)?.value)    || 0,
+        r: parseInt(document.querySelector(`[name="items[${idx}][roti]"]`)?.value)   || 0,
+        p: parseInt(document.querySelector(`[name="items[${idx}][point]"]`)?.value)  || 0,
         k: parseFloat(document.querySelector(`[name="items[${idx}][purity]"]`)?.value) || 0,
     };
 }
@@ -1274,8 +1251,6 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
     if (!inp) return;
 
     function update(){
-        // Recompute from the field's current string value every time —
-        // fires on every keystroke, paste, and clear so it never goes stale.
         const raw     = inp.value;
         const entered = raw === '' ? 0 : (parseFloat(raw) || 0);
         const remaining = DUE - entered;
@@ -1293,7 +1268,7 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
         if (entered < 0) {
             val.textContent  = '৳' + Math.round(DUE).toLocaleString('en-BD');
             val.className    = 'text-danger';
-            hint.textContent = 'পেমেন্ট ঋণাত্মক হতে পারে না।';
+            hint.textContent = 'পেমেন্ট ঋণাত্মক হতে পারবে না।';
             hint.className   = 'form-text text-danger';
             btn.disabled     = true;
             return;
@@ -1314,9 +1289,9 @@ document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAl
             val.className    = 'text-success';
             hint.textContent = '';
         } else if (remaining < 0) {
-            val.textContent  = 'অতিরিক্ত পেমেন্ট ৳' + Math.round(Math.abs(remaining)).toLocaleString('en-BD');
+            val.textContent  = '৳' + Math.round(Math.abs(remaining)).toLocaleString('en-BD') + ' অতিরিক্ত পেমেন্ট';
             val.className    = 'text-danger';
-            hint.textContent = 'পরিমাণ অবশিষ্ট বকেয়ার চেয়ে বেশি।';
+            hint.textContent = 'পরিমাণ বকেয়া টাকার চেয়ে বেশি।';
             hint.className   = 'form-text text-danger';
         } else {
             val.textContent  = '৳' + Math.round(remaining).toLocaleString('en-BD');

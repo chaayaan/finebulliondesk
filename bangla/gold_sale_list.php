@@ -149,7 +149,7 @@ if ($isAjax || $action !== null) {
     // ---- GET single (with items + payment history) -----------------------
     if ($action === 'get' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
-        if ($id <= 0) json_out(['success' => false, 'message' => 'আইডি সঠিক নয়।'], 400);
+        if ($id <= 0) json_out(['success' => false, 'message' => 'অকার্যকর আইডি।'], 400);
 
         $stmt = mysqli_prepare($conn,
             "SELECT gs.id, gs.customer_id, c.name AS customer_name, c.phone AS customer_phone,
@@ -169,7 +169,7 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
         $sale = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-        if (!$sale) json_out(['success' => false, 'message' => 'কোনো তথ্য পাওয়া যায়নি।'], 404);
+        if (!$sale) json_out(['success' => false, 'message' => 'কোনো তথ্য পাওয়া যায়নি।'], 404);
 
         $itemStmt = mysqli_prepare($conn,
             "SELECT id, weight, purity, price
@@ -205,7 +205,7 @@ if ($isAjax || $action !== null) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>সোনা বিক্রির তালিকা — FineBullion Desk</title>
+<title>সোনা বিক্রির তালিকা — ফাইনবুলিয়ন ডায়াল</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -248,94 +248,62 @@ body {
 /* ---- Page header (flush) ---- */
 .fb-header {
     background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
-    color: #ffffff !important;
-    width: 100% !important;
-    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
     min-height: 60px !important;
     max-height: 80px !important;
     padding: 0.85rem 1.75rem !important;
-    border-radius: 0 0 20px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: nowrap;
-    gap: 1rem;
-    position: relative;
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.fb-header * { color: #ffffff !important; }
-.fb-header h4 { font-weight: 800; margin-bottom: 0.1rem; }
+.fb-header h4, .fb-header h4 i { color: #ffffff !important; }
 .fb-header small { color: rgba(255,255,255,0.85) !important; }
-.fb-header .btn-fb-header {
-    background: rgba(255,255,255,0.16);
-    border: 1.5px solid rgba(255,255,255,0.55);
-    color: #ffffff !important;
-    font-weight: 600;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.fb-header .btn-fb-header:hover { background: rgba(255,255,255,0.26); }
+.fb-header .header-title-block { min-width: 0; }
+.fb-header .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 
 /* ---- Page content inset ---- */
 .page-inset { padding: 0 1.5rem; }
-
-/* ---- Cards ---- */
-.card {
-    background: #ffffff;
-    border: none;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
-}
-.card-header {
-    background: var(--ivory) !important;
-    border-bottom: 1px solid var(--hairline);
-    border-radius: 18px 18px 0 0 !important;
-    color: var(--bronze-text);
-    font-weight: 700;
-}
-.card-footer {
-    background: #ffffff !important;
-    border-top: 1px solid var(--hairline);
-}
-
-/* ---- Inputs ---- */
-.form-control,
-.input-group-text {
-    border: 1.5px solid var(--hairline);
-    border-radius: 10px;
-    color: var(--bronze-text);
-    background: #ffffff;
-}
-.form-control:focus {
-    border-color: var(--gold-deep);
-    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
-}
 
 /* ---- Buttons ---- */
 .btn-fb-primary, .btn-gold {
     background: var(--gold-deep);
     border: 1.5px solid var(--gold-deep);
-    color: #ffffff;
+    color: #ffffff !important;
     font-weight: 700;
     border-radius: 999px;
 }
-.btn-fb-primary:hover, .btn-gold:hover {
-    opacity: 0.92;
-    background: var(--gold-deep);
-    border-color: var(--gold-deep);
-    color: #ffffff;
-}
-.btn-fb-secondary {
+.btn-fb-primary:hover, .btn-gold:hover { opacity: 0.92; background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff !important; }
+
+.btn-fb-secondary, .btn-secondary {
     background: #ffffff;
     border: 1.5px solid var(--hairline);
     color: var(--muted);
     font-weight: 600;
     border-radius: 999px;
 }
-.btn-fb-secondary:hover {
-    background: #fdf7ec;
-    border-color: var(--hairline);
-    color: var(--bronze-text);
+.btn-fb-secondary:hover, .btn-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-secondary {
+    background: #ffffff;
+    border: 1.5px solid var(--hairline);
+    color: var(--muted);
+    font-weight: 600;
+    border-radius: 999px;
 }
+.btn-outline-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+
+.btn-outline-primary {
+    background: #ffffff;
+    border: 1.5px solid var(--gold-deep);
+    color: var(--gold-deep);
+    font-weight: 600;
+    border-radius: 999px;
+}
+.btn-outline-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; }
 
 /* ---- summary card (Weight / Total / Paid / Due) ---- */
 .section-block { margin-bottom: 1.25rem; }
@@ -426,18 +394,11 @@ body {
 .badge-paid   { background: var(--status-paid-light);  color: var(--status-paid-bg);  font-weight: 600; font-size: 0.82rem; }
 .badge-due    { background: var(--status-due-light);   color: var(--status-due-bg);   font-weight: 600; font-size: 0.82rem; }
 .badge-due.zero { background: var(--status-paid-light); color: var(--status-paid-bg); }
-.badge-weight { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem;
-                border: 1px solid var(--gold-deep); }
+.badge-weight { background: var(--ivory); color: var(--bronze-text); font-weight: 600; font-size: 0.82rem;
+                border: 1px solid var(--hairline); }
 
 /* ---- action buttons ---- */
 .btn-actions { display: flex; gap: 4px; justify-content: center; }
-.btn-actions .btn {
-    border-radius: 999px;
-    border: 1.5px solid var(--hairline);
-    background: #fff;
-    color: var(--muted);
-}
-.btn-actions .btn:hover { background: #fdf7ec; color: var(--bronze-text); }
 
 /* ---- mobile info cell ---- */
 .sale-info-cell { min-width: 160px; }
@@ -466,45 +427,52 @@ body {
 .ledger-paid td  { background-color: var(--status-paid-light) !important; }
 .ledger-paid .ledger-label  { color: var(--status-paid-bg); font-weight: 600; }
 .ledger-paid .ledger-vorp   { color: var(--status-paid-bg); }
-.ledger-due td   { background-color: var(--gold-deep) !important; border-bottom: none; }
-.ledger-due .ledger-label   { color: rgba(255,255,255,0.9); font-weight: 600; }
+.ledger-due td   { background-color: var(--status-due-bg) !important; border-bottom: none; }
+.ledger-due .ledger-label   { color: rgba(255,255,255,0.85); font-weight: 600; }
 .ledger-due .ledger-vorp    { color: #fff; font-size: 1.05rem; }
-
-/* ---- payment history in modal ---- */
-.pmt-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.55rem 0;
-    border-bottom: 1px dashed var(--hairline);
-    font-size: 0.83rem;
-}
-.pmt-row:last-child { border-bottom: none; }
-.pmt-date { color: var(--muted); white-space: nowrap; min-width: 80px; }
-.pmt-amount { font-weight: 700; color: var(--status-paid-bg); white-space: nowrap; }
-.pmt-ref { color: var(--bronze-text); font-size: 0.78rem; }
-.pmt-note { color: var(--muted); font-size: 0.76rem; font-style: italic; }
 
 /* ---- filter bar ---- */
 .filter-bar { background: #fff; border-bottom: 1px solid var(--hairline); padding: 0.65rem 1rem;
               display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .filter-bar label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0; }
 .filter-bar input[type=date] { font-size: 0.82rem; padding: 0.3rem 0.5rem;
-                                border: 1.5px solid var(--hairline); border-radius: 8px; }
+                                border: 1.5px solid var(--hairline); border-radius: 10px; }
+
+/* ---- cards ---- */
+.card { background:#ffffff; border:none; border-radius:18px; box-shadow:0 10px 30px rgba(180,140,50,0.12); }
+.card-header { background: var(--ivory) !important; border-bottom:1px solid var(--hairline); border-radius:18px 18px 0 0 !important; color: var(--bronze-text); }
+.card-footer { background:#ffffff !important; border-top:1px solid var(--hairline); border-radius: 0 0 18px 18px !important; }
+
+/* ---- inputs ---- */
+.form-control, .form-select, .input-group-text {
+    border: 1.5px solid var(--hairline);
+    border-radius: 10px;
+    color: var(--bronze-text);
+    background: #ffffff;
+}
+.form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18); }
+
+/* ---- table ---- */
+.table thead.table-light th, .table thead th {
+    background: var(--ivory) !important;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    border-color: var(--hairline) !important;
+    font-weight: 700;
+}
+.table td { border-color: var(--hairline) !important; vertical-align: middle; }
+.table tbody tr:hover { background: #fdf7ec; }
 
 /* ---- modal ---- */
-.modal-content {
-    border-radius: 18px;
-    overflow: hidden;
-    border: none;
-}
-.modal-header {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
-    color: #fff;
-}
-.modal-header .btn-close {
-    filter: brightness(0) invert(1);
-}
+.modal-content { border-radius: 18px; overflow: hidden; border: none; }
+.modal-header { background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important; color: #fff !important; }
+.modal-header .modal-title { color: #ffffff; font-weight: 800; }
+.modal-header .btn-close, .modal-header .btn-close-white { filter: brightness(0) invert(1); }
+
+/* ---- badges (bootstrap default overrides) ---- */
+.badge.bg-light { background: var(--ivory) !important; color: var(--muted) !important; border-color: var(--hairline) !important; }
 
 /* ---- mobile ---- */
 /* ---- tablet: 2 metrics per row ---- */
@@ -519,17 +487,17 @@ body {
 }
 
 @media (max-width: 767.98px) {
-    .page-inset { padding: 0 0.8rem; }
+    .page-inset { padding: 0 0.8rem 1rem; }
 
     .fb-header {
         min-height: 60px !important;
         max-height: 70px !important;
         padding: 0.75rem 1rem !important;
-        border-radius: 0 0 16px 16px;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
     }
     .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
-    .fb-header small { font-size: 0.7rem; }
-    .fb-header .btn-fb-header { padding: 0.3rem 0.65rem; font-size: 0.72rem; }
+    .fb-header small { display: none; }
 
     .stat-bar { grid-template-columns: repeat(2, 1fr); }
     .section-block { margin-bottom: 0.75rem; }
@@ -577,17 +545,19 @@ body {
 <div class="container-fluid px-0">
     <!-- Header -->
     <div class="fb-header">
-        <div>
+        <div class="header-title-block">
             <h4 class="mb-0">
                 <i class="bi bi-bag-check-fill me-2"></i>
-                <span class="d-none d-md-inline">সোনা বিক্রির হিসেব</span>
+                <span class="d-none d-md-inline">সোনা বিক্রির ইতিহাস</span>
                 <span class="d-md-none">সোনা বিক্রির তালিকা</span>
             </h4>
-            <small>FineBullion Desk</small>
+            <small>ফাইনবুলিয়ন ডায়াল</small>
         </div>
-        <a href="gold_sale.php" class="btn btn-fb-header btn-sm d-inline-flex align-items-center">
-            <i class="bi bi-plus-lg me-1"></i> <span>নতুন বিক্রি</span>
-        </a>
+        <div class="header-actions">
+            <a href="gold_sale.php" class="btn btn-fb-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> <span>নতুন বিক্রি</span>
+            </a>
+        </div>
     </div>
 </div>
 
@@ -614,7 +584,7 @@ body {
                 <div class="stat-cell stat-emphasis">
                     <div class="s-icon"><i class="bi bi-cash-stack"></i></div>
                     <div class="s-text">
-                        <span class="s-label">মোট টাকা</span>
+                        <span class="s-label">মোট পরিমাণ</span>
                         <span class="s-value" id="statTotal">—</span>
                     </div>
                 </div>
@@ -637,26 +607,26 @@ body {
     </div>
 
     <!-- Table card -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> বিক্রির রেকর্ড</span>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="fw-semibold"><i class="bi bi-list-ul me-1"></i> বিক্রয়ের রেকর্ডসমূহ</span>
             <div class="input-group" style="max-width:300px;">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" id="searchInput" class="form-control" placeholder="কাস্টমারের নাম, ফোন নাম্বার খুঁজুন…">
-                <button class="btn btn-fb-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="searchInput" class="form-control" placeholder="কাস্টমারের নাম, ফোন নম্বর খুঁজুন…">
+                <button class="btn btn-outline-secondary" id="clearSearchBtn"><i class="bi bi-x-lg"></i></button>
             </div>
         </div>
 
         <!-- Date filter bar -->
         <div class="filter-bar">
-            <span class="d-none d-md-inline" style="font-size:0.8rem;color:#6c757d;">ক্যাটাগরি</span>
+            <span class="d-none d-md-inline" style="font-size:0.8rem;color:var(--muted);">ক্যাটাগরি</span>
             <span class="d-none d-md-inline badge bg-light text-dark border" style="font-size:0.75rem;">সব</span>
-            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:#6c757d;">হতে</span>
-            <label class="d-md-none" style="font-size:0.72rem;color:#6c757d;">হতে</label>
+            <span class="ms-auto d-none d-md-inline" style="font-size:0.8rem;color:var(--muted);">শুরু</span>
+            <label class="d-md-none" style="font-size:0.72rem;color:var(--muted);">শুরু</label>
             <input type="date" id="dateFrom">
-            <span style="font-size:0.8rem;color:#6c757d;">পর্যন্ত</span>
+            <span style="font-size:0.8rem;color:var(--muted);">শেষ</span>
             <input type="date" id="dateTo">
-            <button class="btn btn-sm btn-fb-secondary ms-1" id="clearDatesBtn" title="তারিখ মুছুন">
+            <button class="btn btn-sm btn-outline-secondary ms-1" id="clearDatesBtn" title="তারিখ রিসেট করুন">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
@@ -664,13 +634,13 @@ body {
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    <thead>
                         <tr>
                             <th style="width:60px;">#</th>
                             <th>কাস্টমার</th>
                             <!-- Desktop columns -->
                             <th class="d-none d-md-table-cell">ওজন</th>
-                            <th class="d-none d-md-table-cell">মোট টাকা</th>
+                            <th class="d-none d-md-table-cell">মোট পরিমাণ</th>
                             <th class="d-none d-md-table-cell">পরিশোধিত টাকা</th>
                             <th class="d-none d-md-table-cell">বকেয়া টাকা</th>
                             <!-- Mobile combined column -->
@@ -681,13 +651,13 @@ body {
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        <tr><td colspan="9" class="text-center text-muted py-4">লোডিং…</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">লোড হচ্ছে…</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
             <small class="text-muted" id="paginationInfo">—</small>
             <nav><ul class="pagination pagination-sm mb-0" id="paginationControls"></ul></nav>
         </div>
@@ -697,26 +667,26 @@ body {
 </div>
 
 <!-- ================================================================
-     VIEW MODAL
+     VIEW MODAL (Standardized UI & Bangla Terminology matching gold_buy_list)
 ================================================================ -->
 <div class="modal fade" id="viewModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-receipt me-2"></i>বিক্রি #<span id="viewId"></span>
+                    <i class="bi bi-receipt me-2"></i>বিক্রয় #<span id="viewId"></span>
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="viewBody">
-                <div class="text-center text-muted py-4">লোডিং…</div>
+                <div class="text-center text-muted py-4">লোড হচ্ছে…</div>
             </div>
             <div class="modal-footer justify-content-between">
                 <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                     <i class="bi bi-x-lg me-1"></i>বন্ধ করুন
                 </button>
                 <a id="btnOpenEdit" href="#" class="btn btn-fb-primary btn-sm">
-                    <i class="bi bi-pencil-square me-1"></i>বিস্তারিত দেখুন / এডিট
+                    <i class="bi bi-pencil-square me-1"></i>সম্পূর্ণ বিস্তারিত / এডিট
                 </a>
             </div>
         </div>
@@ -755,7 +725,7 @@ function fmtTrad(grams) {
 }
 
 function fmtBDT(n) {
-    return '৳' + Math.round(parseFloat(n) || 0).toLocaleString('en-BD');
+    return '৳' + Math.round(parseFloat(n) || 0).toLocaleString('bn-BD');
 }
 
 function fmtDate(s) {
@@ -779,7 +749,7 @@ let searchTimer   = null;
 async function loadList(page = 1) {
     currentPage = page;
     const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">লোডিং…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">লোড হচ্ছে…</td></tr>';
 
     try {
         const params = new URLSearchParams({
@@ -792,7 +762,7 @@ async function loadList(page = 1) {
         const data = await res.json();
 
         if (!data.success) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">${escHtml(data.message || 'ব্যর্থ হয়েছে।')}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">${escHtml(data.message || 'ব্যর্থ হয়েছে।')}</td></tr>`;
             return;
         }
 
@@ -804,7 +774,7 @@ async function loadList(page = 1) {
         document.getElementById('statDue').textContent    = fmtBDT(tot.total_due      || 0);
 
         if (data.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">কোনো বিক্রির রেকর্ড পাওয়া যায়নি।</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">কোনো তথ্য পাওয়া যায়নি।</td></tr>';
         } else {
             tbody.innerHTML = data.data.map(row => {
                 const due      = parseFloat(row.due_amount) || 0;
@@ -842,15 +812,15 @@ async function loadList(page = 1) {
                             <span class="info-value">${fmtTrad(row.total_weight_g)}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">মোট টাকা</span>
+                            <span class="info-label">মোট</span>
                             <span class="info-value">${fmtBDT(row.total_amount)}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">পরিশোধিত টাকা</span>
+                            <span class="info-label">পরিশোধিত</span>
                             <span class="info-value">${fmtBDT(row.paid_amount)}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">বকেয়া টাকা</span>
+                            <span class="info-label">বকেয়া</span>
                             <span class="info-value ${dueClass}">${dueVal}</span>
                         </div>
                     </td>
@@ -859,10 +829,10 @@ async function loadList(page = 1) {
                     <td class="small d-none d-md-table-cell">${escHtml(row.created_by_username || '—')}</td>
                     <td>
                         <div class="btn-actions">
-                            <button class="btn btn-sm btn-view" title="দ্রুত দেখুন" data-id="${row.id}">
+                            <button class="btn btn-sm btn-outline-secondary btn-view" title="দ্রুত দেখুন" data-id="${row.id}">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <a href="gold_sale_edit.php?id=${row.id}" class="btn btn-sm" title="এডিট / বিস্তারিত">
+                            <a href="gold_sale_edit.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="এডিট / বিস্তারিত">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
                         </div>
@@ -872,10 +842,10 @@ async function loadList(page = 1) {
         }
 
         document.getElementById('paginationInfo').textContent =
-            `মোট ${data.totalRows} টি বিক্রির রেকর্ডের মধ্যে ${data.data.length} টি দেখানো হচ্ছে`;
+            `মোট ${data.totalRows} টি বিক্রয়ের রেকর্ডের মধ্যে ${data.data.length} টি দেখানো হচ্ছে`;
         renderPagination(data.page, data.totalPages);
     } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">নেটওয়ার্ক সমস্যা হয়েছে।</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">নেটওয়ার্ক সমস্যা।</td></tr>';
     }
 }
 
@@ -928,7 +898,7 @@ document.getElementById('tableBody').addEventListener('click', async function (e
 async function openView(id) {
     document.getElementById('btnOpenEdit').href = 'gold_sale_edit.php?id=' + id;
     document.getElementById('viewId').textContent = id;
-    document.getElementById('viewBody').innerHTML = '<div class="text-center text-muted py-4">লোডিং…</div>';
+    document.getElementById('viewBody').innerHTML = '<div class="text-center text-muted py-4">লোড হচ্ছে…</div>';
     const modal = new bootstrap.Modal(document.getElementById('viewModal'));
     modal.show();
 
@@ -936,41 +906,36 @@ async function openView(id) {
         const res  = await fetch('gold_sale_list.php?action=get&id=' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await res.json();
         if (!data.success) {
-            document.getElementById('viewBody').innerHTML = `<div class="text-danger">${escHtml(data.message || 'ব্যর্থ হয়েছে।')}</div>`;
+            document.getElementById('viewBody').innerHTML = `<div class="text-danger">${escHtml(data.message || 'ব্যর্থ হয়েছে।')}</div>`;
             return;
         }
         const s = data.data;
 
         const itemsHtml = s.items.map((it, idx) => {
             const t = gramsToTraditional(parseFloat(it.weight) || 0);
-            const purity = parseFloat(it.purity || 24).toFixed(2);
             return `<tr>
                 <td class="text-muted">${idx + 1}</td>
                 <td>${t.vori}ভ ${t.ana}আ ${t.roti}র ${t.point}প</td>
-                <td class="text-center">
-                    <span class="badge" style="background:var(--status-total-light);color:var(--status-total-bg);font-weight:600;font-size:0.75rem;">
-                        ${purity} ক্যারেট
-                    </span>
-                </td>
+                <td>${parseFloat(it.purity || 24).toFixed(2)} ক্যারেট</td>
                 <td class="text-end">${fmtBDT(it.price)}</td>
             </tr>`;
         }).join('');
 
-        // Payment history rows
-        const paymentsHtml = (s.payments && s.payments.length > 0)
-            ? s.payments.map(p => `
-                <div class="pmt-row">
-                    <div class="pmt-date">${fmtDate(p.payment_date)}</div>
-                    <div class="flex-grow-1">
-                        ${p.transaction_ref ? `<span class="pmt-ref me-1"><i class="bi bi-hash"></i>${escHtml(p.transaction_ref)}</span>` : ''}
-                        ${p.note ? `<span class="pmt-note">${escHtml(p.note)}</span>` : ''}
-                        ${p.received_by_username ? `<small class="text-muted ms-1">· ${escHtml(p.received_by_username)}</small>` : ''}
-                    </div>
-                    <div class="pmt-amount">${fmtBDT(p.paid_amount)}</div>
-                </div>`).join('')
-            : '<div class="text-muted small fst-italic">এখনো কোনো জমা জমা হয়নি।</div>';
-
         const due = parseFloat(s.due_amount) || 0;
+
+        const pmtHtml = (!s.payments || s.payments.length === 0)
+            ? '<p class="text-muted small mb-0">এখনো কোনো পেমেন্ট পাওয়া যায়নি।</p>'
+            : s.payments.map(p => `
+                <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size:.82rem;">
+                    <span class="text-muted">
+                        ${fmtDate(p.payment_date)}
+                    </span>
+                    <span class="fw-semibold text-success">${fmtBDT(p.paid_amount)}</span>
+                    <span class="text-muted small">${escHtml(p.received_by_username ?? '—')}</span>
+                    ${p.transaction_ref
+                        ? `<span class="badge bg-light text-dark border">#${escHtml(p.transaction_ref)}</span>`
+                        : '<span></span>'}
+                </div>`).join('');
 
         document.getElementById('viewBody').innerHTML = `
             <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
@@ -980,7 +945,7 @@ async function openView(id) {
                 </div>
                 <div class="text-end">
                     <small class="text-muted d-block">${fmtDate(s.created_at)}</small>
-                    <small class="text-muted">দ্বারা ${escHtml(s.created_by_username || '—')}</small>
+                    <small class="text-muted">গ্রহীতা: ${escHtml(s.created_by_username || '—')}</small>
                 </div>
             </div>
 
@@ -989,8 +954,8 @@ async function openView(id) {
                     <thead class="table-light">
                         <tr>
                             <th style="width:32px;">#</th>
-                            <th>ওজন (ভরি-আনা-রতি-পয়েন্ট)</th>
-                            <th style="width:90px;" class="text-center">সোনার মান</th>
+                            <th>সোনার ওজন (ভ-আ-র-প)</th>
+                            <th style="width:70px;">সোনার মান</th>
                             <th class="text-end">আইটেমের দাম</th>
                         </tr>
                     </thead>
@@ -998,41 +963,35 @@ async function openView(id) {
                 </table>
             </div>
 
+            <div class="mb-3">
+                <div class="fw-semibold small text-muted mb-1">পেমেন্ট ইতিহাস</div>
+                ${pmtHtml}
+            </div>
+
             <table class="table table-sm mb-3 ledger-table">
                 <tbody>
                     <tr class="ledger-total">
-                        <td class="ledger-label">পাকা সোনার দাম (২৪ ক্যারেট / ভরি)</td>
+                        <td class="ledger-label">২৪ ক্যারেট পাকা সোনার দাম (প্রতি ভরি)</td>
                         <td class="ledger-vorp">${fmtBDT(s.pure_gold_price)}</td>
                     </tr>
                     <tr class="ledger-total">
-                        <td class="ledger-label">মোট টাকা</td>
+                        <td class="ledger-label">মোট</td>
                         <td class="ledger-vorp">${fmtBDT(s.total_amount)}</td>
                     </tr>
                     <tr class="ledger-paid">
-                        <td class="ledger-label">মোট পরিশোধিত</td>
+                        <td class="ledger-label">পরিশোধিত</td>
                         <td class="ledger-vorp">${fmtBDT(s.paid_amount)}</td>
                     </tr>
                     <tr class="ledger-due">
-                        <td class="ledger-label">বকেয়া টাকা</td>
+                        <td class="ledger-label">বকেয়া</td>
                         <td class="ledger-vorp">${fmtBDT(due)}</td>
                     </tr>
                 </tbody>
             </table>
-
-            <!-- Payment History -->
-            <div class="mb-3">
-                <div class="fw-semibold small text-uppercase mb-2" style="letter-spacing:.04em;color:var(--status-total-bg);">
-                    <i class="bi bi-cash-stack me-1"></i> জমা দেওয়ার বিবরণ
-                </div>
-                <div class="border rounded p-2">
-                    ${paymentsHtml}
-                </div>
-            </div>
-
             ${s.note ? `<div class="alert alert-light border mb-0 py-2"><strong>নোট:</strong> ${escHtml(s.note)}</div>` : ''}
         `;
     } catch {
-        document.getElementById('viewBody').innerHTML = '<div class="text-danger">নেটওয়ার্ক সমস্যা হয়েছে।</div>';
+        document.getElementById('viewBody').innerHTML = '<div class="text-danger">নেটওয়ার্ক সমস্যা।</div>';
     }
 }
 

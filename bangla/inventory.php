@@ -465,71 +465,65 @@ html, body {
 .card { background: #ffffff; border: none; border-radius: 18px; box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12); }
 .card-header { background: var(--ivory) !important; border-bottom: 1px solid var(--hairline); border-radius: 18px 18px 0 0 !important; color: var(--bronze-text); }
 
-/* Karat cards — compact, collapsible, matching reference design:
-   collapsed row shows badge + current stock (green) + chevron;
-   expanding reveals total stock (black/neutral), used, min-stock, actions. */
-.karat-grid { display: flex; flex-direction: column; gap: .7rem; margin-bottom: 1.25rem; }
+/* Karat cards — always expanded, no icon, no collapse.
+   Header row: karat badge + label + quick-add button.
+   Info rows: total / current / used / min stock, stacked. */
+.karat-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: .7rem; margin-bottom: 1.25rem;
+}
 .karat-card {
-    background: #fff; border: 1.5px solid var(--hairline); border-radius: 16px;
+    background: #fff; border: 1.5px solid var(--hairline); border-radius: 14px;
     box-shadow: 0 6px 18px rgba(180, 140, 50, 0.06); overflow: hidden;
+    padding: .65rem .75rem;
 }
 .karat-card.low { border-color: var(--status-due-bg); box-shadow: 0 6px 18px rgba(147,41,44,0.1); }
 
-.kc-summary {
-    display: flex; align-items: center; gap: .7rem;
-    padding: .75rem .9rem; cursor: pointer; user-select: none; background: #fff;
+/* Old collapsed summary row is no longer used */
+.kc-summary { display: none !important; }
+
+.kc-details-inner {
+    display: flex; flex-direction: column; padding: 0;
+}
+.kc-header-row {
+    display: flex; align-items: center; justify-content: space-between; gap: .4rem;
+    margin-bottom: .4rem;
 }
 .karat-card .kc-badge {
-    font-size: .82rem; font-weight: 800; color: #fff; background: var(--gold-deep);
-    border-radius: 10px; padding: .35rem .6rem; display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .78rem; font-weight: 800; color: #fff; background: var(--gold-deep);
+    border-radius: 8px; padding: .28rem .55rem; display: inline-flex; align-items: center; gap: .3rem;
     flex-shrink: 0;
 }
 .karat-card.low .kc-badge { background: var(--status-due-bg); }
 
-.kc-summary-mid { flex: 1 1 auto; min-width: 0; }
-.kc-summary-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; margin-bottom: 1px; }
-.kc-summary-value { font-size: 1rem; font-weight: 800; line-height: 1.2; color: var(--status-paid-bg); }
-.kc-summary-value.low { color: var(--status-due-bg); }
-
-.kc-low-tag {
-    font-size: .62rem; font-weight: 700; color: var(--status-due-bg); background: var(--status-due-light);
-    padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em; flex-shrink: 0;
+.kc-mobile-plus {
+    width: 26px; height: 26px; border-radius: 8px; border: none;
+    background: var(--status-total-light); color: var(--gold-deep);
+    display: flex; align-items: center; justify-content: center; font-size: .85rem;
+    flex-shrink: 0;
 }
-.kc-chevron {
-    width: 26px; height: 26px; min-width: 26px; border-radius: 50%; border: 1.5px solid var(--hairline);
-    display: flex; align-items: center; justify-content: center; color: var(--muted);
-    transition: transform .2s ease; flex-shrink: 0;
-}
-.karat-card.expanded .kc-chevron { transform: rotate(90deg); color: var(--gold-deep); border-color: var(--gold-deep); }
+.kc-mobile-plus:hover { opacity: .85; }
 
-.kc-details {
-    max-height: 0; overflow: hidden; transition: max-height .25s ease;
-    border-top: 1px solid transparent;
-}
-.karat-card.expanded .kc-details { max-height: 400px; border-top-color: var(--hairline); }
-.kc-details-inner { padding: .8rem .9rem .9rem; }
-
-.kc-row { display: flex; justify-content: space-between; align-items: center; padding: .4rem 0; border-top: 1px dashed var(--hairline); }
+.kc-mobile-rows { display: flex; flex-direction: column; }
+.kc-row { display: flex; justify-content: space-between; align-items: center; padding: .3rem 0; border-top: 1px dashed var(--hairline); }
 .kc-row:first-child { border-top: none; padding-top: 0; }
-.kc-row .kc-label { font-size: .76rem; color: var(--muted); display: flex; align-items: center; gap: .35rem; }
-.kc-row .kc-label i { font-size: .7rem; }
-.kc-row .kc-value { font-size: .82rem; font-weight: 700; }
+.kc-row .kc-label { font-size: .68rem; color: var(--muted); display: flex; align-items: center; gap: .3rem; }
+.kc-row .kc-label i { font-size: .62rem; }
+.kc-row .kc-value { font-size: .72rem; font-weight: 700; }
 .kc-row.kc-total .kc-value { color: var(--bronze-text); }
 .kc-row.kc-used .kc-value { color: var(--status-due-bg); }
 .kc-row.kc-min .kc-value { color: var(--muted); }
+.kc-row.kc-current .kc-value { color: var(--status-paid-bg); }
+.karat-card.low .kc-row.kc-current .kc-value { color: var(--status-due-bg); }
 
 .karat-card .kc-min-btn {
-    width: 100%; margin-top: .7rem; border: 1.5px dashed var(--hairline); background: transparent;
-    color: var(--muted); font-size: .72rem; font-weight: 600; border-radius: 999px; padding: .35rem;
+    width: 100%; margin-top: .5rem; border: 1.5px dashed var(--hairline); background: transparent;
+    color: var(--muted); font-size: .66rem; font-weight: 600; border-radius: 999px; padding: .3rem;
 }
 .karat-card .kc-min-btn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
-.karat-card .kc-stock-btn {
-    width: 100%; margin-top: .5rem; background: var(--gold-deep); border: none; color: #fff;
-    font-weight: 700; font-size: .82rem; border-radius: 999px; padding: .45rem;
-}
-.karat-card .kc-stock-btn:hover { opacity: .92; }
+.karat-card .kc-stock-btn { display: none; }
 
 /* Buttons */
+
 .btn-gold, .btn-fb-primary {
     background: var(--gold-deep); border: 1.5px solid var(--gold-deep); color: #ffffff;
     font-weight: 700; border-radius: 999px;
@@ -583,6 +577,7 @@ html, body {
 
 @media (max-width: 991.98px) {
     .summary-grid { grid-template-columns: repeat(3, 1fr); }
+    .karat-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 767.98px) {
     .page-content .container-fluid { padding: 0 !important; }
@@ -591,30 +586,45 @@ html, body {
     .inv-header h4 { font-size: 0.95rem !important; }
     .inv-header .btn-history { padding: 0.22rem 0.55rem !important; font-size: 0.72rem !important; }
 
-    /* ---- Summary cards: mobile layout — icon on the right in a rounded box ---- */
-    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+    /* ---- Summary cards: mobile — match reference: icon+label row on top, big value below, subtitle small ---- */
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: .5rem; }
     .summary-card {
-        padding: .75rem .85rem;
-        display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem;
+        padding: .7rem .75rem;
+        display: flex; flex-direction: column; align-items: flex-start;
+        background: var(--ivory);
+        border: none;
     }
-    .summary-card .sc-top { display: contents; }
-    .summary-card .sc-title { order: 1; white-space: normal; line-height: 1.25; }
-    .summary-card .sc-badge-icon { order: 3; width: 42px; height: 42px; border-radius: 12px; font-size: 1.15rem; flex-shrink: 0; }
-    .summary-card .sc-main-value { order: 2; flex-basis: 100%; font-size: 1rem; margin-top: .3rem; }
-    .summary-card .sc-sub-value { display: none; }
+    .summary-card .sc-top { display: flex; align-items: center; gap: .4rem; margin-bottom: .35rem; }
+    .summary-card .sc-badge-icon {
+        order: 0; width: 26px; height: 26px; border-radius: 8px; font-size: .8rem; flex-shrink: 0;
+        background: transparent; color: var(--gold-deep);
+    }
+    .summary-card .sc-title {
+        order: 1; font-size: .7rem; font-weight: 700; color: #555; text-transform: none;
+        letter-spacing: 0; white-space: normal; line-height: 1.2;
+    }
+    .summary-card .sc-main-value {
+        font-size: .92rem; font-weight: 800; color: var(--gold-deep); line-height: 1.25;
+    }
+    .summary-card.current .sc-main-value,
+    .summary-card.current .sc-badge-icon { color: #3a8a3a; }
+    .summary-card .sc-sub-value { display: block; font-size: .64rem; color: var(--muted); margin-top: .2rem; }
 
-    /* ---- Low stock alert: full-width banner (replaces the grid card on mobile) ---- */
+    /* ---- Low stock alert: full-width banner styled like the reference "কম মজুদ" card ---- */
     .summary-grid #lowStockCard { display: none !important; }
     .low-stock-banner.d-none { display: none !important; }
     .low-stock-banner {
         display: flex; align-items: center; gap: .55rem;
-        background: var(--status-due-light); border: 1.5px solid var(--status-due-bg);
-        color: var(--status-due-bg); border-radius: 12px; padding: .65rem .9rem;
-        font-size: .84rem; font-weight: 700; margin: .6rem 0 1.1rem;
+        background: var(--ivory); border: none;
+        color: #c0272d; border-radius: 12px; padding: .65rem .9rem;
+        font-size: .9rem; font-weight: 800; margin: .6rem 0 1.1rem;
     }
-    .low-stock-banner i { font-size: 1rem; flex-shrink: 0; }
+    .low-stock-banner i { font-size: 1.15rem; flex-shrink: 0; color: #c0272d; }
     .low-stock-banner .lsb-count { font-weight: 800; }
-    .low-stock-banner .lsb-list { font-weight: 600; opacity: .85; }
+    .low-stock-banner .lsb-list { font-weight: 700; opacity: .95; }
+    .low-stock-banner.zero { color: #3a8a3a; }
+    .low-stock-banner.zero i { color: #3a8a3a; }
+    .low-stock-banner.zero i::before { content: "\f26a"; } /* bi-check-circle-fill */
 
     .card { border-radius: 14px; margin-bottom: .8rem; }
     .card-header { border-radius: 14px 14px 0 0 !important; padding: .6rem .9rem; }
@@ -624,46 +634,12 @@ html, body {
     .history-table .col-note,
     .history-table .col-user { display: none; }
 
-    /* ---- Karat cards: mobile layout — large icon + label left, stacked info rows right, "+" top-right ---- */
-    .karat-grid { gap: .65rem; }
-    .karat-card { border-radius: 14px; }
-    .kc-summary { display: none !important; }
-    .kc-details { max-height: none !important; overflow: visible; border-top: none !important; }
-    .karat-card .kc-details { display: block; }
-    .kc-details-inner {
-        display: grid;
-        grid-template-columns: 64px 1fr 34px;
-        column-gap: .75rem;
-        padding: .8rem .85rem;
-        position: relative;
-    }
-    .kc-mobile-icon {
-        grid-column: 1; grid-row: 1 / span 2;
-        width: 52px; height: 52px; border-radius: 12px;
-        background: var(--status-total-light); color: var(--gold-deep);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.5rem; align-self: start;
-    }
-    .karat-card.low .kc-mobile-icon { background: var(--status-due-light); color: var(--status-due-bg); }
-    .kc-mobile-label {
-        grid-column: 2; grid-row: 1;
-        font-size: 1.05rem; font-weight: 800; color: var(--bronze-text);
-        margin-bottom: .35rem; align-self: start;
-    }
-    .kc-mobile-plus {
-        grid-column: 3; grid-row: 1;
-        width: 32px; height: 32px; border-radius: 9px; border: none;
-        background: var(--status-total-light); color: var(--gold-deep);
-        display: flex; align-items: center; justify-content: center; font-size: 1rem;
-        align-self: start;
-    }
-    .kc-mobile-rows { grid-column: 2 / span 2; grid-row: 2; display: flex; flex-direction: column; }
-    .kc-mobile-rows .kc-row { padding: .3rem 0; border-top: 1px dashed var(--hairline); flex-wrap: wrap; }
-    .kc-mobile-rows .kc-row:first-child { border-top: none; padding-top: 0; }
-    .kc-mobile-rows .kc-row .kc-label { font-size: .72rem; }
-    .kc-mobile-rows .kc-row .kc-value { font-size: .78rem; }
-    .kc-details-inner > .kc-min-btn,
-    .kc-details-inner > .kc-stock-btn { display: none !important; }
+    /* ---- Karat cards: mobile — 1 per row, same layout as desktop (no icon, no collapse) ---- */
+    .karat-grid { grid-template-columns: 1fr; gap: .45rem; }
+    .karat-card { border-radius: 12px; padding: .6rem .75rem; }
+    .kc-badge { font-size: .78rem; padding: .3rem .55rem; }
+    .kc-row .kc-label { font-size: .72rem; }
+    .kc-row .kc-value { font-size: .78rem; }
 }
 </style>
 </head>
@@ -699,7 +675,7 @@ html, body {
                 <div class="sc-main-value" id="sumTotalStockIn"><span class="skel d-inline-block" style="width:70px;">&nbsp;</span></div>
                 <div class="sc-sub-value">সর্বমোট (all-time)</div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card current">
                 <div class="sc-top">
                     <span class="sc-title">বর্তমান মজুদ</span>
                     <span class="sc-badge-icon"><i class="bi bi-boxes"></i></span>
@@ -736,7 +712,7 @@ html, body {
         <!-- Low stock banner (mobile only) -->
         <div class="low-stock-banner d-none" id="lowStockBanner">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <span><span class="lsb-count" id="lsbCount">0</span> ক্যারেট — <span class="lsb-list" id="lsbList"></span></span>
+            <span>কম মজুদ&nbsp; <span class="lsb-count" id="lsbCount">0</span> ক্যারেট <span class="lsb-list" id="lsbList"></span></span>
         </div>
 
         <!-- Karat-wise cards -->
@@ -932,16 +908,15 @@ function renderSummary(s) {
 function renderKaratCards(cards) {
     const el = document.getElementById('karatGrid');
 
-    // Mobile low-stock banner
+    // Mobile low-stock banner — always show, even when count is 0
     const banner = document.getElementById('lowStockBanner');
     const lowCards = (cards || []).filter(c => c.is_low);
-    if (lowCards.length > 0) {
-        document.getElementById('lsbCount').textContent = lowCards.length;
-        document.getElementById('lsbList').textContent = lowCards.map(c => c.purity_label).join(', ');
-        banner.classList.remove('d-none');
-    } else {
-        banner.classList.add('d-none');
-    }
+    document.getElementById('lsbCount').textContent = lowCards.length;
+    document.getElementById('lsbList').textContent = lowCards.length > 0
+        ? '(' + lowCards.map(c => c.purity_label).join(',') + ')'
+        : '';
+    banner.classList.remove('d-none');
+    banner.classList.toggle('zero', lowCards.length === 0);
 
     if (!cards || cards.length === 0) {
         el.innerHTML = '<div class="empty-state">কোনো ইনভেন্টরি পাওয়া যায়নি</div>';
@@ -949,56 +924,38 @@ function renderKaratCards(cards) {
     }
     el.innerHTML = cards.map(c => `
         <div class="karat-card ${c.is_low ? 'low' : ''}" data-karat-card="${c.purity}">
-            <div class="kc-summary" data-kc-toggle>
-                <span class="kc-badge"><i class="bi bi-gem"></i> ${escHtml(c.purity_label)}</span>
-                <div class="kc-summary-mid">
-                    <div class="kc-summary-label">বর্তমান মজুদ</div>
-                    <div class="kc-summary-value ${c.is_low ? 'low' : ''}">${escHtml(c.left_trad)}</div>
-                </div>
-                ${c.is_low ? '<span class="kc-low-tag">কম মজুদ</span>' : ''}
-                <span class="kc-chevron"><i class="bi bi-chevron-right"></i></span>
-            </div>
-            <div class="kc-details">
-                <div class="kc-details-inner">
-                    <span class="kc-mobile-icon"><i class="bi bi-gem"></i></span>
-                    <span class="kc-mobile-label">${escHtml(c.purity_label)}</span>
+            <div class="kc-details-inner">
+                <div class="kc-header-row">
+                    <span class="kc-badge"><i class="bi bi-gem"></i> ${escHtml(c.purity_label)}</span>
                     <button type="button" class="kc-mobile-plus" data-quick-stock="${c.purity}" title="স্টক যোগ করুন">
                         <i class="bi bi-plus-lg"></i>
                     </button>
-                    <div class="kc-mobile-rows">
-                        <div class="kc-row kc-total">
-                            <span class="kc-label"><i class="bi bi-box-seam"></i> মোট স্টক ইন</span>
-                            <span class="kc-value">${escHtml(c.total_trad)}</span>
-                        </div>
-                        <div class="kc-row kc-current">
-                            <span class="kc-label"><i class="bi bi-boxes"></i> বর্তমান মজুদ</span>
-                            <span class="kc-value" style="color:var(--status-paid-bg);">${escHtml(c.left_trad)}</span>
-                        </div>
-                        <div class="kc-row kc-used">
-                            <span class="kc-label"><i class="bi bi-arrow-down-circle"></i> ব্যবহৃত</span>
-                            <span class="kc-value">${escHtml(c.used_trad)}</span>
-                        </div>
-                        <div class="kc-row kc-min">
-                            <span class="kc-label"><i class="bi bi-sliders"></i> সর্বনিম্ন মজুদ</span>
-                            <span class="kc-value">${escHtml(c.min_trad)}</span>
-                        </div>
-                    </div>
-                    <button type="button" class="kc-min-btn" data-set-min="${c.purity}" data-min-label="${escHtml(c.purity_label)}">
-                        <i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ নির্ধারণ
-                    </button>
-                    <button type="button" class="kc-stock-btn" data-quick-stock="${c.purity}">
-                        <i class="bi bi-plus-lg me-1"></i> স্টক যোগ করুন
-                    </button>
                 </div>
+                <div class="kc-mobile-rows">
+                    <div class="kc-row kc-total">
+                        <span class="kc-label"><i class="bi bi-box-seam"></i> মোট স্টক ইন</span>
+                        <span class="kc-value">${escHtml(c.total_trad)}</span>
+                    </div>
+                    <div class="kc-row kc-current">
+                        <span class="kc-label"><i class="bi bi-boxes"></i> বর্তমান মজুদ</span>
+                        <span class="kc-value">${escHtml(c.left_trad)}</span>
+                    </div>
+                    <div class="kc-row kc-used">
+                        <span class="kc-label"><i class="bi bi-arrow-down-circle"></i> ব্যবহৃত</span>
+                        <span class="kc-value">${escHtml(c.used_trad)}</span>
+                    </div>
+                    <!-- <div class="kc-row kc-min">
+                        <span class="kc-label"><i class="bi bi-sliders"></i> সর্বনিম্ন মজুদ</span>
+                        <span class="kc-value">${escHtml(c.min_trad)}</span>
+                    </div> -->
+                </div>
+                <!-- <button type="button" class="kc-min-btn" data-set-min="${c.purity}" data-min-label="${escHtml(c.purity_label)}">
+                    <i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ নির্ধারণ
+                </button> -->
             </div>
         </div>
     `).join('');
 
-    el.querySelectorAll('[data-kc-toggle]').forEach(row => {
-        row.addEventListener('click', () => {
-            row.closest('.karat-card').classList.toggle('expanded');
-        });
-    });
     el.querySelectorAll('[data-set-min]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();

@@ -582,7 +582,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
             </h4>
             <small>FineBullion Desk</small>
         </div>
-        <a href="gold_exchange.php" class="btn btn-fb-primary btn-sm">
+        <a href="gold_exchange_inventory.php" class="btn btn-fb-primary btn-sm">
             <i class="bi bi-plus-lg me-1"></i> <span>নতুন সোনা বদল</span>
         </a>
     </div>
@@ -839,7 +839,7 @@ async function loadList(page = 1) {
                             <button class="btn btn-sm btn-outline-secondary btn-view" title="দ্রুত দেখুন" data-id="${row.id}">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <a href="gold_exchange_edit.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="এডিট / বিস্তারিত">
+                            <a href="gold_exchange_edit_inventory.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="এডিট / বিস্তারিত">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
                         </div>
@@ -918,7 +918,7 @@ document.getElementById('tableBody').addEventListener('click', async function (e
 
 async function openView(id) {
     // Update "Open Full Detail" link before showing modal
-    document.getElementById('btnOpenEdit').href = 'gold_exchange_edit.php?id=' + id;
+    document.getElementById('btnOpenEdit').href = 'gold_exchange_edit_inventory.php?id=' + id;
     document.getElementById('viewId').textContent = id;
     document.getElementById('viewBody').innerHTML = '<div class="text-center text-muted py-4">লোড হচ্ছে…</div>';
 

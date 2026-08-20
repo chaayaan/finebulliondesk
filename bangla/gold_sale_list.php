@@ -554,7 +554,7 @@ body {
             <small>ফাইনবুলিয়ন ডায়াল</small>
         </div>
         <div class="header-actions">
-            <a href="gold_sale.php" class="btn btn-fb-primary btn-sm">
+            <a href="gold_sale_inventory.php" class="btn btn-fb-primary btn-sm">
                 <i class="bi bi-plus-lg me-1"></i> <span>নতুন বিক্রি</span>
             </a>
         </div>
@@ -832,7 +832,7 @@ async function loadList(page = 1) {
                             <button class="btn btn-sm btn-outline-secondary btn-view" title="দ্রুত দেখুন" data-id="${row.id}">
                                 <i class="bi bi-eye"></i>
                             </button>
-                            <a href="gold_sale_edit.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="এডিট / বিস্তারিত">
+                            <a href="gold_sale_edit_inventory.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="এডিট / বিস্তারিত">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
                         </div>
@@ -896,7 +896,7 @@ document.getElementById('tableBody').addEventListener('click', async function (e
 });
 
 async function openView(id) {
-    document.getElementById('btnOpenEdit').href = 'gold_sale_edit.php?id=' + id;
+    document.getElementById('btnOpenEdit').href = 'gold_sale_edit_inventory.php?id=' + id;
     document.getElementById('viewId').textContent = id;
     document.getElementById('viewBody').innerHTML = '<div class="text-center text-muted py-4">লোড হচ্ছে…</div>';
     const modal = new bootstrap.Modal(document.getElementById('viewModal'));

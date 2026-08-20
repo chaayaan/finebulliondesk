@@ -35,16 +35,17 @@ $hasLogoImage = file_exists(__DIR__ . '/' . $logoImagePath);
 
 // Active State Logic
 $isCustomerActive     = in_array($navCurrentPage, ['customers.php', 'customer_history.php']);
-$isExchangeActive     = in_array($navCurrentPage, ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php']);
-$isExchangeEditActive = ($navCurrentPage === 'gold_exchange_edit.php');
+$isInventoryActive    = in_array($navCurrentPage, ['inventory.php', 'inventory_list.php', 'inventory_add.php']);
+$isExchangeActive     = in_array($navCurrentPage, ['gold_exchange_inventory.php', 'gold_exchange_list.php', 'gold_exchange_edit_inventory.php']);
+$isExchangeEditActive = ($navCurrentPage === 'gold_exchange_edit_inventory.php');
 
-$isSaleActive         = in_array($navCurrentPage, ['gold_sale.php', 'gold_sale_list.php', 'gold_sale_edit.php']);
-$isSaleEditActive     = ($navCurrentPage === 'gold_sale_edit.php');
+$isSaleActive         = in_array($navCurrentPage, ['gold_sale_inventory.php', 'gold_sale_list.php', 'gold_sale_edit_inventory.php']);
+$isSaleEditActive     = ($navCurrentPage === 'gold_sale_edit_inventory.php');
 
 $isBuyActive          = in_array($navCurrentPage, ['gold_buy.php', 'gold_buy_list.php', 'gold_buy_edit.php']);
 $isBuyEditActive      = ($navCurrentPage === 'gold_buy_edit.php');
 
-$isMenuActive         = in_array($navCurrentPage, ['dashboard.php', 'expenses.php', 'users.php']);
+$isMenuActive         = in_array($navCurrentPage, ['inventory.php', 'expenses.php', 'customers.php', 'users.php']);
 
 function nav_is_active(string $href, string $current): bool {
     return $href === $current;
@@ -52,8 +53,8 @@ function nav_is_active(string $href, string $current): bool {
 
 // Preserve current URI for Edit routes (handles ?id=X)
 $currentQueryString = $_SERVER['QUERY_STRING'] ?? '';
-$exchangeEditUrl = 'gold_exchange_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
-$saleEditUrl     = 'gold_sale_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+$exchangeEditUrl = 'gold_exchange_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+$saleEditUrl     = 'gold_sale_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -73,6 +74,13 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     html, body {
         margin: 0 !important;
         padding: 0 !important;
+    }
+
+    /* Ensure no underlines across all interactive navigation links and buttons */
+    a, a:hover, a:focus, a:active,
+    button, button:hover, button:focus, button:active,
+    .nav-link-item, .nav-sub-item, .mobile-nav-item, .bottom-sheet-item, .nav-logout-btn {
+        text-decoration: none !important;
     }
 
     /* Remove spacing from parent layout wrappers */
@@ -142,11 +150,11 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     .nav-links { flex: 1; overflow-y: auto; padding: 0.75rem 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; }
     .nav-link-item {
         display: flex; align-items: center; gap: 0.7rem; padding: 0.62rem 0.75rem;
-        border-radius: 8px; color: var(--nav-text); text-decoration: none;
+        border-radius: 8px; color: var(--nav-text); text-decoration: none !important;
         font-size: 0.88rem; font-weight: 500; cursor: pointer; background: none; border: none; width: 100%; text-align: left;
     }
     .nav-link-item i.nav-icon { font-size: 1.02rem; width: 20px; color: var(--nav-gold); text-align: center; }
-    .nav-link-item:hover { background: var(--nav-bg-soft); color: #fff; }
+    .nav-link-item:hover { background: var(--nav-bg-soft); color: #fff; text-decoration: none !important; }
     .nav-link-item.active { background: rgba(212, 168, 71, 0.18); color: var(--nav-gold); }
 
     /* Desktop Dropdown Styles */
@@ -173,11 +181,11 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     }
     .nav-sub-item {
         display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.75rem;
-        border-radius: 6px; color: var(--nav-text-dim); text-decoration: none;
+        border-radius: 6px; color: var(--nav-text-dim); text-decoration: none !important;
         font-size: 0.82rem; font-weight: 500;
     }
     .nav-sub-item i { font-size: 0.9rem; color: var(--nav-gold); width: 16px; text-align: center; }
-    .nav-sub-item:hover { background: var(--nav-bg-soft); color: #fff; }
+    .nav-sub-item:hover { background: var(--nav-bg-soft); color: #fff; text-decoration: none !important; }
     .nav-sub-item.active { background: rgba(212, 168, 71, 0.15); color: var(--nav-gold); font-weight: 600; }
 
     .nav-footer { border-top: 1px solid var(--nav-border); padding: 1rem; text-align: center; }
@@ -186,7 +194,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     .nav-logout-btn {
         display: flex; align-items: center; justify-content: center; gap: 0.4rem;
         width: 100%; padding: 0.45rem; border-radius: 7px; border: 1px solid var(--nav-border);
-        color: var(--nav-gold); text-decoration: none; font-size: 0.82rem; font-weight: 600;
+        color: var(--nav-gold); text-decoration: none !important; font-size: 0.82rem; font-weight: 600;
     }
 
     .page-content { 
@@ -206,7 +214,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         border-bottom-right-radius: 20px;
     }
 
-    /* Mobile Bottom Navigation (5 Action Items) */
+    /* Mobile Bottom Navigation (5 Action Items: Dashboard, Exchange, Sale, Buy, Menu) */
     .mobile-bottom-nav {
         display: none; position: fixed; bottom: 0; left: 0; right: 0;
         height: var(--mobile-nav-height); background: var(--nav-bg);
@@ -216,6 +224,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     .mobile-nav-item {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         flex: 1; height: 100%; color: var(--nav-text-dim); background: none; border: none; padding: 0; gap: 3px; cursor: pointer;
+        text-decoration: none !important;
     }
     .mobile-nav-item i { font-size: 1.2rem; }
     .mobile-nav-item span { font-size: 0.65rem; font-weight: 500; }
@@ -237,7 +246,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     .bottom-sheet-options { display: flex; flex-direction: column; gap: 0.5rem; }
     .bottom-sheet-item {
         display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 1rem; border-radius: 10px;
-        background: var(--nav-bg-soft); color: var(--nav-text); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+        background: var(--nav-bg-soft); color: var(--nav-text); text-decoration: none !important; font-size: 0.9rem; font-weight: 500;
     }
     .bottom-sheet-item i { font-size: 1.1rem; color: var(--nav-gold); }
     .bottom-sheet-item.active { background: rgba(212, 168, 71, 0.2); color: var(--nav-gold); }
@@ -278,6 +287,9 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         <a href="dashboard.php" class="nav-link-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-grid-1x2-fill nav-icon"></i><span>ড্যাশবোর্ড</span>
         </a>
+        <a href="inventory.php" class="nav-link-item<?= $isInventoryActive ? ' active' : '' ?>">
+            <i class="bi bi-box-seam-fill nav-icon"></i><span>ইনভেন্টরি</span>
+        </a>
         <a href="customers.php" class="nav-link-item<?= $isCustomerActive ? ' active' : '' ?>">
             <i class="bi bi-person-fill nav-icon"></i><span>কাস্টমার</span>
         </a>
@@ -291,7 +303,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
                 <i class="bi bi-chevron-down chevron-icon"></i>
             </button>
             <div class="nav-submenu">
-                <a href="gold_exchange.php" class="nav-sub-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
+                <a href="gold_exchange_inventory.php" class="nav-sub-item<?= nav_is_active('gold_exchange_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
                     <i class="bi bi-plus-circle"></i><span>নতুন এক্সচেঞ্জ</span>
                 </a>
                 <a href="gold_exchange_list.php" class="nav-sub-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -314,7 +326,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
                 <i class="bi bi-chevron-down chevron-icon"></i>
             </button>
             <div class="nav-submenu">
-                <a href="gold_sale.php" class="nav-sub-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
+                <a href="gold_sale_inventory.php" class="nav-sub-item<?= nav_is_active('gold_sale_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
                     <i class="bi bi-plus-circle"></i><span>নতুন বিক্রয়</span>
                 </a>
                 <a href="gold_sale_list.php" class="nav-sub-item<?= nav_is_active('gold_sale_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -368,12 +380,12 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     </div>
 </aside>
 
-<!-- Mobile Bottom Navigation (5 Action Items) -->
+<!-- Mobile Bottom Navigation (Dashboard, Exchange, Sale, Buy, Menu) -->
 <nav class="mobile-bottom-nav">
     <div class="mobile-nav-container">
-        <button type="button" class="mobile-nav-item<?= $isCustomerActive ? ' active' : '' ?>" onclick="openSheet('sheetCustomer')">
-            <i class="bi bi-person-fill"></i><span>কাস্টমার</span>
-        </button>
+        <a href="dashboard.php" class="mobile-nav-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-grid-1x2-fill"></i><span>ড্যাশবোর্ড</span>
+        </a>
         <button type="button" class="mobile-nav-item<?= $isExchangeActive ? ' active' : '' ?>" onclick="openSheet('sheetExchange')">
             <i class="bi bi-arrow-left-right"></i><span>এক্সচেঞ্জ</span>
         </button>
@@ -393,21 +405,11 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
 <div class="bottom-sheet-backdrop" id="sheetBackdrop" onclick="closeSheets()"></div>
 
 <!-- Bottom Sheets -->
-<div class="bottom-sheet" id="sheetCustomer">
-    <div class="bottom-sheet-drag-handle"></div>
-    <div class="bottom-sheet-title">কাস্টমার মডিউল</div>
-    <div class="bottom-sheet-options">
-        <a href="customers.php" class="bottom-sheet-item<?= nav_is_active('customers.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-people"></i><span>কাস্টমার তালিকা</span>
-        </a>
-    </div>
-</div>
-
 <div class="bottom-sheet" id="sheetExchange">
     <div class="bottom-sheet-drag-handle"></div>
     <div class="bottom-sheet-title">এক্সচেঞ্জ মডিউল</div>
     <div class="bottom-sheet-options">
-        <a href="gold_exchange.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
+        <a href="gold_exchange_inventory.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-plus-circle"></i><span>নতুন এক্সচেঞ্জ</span>
         </a>
         <a href="gold_exchange_list.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -420,7 +422,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     <div class="bottom-sheet-drag-handle"></div>
     <div class="bottom-sheet-title">বিক্রয় মডিউল</div>
     <div class="bottom-sheet-options">
-        <a href="gold_sale.php" class="bottom-sheet-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
+        <a href="gold_sale_inventory.php" class="bottom-sheet-item<?= nav_is_active('gold_sale_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-plus-circle"></i><span>নতুন সোনা বিক্রয়</span>
         </a>
         <a href="gold_sale_list.php" class="bottom-sheet-item<?= nav_is_active('gold_sale_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -442,16 +444,19 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     </div>
 </div>
 
-<!-- Three Dot Menu (Home, Expenses, Users, Logout) -->
+<!-- Mobile Menu Sheet (Inventory, Expenses, Customer, Users, Logout) -->
 <div class="bottom-sheet" id="sheetMenu">
     <div class="bottom-sheet-drag-handle"></div>
     <div class="bottom-sheet-title">প্রধান মেন্যু</div>
     <div class="bottom-sheet-options">
-        <a href="dashboard.php" class="bottom-sheet-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
-            <i class="bi bi-grid-1x2-fill"></i><span>ড্যাশবোর্ড (হোম)</span>
+        <a href="inventory.php" class="bottom-sheet-item<?= nav_is_active('inventory.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-box-seam-fill"></i><span>ইনভেন্টরি</span>
         </a>
         <a href="expenses.php" class="bottom-sheet-item<?= nav_is_active('expenses.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-wallet2"></i><span>খরচ</span>
+        </a>
+        <a href="customers.php" class="bottom-sheet-item<?= nav_is_active('customers.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-person-fill"></i><span>কাস্টমার</span>
         </a>
         <?php if ($isAdmin): ?>
             <a href="users.php" class="bottom-sheet-item<?= nav_is_active('users.php', $navCurrentPage) ? ' active' : '' ?>">

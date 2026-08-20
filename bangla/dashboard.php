@@ -655,13 +655,13 @@ body {
 
         <!-- Quick actions -->
         <div class="quick-actions">
-            <a href="gold_exchange.php" class="qa-btn">
+            <a href="gold_exchange_inventory.php" class="qa-btn">
                 <span class="qa-icon"><i class="bi bi-arrow-left-right"></i></span> নতুন সোনা বিনিময়
             </a>
             <a href="gold_buy.php" class="qa-btn">
                 <span class="qa-icon"><i class="bi bi-bag-plus"></i></span> নতুন সোনা ক্রয়
             </a>
-            <a href="gold_sale.php" class="qa-btn">
+            <a href="gold_sale_inventory.php" class="qa-btn">
                 <span class="qa-icon"><i class="bi bi-bag-check"></i></span> নতুন সোনা বিক্রয়
             </a>
             <a href="expenses.php" class="qa-btn">

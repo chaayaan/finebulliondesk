@@ -83,7 +83,6 @@ function format_traditional(array $t): string
 
 function fmt_karat(float $p): string
 {
-    // 18.00 -> "18K", 19.50 -> "19.50K"
     $rounded = rtrim(rtrim(number_format($p, 2, '.', ''), '0'), '.');
     return $rounded . 'K';
 }
@@ -105,7 +104,6 @@ function ensure_inventory_rows(mysqli $conn): void
 // =========================================================================
 if ($isAjax || $action !== null) {
 
-    // ---- Summary + karat cards + low-stock + recent stock-in ----
     if ($action === 'data' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         ensure_inventory_rows($conn);
 
@@ -116,18 +114,15 @@ if ($isAjax || $action !== null) {
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = $today;
         if ($from > $to) { [$from, $to] = [$to, $from]; }
 
-        // Karat-wise inventory rows
         $res = mysqli_query($conn, "SELECT purity, total_weight, left_weight, minimum_stock FROM inventory ORDER BY purity ASC");
         $invRows = mysqli_fetch_all($res, MYSQLI_ASSOC);
 
-        // Sold per purity (all-time, from gold_sale_items joined to sale header via purity on item)
         $sold = [];
         $r = mysqli_query($conn,
             "SELECT purity, COALESCE(SUM(weight),0) wt
              FROM gold_sale_items GROUP BY purity");
         if ($r) { while ($row = mysqli_fetch_assoc($r)) $sold[(string)round((float)$row['purity'],2)] = (float)$row['wt']; }
 
-        // Exchanged (24K consumption) — final_pure_gold from gold_exchanges, all treated as 24K
         $exchanged24 = 0.0;
         $r = mysqli_query($conn, "SELECT COALESCE(SUM(final_pure_gold),0) wt FROM gold_exchanges");
         if ($r) { $row = mysqli_fetch_assoc($r); $exchanged24 = (float)$row['wt']; }
@@ -168,14 +163,12 @@ if ($isAjax || $action !== null) {
             ];
         }
 
-        // Period stock-in total
         $stmt = mysqli_prepare($conn,
             "SELECT COALESCE(SUM(weight),0) wt, COUNT(*) cnt FROM stock_in WHERE DATE(created_at) BETWEEN ? AND ?");
         mysqli_stmt_bind_param($stmt, 'ss', $from, $to);
         mysqli_stmt_execute($stmt);
         $periodStockIn = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-        // Period sold / exchanged (for summary cards)
         $stmt = mysqli_prepare($conn,
             "SELECT COALESCE(SUM(gsi.weight),0) wt
              FROM gold_sale_items gsi
@@ -192,12 +185,13 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_execute($stmt);
         $periodExchanged = (float)(mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['wt'] ?? 0);
 
-        // Recent stock-in history (last 15)
         $stmt = mysqli_prepare($conn,
             "SELECT si.id, si.purity, si.weight, si.note, si.created_at, u.username AS user_name
              FROM stock_in si
              LEFT JOIN users u ON u.id = si.created_by
-             ORDER BY si.created_at DESC, si.id DESC LIMIT 15");
+             WHERE DATE(si.created_at) BETWEEN ? AND ?
+             ORDER BY si.created_at DESC, si.id DESC LIMIT 500");
+        mysqli_stmt_bind_param($stmt, 'ss', $from, $to);
         mysqli_stmt_execute($stmt);
         $recentRes = mysqli_stmt_get_result($stmt);
         $recent = [];
@@ -236,7 +230,6 @@ if ($isAjax || $action !== null) {
         ]);
     }
 
-    // ---- Add stock-in ----
     if ($action === 'stock_in' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ensure_inventory_rows($conn);
 
@@ -295,7 +288,6 @@ if ($isAjax || $action !== null) {
         ]);
     }
 
-    // ---- Update minimum stock threshold ----
     if ($action === 'set_minimum' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ensure_inventory_rows($conn);
 
@@ -325,7 +317,6 @@ if ($isAjax || $action !== null) {
         ]);
     }
 
-    // ---- Delete a stock-in entry (reverse its inventory impact) ----
     if ($action === 'delete_stock_in' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) json_out(['success' => false, 'message' => 'অকার্যকর আইডি।'], 400);
@@ -339,7 +330,6 @@ if ($isAjax || $action !== null) {
         $purity = (float)$row['purity'];
         $weight = (float)$row['weight'];
 
-        // Guard: don't allow reversal that would push left_weight negative
         $stmt = mysqli_prepare($conn, "SELECT left_weight FROM inventory WHERE purity = ?");
         mysqli_stmt_bind_param($stmt, 'd', $purity);
         mysqli_stmt_execute($stmt);
@@ -444,6 +434,58 @@ html, body {
 
 .page-inset { padding: 0 1.5rem 2rem; }
 
+/* Date range filter */
+.date-filter-bar {
+    background: #ffffff;
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: .8rem 1rem;
+    margin: 0 0 1.25rem;
+}
+.date-filter-bar .dfb-row {
+    display: flex;
+    align-items: end;
+    flex-wrap: nowrap;
+    gap: .4rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.date-filter-bar .dfb-row::-webkit-scrollbar { display: none; }
+.date-filter-bar .dfb-field { display: flex; flex-direction: column; gap: .25rem; flex: 0 0 auto; }
+.date-filter-bar .dfb-field label {
+    font-size: .7rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .02em; white-space: nowrap;
+}
+.date-filter-bar .form-control { 
+    width: 128px; 
+    min-width: 128px; 
+    padding: .25rem .4rem; 
+    font-size: .82rem; 
+    flex: 0 0 auto; 
+}
+.date-filter-bar .btn { border-radius: 10px; font-weight: 600; white-space: nowrap; flex: 0 0 auto; }
+.date-filter-bar .dfb-period {
+    display: inline-block;
+    margin-top: .6rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--gold-deep);
+    background: #fdf6e2;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+}
+@media (max-width: 767.98px) {
+    .date-filter-bar { padding: .7rem .8rem; margin: 0 0 1rem; }
+    .date-filter-bar .form-control { 
+        width: 112px; 
+        min-width: 112px; 
+        font-size: .75rem; 
+        padding: .2rem .3rem; 
+    }
+    .date-filter-bar .dfb-period { width: 100%; text-align: center; }
+}
+
 /* Summary cards */
 .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
 .summary-card {
@@ -465,9 +507,6 @@ html, body {
 .card { background: #ffffff; border: none; border-radius: 18px; box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12); }
 .card-header { background: var(--ivory) !important; border-bottom: 1px solid var(--hairline); border-radius: 18px 18px 0 0 !important; color: var(--bronze-text); }
 
-/* Karat cards — always expanded, no icon, no collapse.
-   Header row: karat badge + label + quick-add button.
-   Info rows: total / current / used / min stock, stacked. */
 .karat-grid {
     display: grid; grid-template-columns: repeat(5, 1fr); gap: .7rem; margin-bottom: 1.25rem;
 }
@@ -478,7 +517,6 @@ html, body {
 }
 .karat-card.low { border-color: var(--status-due-bg); box-shadow: 0 6px 18px rgba(147,41,44,0.1); }
 
-/* Old collapsed summary row is no longer used */
 .kc-summary { display: none !important; }
 
 .kc-details-inner {
@@ -523,7 +561,6 @@ html, body {
 .karat-card .kc-stock-btn { display: none; }
 
 /* Buttons */
-
 .btn-gold, .btn-fb-primary {
     background: var(--gold-deep); border: 1.5px solid var(--gold-deep); color: #ffffff;
     font-weight: 700; border-radius: 999px;
@@ -539,7 +576,7 @@ html, body {
 }
 .form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201, 151, 58, 0.18); }
 
-/* Weight fields row (vori/ana/roti/point) */
+/* Weight fields row */
 .item-fields-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
 .item-fields-row .field-col label { display: block; font-size: 0.72rem; margin-bottom: 0.15rem; color: var(--muted); white-space: nowrap; }
 .item-fields-row .field-col input { text-align: center; padding-left: 0.25rem; padding-right: 0.25rem; }
@@ -571,7 +608,6 @@ html, body {
 .section-title { font-size: 1rem; font-weight: 800; color: var(--bronze-text); margin: 0 0 .9rem; display: flex; align-items: center; gap: .5rem; }
 .section-title i { color: var(--gold-deep); }
 
-/* Modal weight form reuse */
 .karat-row { margin-top: 0.6rem; }
 .karat-row label { display: block; font-size: 0.72rem; margin-bottom: 0.15rem; color: var(--muted); }
 
@@ -586,7 +622,6 @@ html, body {
     .inv-header h4 { font-size: 0.95rem !important; }
     .inv-header .btn-history { padding: 0.22rem 0.55rem !important; font-size: 0.72rem !important; }
 
-    /* ---- Summary cards: mobile — match reference: icon+label row on top, big value below, subtitle small ---- */
     .summary-grid { grid-template-columns: repeat(2, 1fr); gap: .5rem; }
     .summary-card {
         padding: .7rem .75rem;
@@ -610,7 +645,6 @@ html, body {
     .summary-card.current .sc-badge-icon { color: #3a8a3a; }
     .summary-card .sc-sub-value { display: block; font-size: .64rem; color: var(--muted); margin-top: .2rem; }
 
-    /* ---- Low stock alert: full-width banner styled like the reference "কম মজুদ" card ---- */
     .summary-grid #lowStockCard { display: none !important; }
     .low-stock-banner.d-none { display: none !important; }
     .low-stock-banner {
@@ -624,7 +658,7 @@ html, body {
     .low-stock-banner .lsb-list { font-weight: 700; opacity: .95; }
     .low-stock-banner.zero { color: #3a8a3a; }
     .low-stock-banner.zero i { color: #3a8a3a; }
-    .low-stock-banner.zero i::before { content: "\f26a"; } /* bi-check-circle-fill */
+    .low-stock-banner.zero i::before { content: "\f26a"; }
 
     .card { border-radius: 14px; margin-bottom: .8rem; }
     .card-header { border-radius: 14px 14px 0 0 !important; padding: .6rem .9rem; }
@@ -634,7 +668,6 @@ html, body {
     .history-table .col-note,
     .history-table .col-user { display: none; }
 
-    /* ---- Karat cards: mobile — 1 per row, same layout as desktop (no icon, no collapse) ---- */
     .karat-grid { grid-template-columns: 1fr; gap: .45rem; }
     .karat-card { border-radius: 12px; padding: .6rem .75rem; }
     .kc-badge { font-size: .78rem; padding: .3rem .55rem; }
@@ -689,7 +722,7 @@ html, body {
                     <span class="sc-badge-icon"><i class="bi bi-bag-check"></i></span>
                 </div>
                 <div class="sc-main-value" id="sumSold"><span class="skel d-inline-block" style="width:70px;">&nbsp;</span></div>
-                <div class="sc-sub-value">এই মাস</div>
+                <div class="sc-sub-value" id="sumSoldSub">নির্বাচিত সময়</div>
             </div>
             <div class="summary-card">
                 <div class="sc-top">
@@ -697,7 +730,7 @@ html, body {
                     <span class="sc-badge-icon"><i class="bi bi-arrow-left-right"></i></span>
                 </div>
                 <div class="sc-main-value" id="sumExchanged"><span class="skel d-inline-block" style="width:70px;">&nbsp;</span></div>
-                <div class="sc-sub-value">২৪K, এই মাস</div>
+                <div class="sc-sub-value" id="sumExchangedSub">২৪K, নির্বাচিত সময়</div>
             </div>
             <div class="summary-card" id="lowStockCard">
                 <div class="sc-top">
@@ -714,6 +747,27 @@ html, body {
             <i class="bi bi-exclamation-triangle-fill"></i>
             <span>কম মজুদ&nbsp; <span class="lsb-count" id="lsbCount">0</span> ক্যারেট <span class="lsb-list" id="lsbList"></span></span>
         </div>
+        
+        <!-- Date range filter -->
+        <div class="date-filter-bar">
+            <div class="dfb-row">
+                <div class="dfb-field">
+                    <label for="filterFrom">শুরুর তারিখ</label>
+                    <input type="date" class="form-control form-control-sm" id="filterFrom">
+                </div>
+                <div class="dfb-field">
+                    <label for="filterTo">শেষ তারিখ</label>
+                    <input type="date" class="form-control form-control-sm" id="filterTo">
+                </div>
+                <button type="button" class="btn btn-gold btn-sm dfb-apply" id="btnApplyFilter">
+                    <!-- <i class="bi bi-funnel-fill me-1"></i> -->Filter
+                </button>
+                <button type="button" class="btn btn-fb-secondary btn-sm dfb-reset" id="btnThisMonth">
+                    <!-- <i class="bi bi-arrow-counterclockwise me-1"></i> -->Reset
+                </button>
+            </div>
+            <span class="dfb-period" id="dfbPeriodLabel"></span>
+        </div>
 
         <!-- Karat-wise cards -->
         <p class="section-title"><i class="bi bi-gem"></i> ক্যারেট অনুযায়ী মজুদ</p>
@@ -724,7 +778,7 @@ html, body {
         <!-- Stock-in history -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <span class="fw-semibold"><i class="bi bi-clock-history me-1 text-warning"></i> স্টক যোগের ইতিহাস</span>
+                <span class="fw-semibold"><i class="bi bi-clock-history me-1 text-warning"></i> স্টক যোগের ইতিহাস <small class="text-muted fw-normal">(নির্বাচিত সময়সীমা অনুযায়ী)</small></span>
             </div>
             <div class="card-body p-0">
                 <div style="overflow-x:auto;">
@@ -880,14 +934,66 @@ document.getElementById('btnOpenStockIn').addEventListener('click', () => {
 });
 
 // -----------------------------------------------------------------------
+// Date range filter
+// -----------------------------------------------------------------------
+function currentMonthRange() {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const toStr = toISODate(now);
+    const fromStr = toISODate(from);
+    return { from: fromStr, to: toStr };
+}
+
+function toISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function fmtDateShort(iso) {
+    if (!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('bn-BD', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const filterFromEl = document.getElementById('filterFrom');
+const filterToEl = document.getElementById('filterTo');
+
+const defaultRange = currentMonthRange();
+filterFromEl.value = defaultRange.from;
+filterToEl.value = defaultRange.to;
+
+document.getElementById('btnApplyFilter').addEventListener('click', () => {
+    let from = filterFromEl.value;
+    let to = filterToEl.value;
+    if (!from || !to) {
+        alert('অনুগ্রহ করে শুরু ও শেষ তারিখ নির্বাচন করুন।');
+        return;
+    }
+    if (from > to) { [from, to] = [to, from]; filterFromEl.value = from; filterToEl.value = to; }
+    loadInventory();
+});
+
+document.getElementById('btnThisMonth').addEventListener('click', () => {
+    const r = currentMonthRange();
+    filterFromEl.value = r.from;
+    filterToEl.value = r.to;
+    loadInventory();
+});
+
+// -----------------------------------------------------------------------
 // Load data
 // -----------------------------------------------------------------------
 async function loadInventory() {
     try {
-        const res = await fetch('inventory.php?action=data', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const from = filterFromEl.value || defaultRange.from;
+        const to = filterToEl.value || defaultRange.to;
+        const params = new URLSearchParams({ action: 'data', from, to });
+        const res = await fetch(`inventory.php?${params.toString()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || 'লোড ব্যর্থ হয়েছে');
-        renderSummary(data.summary);
+        renderSummary(data.summary, data.period);
         renderKaratCards(data.cards);
         renderHistory(data.recent);
     } catch (e) {
@@ -895,7 +1001,7 @@ async function loadInventory() {
     }
 }
 
-function renderSummary(s) {
+function renderSummary(s, period) {
     document.getElementById('sumTotalStockIn').textContent = s.total_stock_in_trad;
     document.getElementById('sumTotalLeft').textContent = s.total_left_trad;
     document.getElementById('sumSold').textContent = s.period_sold_trad;
@@ -903,12 +1009,18 @@ function renderSummary(s) {
     document.getElementById('sumLowStock').textContent = s.low_stock_count;
     const lowCard = document.getElementById('lowStockCard');
     lowCard.classList.toggle('low', s.low_stock_count > 0);
+
+    if (period) {
+        const rangeLabel = `${fmtDateShort(period.from)} – ${fmtDateShort(period.to)}`;
+        document.getElementById('dfbPeriodLabel').textContent = rangeLabel;
+        document.getElementById('sumSoldSub').textContent = rangeLabel;
+        document.getElementById('sumExchangedSub').textContent = `২৪K, ${rangeLabel}`;
+    }
 }
 
 function renderKaratCards(cards) {
     const el = document.getElementById('karatGrid');
 
-    // Mobile low-stock banner — always show, even when count is 0
     const banner = document.getElementById('lowStockBanner');
     const lowCards = (cards || []).filter(c => c.is_low);
     document.getElementById('lsbCount').textContent = lowCards.length;
@@ -944,14 +1056,7 @@ function renderKaratCards(cards) {
                         <span class="kc-label"><i class="bi bi-arrow-down-circle"></i> ব্যবহৃত</span>
                         <span class="kc-value">${escHtml(c.used_trad)}</span>
                     </div>
-                    <!-- <div class="kc-row kc-min">
-                        <span class="kc-label"><i class="bi bi-sliders"></i> সর্বনিম্ন মজুদ</span>
-                        <span class="kc-value">${escHtml(c.min_trad)}</span>
-                    </div> -->
                 </div>
-                <!-- <button type="button" class="kc-min-btn" data-set-min="${c.purity}" data-min-label="${escHtml(c.purity_label)}">
-                    <i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ নির্ধারণ
-                </button> -->
             </div>
         </div>
     `).join('');

@@ -999,7 +999,7 @@ async function openView(id) {
     }
 }
 
-// Set default date range: past 30 days → today
+// Set default date range: current month (1st → today)
 // NOTE: toISOString() returns UTC which causes a date shift for UTC+6 users
 // (e.g. at 3 AM in Dhaka, UTC is still the previous day).
 // localDateStr() uses the browser's local clock instead.
@@ -1011,7 +1011,7 @@ async function openView(id) {
         return `${y}-${m}-${dy}`;
     };
     const today = new Date();
-    const from  = new Date(); from.setDate(today.getDate() - 30);
+    const from  = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById('dateFrom').value = localDateStr(from);
     document.getElementById('dateTo').value   = localDateStr(today);
     currentFrom = localDateStr(from);

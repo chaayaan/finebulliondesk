@@ -85,6 +85,39 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_execute($totStmt);
         $totRow = mysqli_fetch_assoc(mysqli_stmt_get_result($totStmt));
 
+        // Karat-wise weight breakdown (for the stat bar) — same filters as
+        // the totals above, grouped by gold_sale_items.purity. Only the 5
+        // karats tracked by inventory are ever written to this column
+        // (18/20/21/22/24), but we group dynamically rather than hardcode
+        // in case older/edge-case data has other purities.
+        $karatSql = "SELECT gsi.purity, COALESCE(SUM(gsi.weight), 0) AS weight_g
+                     FROM gold_sale_items gsi
+                     JOIN gold_sales gs ON gs.id = gsi.gold_sale_id
+                     JOIN customers c ON c.id = gs.customer_id
+                     $where
+                     GROUP BY gsi.purity
+                     ORDER BY gsi.purity ASC";
+        $karatStmt = mysqli_prepare($conn, $karatSql);
+        if ($params) mysqli_stmt_bind_param($karatStmt, $types, ...$params);
+        mysqli_stmt_execute($karatStmt);
+        $karatRes = mysqli_stmt_get_result($karatStmt);
+        $byKarat = [];
+        while ($row = mysqli_fetch_assoc($karatRes)) {
+            $key = number_format((float)$row['purity'], 2, '.', '');
+            $byKarat[$key] = (float)$row['weight_g'];
+        }
+        // Always report all 5 tracked karats, even when 0, so the frontend
+        // shows a consistent, complete row set.
+        $byKaratOut = [];
+        foreach ([18.00, 20.00, 21.00, 22.00, 24.00] as $k) {
+            $key = number_format($k, 2, '.', '');
+            $byKaratOut[] = [
+                'purity'   => $k,
+                'weight_g' => $byKarat[$key] ?? 0.0,
+            ];
+        }
+        $totRow['by_karat'] = $byKaratOut;
+
         // Count
         $cntSql  = "SELECT COUNT(*) FROM gold_sales gs
                     JOIN customers c ON c.id = gs.customer_id
@@ -389,6 +422,44 @@ body {
 .stat-cell.stat-due .s-value { color: var(--sc-due-text); }
 .stat-cell.stat-due .s-icon { background: #ffffff; color: var(--sc-due-text); }
 
+/* ---- karat-wise weight breakdown row ---- */
+.karat-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-top: 1px solid var(--sc-border);
+}
+.karat-cell {
+    padding: 8px 10px;
+    text-align: center;
+    border-right: 1px solid var(--sc-border);
+    background: var(--sc-bg);
+}
+.karat-cell:last-child { border-right: none; }
+.karat-cell .k-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--sc-text-2);
+    margin-bottom: 2px;
+}
+.karat-cell .k-value {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--sc-text);
+    white-space: nowrap;
+}
+@media (max-width: 767.98px) {
+    .karat-bar { grid-template-columns: repeat(3, 1fr); }
+    .karat-bar .karat-cell:nth-child(3n) { border-right: none; }
+    .karat-bar .karat-cell:nth-last-child(-n+2):nth-child(3n+1),
+    .karat-bar .karat-cell:nth-last-child(-n+2):nth-child(3n+2) { border-bottom: none; }
+    .karat-cell { padding: 7px 6px; }
+    .karat-cell .k-label { font-size: 9px; }
+    .karat-cell .k-value { font-size: 11px; }
+}
+
 /* ---- amount badges ---- */
 .badge-amount { background: var(--status-total-light); color: var(--status-total-bg); font-weight: 600; font-size: 0.82rem; }
 .badge-paid   { background: var(--status-paid-light);  color: var(--status-paid-bg);  font-weight: 600; font-size: 0.82rem; }
@@ -603,6 +674,7 @@ body {
                     </div>
                 </div>
             </div>
+            <div class="karat-bar" id="karatBar"></div>
         </div>
     </div>
 
@@ -728,6 +800,25 @@ function fmtBDT(n) {
     return '৳' + Math.round(parseFloat(n) || 0).toLocaleString('bn-BD');
 }
 
+// Karat-wise weight breakdown row under the stat bar — one cell per
+// tracked karat (18/20/21/22/24K), showing that karat's total sold
+// weight for the current filtered range.
+function renderKaratBar(byKarat) {
+    const el = document.getElementById('karatBar');
+    if (!el) return;
+    if (!byKarat || byKarat.length === 0) { el.innerHTML = ''; return; }
+
+    el.innerHTML = byKarat.map(k => {
+        const purity = parseFloat(k.purity) || 0;
+        const label  = (Number.isInteger(purity) ? purity : purity.toFixed(2)) + 'K';
+        return `
+            <div class="karat-cell">
+                <span class="k-label">${label}</span>
+                <span class="k-value">${fmtTrad(k.weight_g || 0)}</span>
+            </div>`;
+    }).join('');
+}
+
 function fmtDate(s) {
     if (!s) return '—';
     const d = new Date(s.replace(' ', 'T'));
@@ -772,6 +863,7 @@ async function loadList(page = 1) {
         document.getElementById('statTotal').textContent  = fmtBDT(tot.total_amount   || 0);
         document.getElementById('statPaid').textContent   = fmtBDT(tot.total_paid     || 0);
         document.getElementById('statDue').textContent    = fmtBDT(tot.total_due      || 0);
+        renderKaratBar(tot.by_karat || []);
 
         if (data.data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">কোনো তথ্য পাওয়া যায়নি।</td></tr>';
@@ -995,7 +1087,7 @@ async function openView(id) {
     }
 }
 
-// Set default date range: past 30 days → today
+// Set default date range: current month (1st → today)
 (function setDefaultDates() {
     const localDateStr = d => {
         const y  = d.getFullYear();
@@ -1004,7 +1096,7 @@ async function openView(id) {
         return `${y}-${m}-${dy}`;
     };
     const today = new Date();
-    const from  = new Date(); from.setDate(today.getDate() - 30);
+    const from  = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById('dateFrom').value = localDateStr(from);
     document.getElementById('dateTo').value   = localDateStr(today);
     currentFrom = localDateStr(from);

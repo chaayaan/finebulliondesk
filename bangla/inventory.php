@@ -194,7 +194,7 @@ if ($isAjax || $action !== null) {
 
         // Recent stock-in history (last 15)
         $stmt = mysqli_prepare($conn,
-            "SELECT si.id, si.purity, si.weight, si.note, si.created_at, u.name AS user_name
+            "SELECT si.id, si.purity, si.weight, si.note, si.created_at, u.username AS user_name
              FROM stock_in si
              LEFT JOIN users u ON u.id = si.created_by
              ORDER BY si.created_at DESC, si.id DESC LIMIT 15");
@@ -465,32 +465,62 @@ html, body {
 .card { background: #ffffff; border: none; border-radius: 18px; box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12); }
 .card-header { background: var(--ivory) !important; border-bottom: 1px solid var(--hairline); border-radius: 18px 18px 0 0 !important; color: var(--bronze-text); }
 
-/* Karat cards */
-.karat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+/* Karat cards — compact, collapsible, matching reference design:
+   collapsed row shows badge + current stock (green) + chevron;
+   expanding reveals total stock (black/neutral), used, min-stock, actions. */
+.karat-grid { display: flex; flex-direction: column; gap: .7rem; margin-bottom: 1.25rem; }
 .karat-card {
-    background: #fff; border: 1.5px solid var(--hairline); border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.08); padding: 1.1rem 1.1rem 1rem; position: relative; overflow: hidden;
+    background: #fff; border: 1.5px solid var(--hairline); border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(180, 140, 50, 0.06); overflow: hidden;
 }
-.karat-card.low { border-color: var(--status-due-bg); box-shadow: 0 10px 30px rgba(147,41,44,0.12); }
-.karat-card .kc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .7rem; }
+.karat-card.low { border-color: var(--status-due-bg); box-shadow: 0 6px 18px rgba(147,41,44,0.1); }
+
+.kc-summary {
+    display: flex; align-items: center; gap: .7rem;
+    padding: .75rem .9rem; cursor: pointer; user-select: none; background: #fff;
+}
 .karat-card .kc-badge {
-    font-size: 1rem; font-weight: 800; color: #fff; background: var(--gold-deep);
-    border-radius: 10px; padding: .3rem .7rem; display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .82rem; font-weight: 800; color: #fff; background: var(--gold-deep);
+    border-radius: 10px; padding: .35rem .6rem; display: inline-flex; align-items: center; gap: .3rem;
+    flex-shrink: 0;
 }
 .karat-card.low .kc-badge { background: var(--status-due-bg); }
-.karat-card .kc-low-tag {
-    font-size: .65rem; font-weight: 700; color: var(--status-due-bg); background: var(--status-due-light);
-    padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em;
+
+.kc-summary-mid { flex: 1 1 auto; min-width: 0; }
+.kc-summary-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; margin-bottom: 1px; }
+.kc-summary-value { font-size: 1rem; font-weight: 800; line-height: 1.2; color: var(--status-paid-bg); }
+.kc-summary-value.low { color: var(--status-due-bg); }
+
+.kc-low-tag {
+    font-size: .62rem; font-weight: 700; color: var(--status-due-bg); background: var(--status-due-light);
+    padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em; flex-shrink: 0;
 }
-.karat-card .kc-left-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
-.karat-card .kc-left-value { font-size: 1.15rem; font-weight: 800; color: var(--bronze-text); margin: .1rem 0 .7rem; line-height: 1.25; }
-.karat-card .kc-row { display: flex; justify-content: space-between; align-items: center; padding: .35rem 0; border-top: 1px dashed var(--hairline); }
-.karat-card .kc-row:first-of-type { border-top: none; }
-.karat-card .kc-row .kc-label { font-size: .74rem; color: var(--muted); }
-.karat-card .kc-row .kc-value { font-size: .78rem; font-weight: 700; color: var(--bronze-text); }
+.kc-chevron {
+    width: 26px; height: 26px; min-width: 26px; border-radius: 50%; border: 1.5px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center; color: var(--muted);
+    transition: transform .2s ease; flex-shrink: 0;
+}
+.karat-card.expanded .kc-chevron { transform: rotate(90deg); color: var(--gold-deep); border-color: var(--gold-deep); }
+
+.kc-details {
+    max-height: 0; overflow: hidden; transition: max-height .25s ease;
+    border-top: 1px solid transparent;
+}
+.karat-card.expanded .kc-details { max-height: 400px; border-top-color: var(--hairline); }
+.kc-details-inner { padding: .8rem .9rem .9rem; }
+
+.kc-row { display: flex; justify-content: space-between; align-items: center; padding: .4rem 0; border-top: 1px dashed var(--hairline); }
+.kc-row:first-child { border-top: none; padding-top: 0; }
+.kc-row .kc-label { font-size: .76rem; color: var(--muted); display: flex; align-items: center; gap: .35rem; }
+.kc-row .kc-label i { font-size: .7rem; }
+.kc-row .kc-value { font-size: .82rem; font-weight: 700; }
+.kc-row.kc-total .kc-value { color: var(--bronze-text); }
+.kc-row.kc-used .kc-value { color: var(--status-due-bg); }
+.kc-row.kc-min .kc-value { color: var(--muted); }
+
 .karat-card .kc-min-btn {
-    width: 100%; margin-top: .6rem; border: 1.5px dashed var(--hairline); background: transparent;
-    color: var(--muted); font-size: .72rem; font-weight: 600; border-radius: 999px; padding: .3rem;
+    width: 100%; margin-top: .7rem; border: 1.5px dashed var(--hairline); background: transparent;
+    color: var(--muted); font-size: .72rem; font-weight: 600; border-radius: 999px; padding: .35rem;
 }
 .karat-card .kc-min-btn:hover { border-color: var(--gold-deep); color: var(--gold-deep); }
 .karat-card .kc-stock-btn {
@@ -553,7 +583,6 @@ html, body {
 
 @media (max-width: 991.98px) {
     .summary-grid { grid-template-columns: repeat(3, 1fr); }
-    .karat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 767.98px) {
     .page-content .container-fluid { padding: 0 !important; }
@@ -564,10 +593,13 @@ html, body {
     .summary-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
     .summary-card { padding: .8rem .9rem; }
     .summary-card .sc-main-value { font-size: 1.05rem; }
-    .karat-grid { grid-template-columns: repeat(1, 1fr); gap: .7rem; }
     .card { border-radius: 14px; margin-bottom: .8rem; }
     .card-header { border-radius: 14px 14px 0 0 !important; padding: .6rem .9rem; }
-    .history-table { display: block; overflow-x: auto; white-space: nowrap; }
+    .history-table { width: 100%; }
+    .history-table th,
+    .history-table td { padding: .55rem .5rem; font-size: .8rem; }
+    .history-table .col-note,
+    .history-table .col-user { display: none; }
 }
 </style>
 </head>
@@ -656,8 +688,8 @@ html, body {
                             <th>তারিখ</th>
                             <th>ক্যারেট</th>
                             <th>ওজন</th>
-                            <th>নোট</th>
-                            <th>ব্যবহারকারী</th>
+                            <th class="col-note">নোট</th>
+                            <th class="col-user">ব্যবহারকারী</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -834,36 +866,49 @@ function renderKaratCards(cards) {
         return;
     }
     el.innerHTML = cards.map(c => `
-        <div class="karat-card ${c.is_low ? 'low' : ''}">
-            <div class="kc-top">
+        <div class="karat-card ${c.is_low ? 'low' : ''}" data-karat-card="${c.purity}">
+            <div class="kc-summary" data-kc-toggle>
                 <span class="kc-badge"><i class="bi bi-gem"></i> ${escHtml(c.purity_label)}</span>
+                <div class="kc-summary-mid">
+                    <div class="kc-summary-label">বর্তমান মজুদ</div>
+                    <div class="kc-summary-value ${c.is_low ? 'low' : ''}">${escHtml(c.left_trad)}</div>
+                </div>
                 ${c.is_low ? '<span class="kc-low-tag">কম মজুদ</span>' : ''}
+                <span class="kc-chevron"><i class="bi bi-chevron-right"></i></span>
             </div>
-            <div class="kc-left-label">বর্তমান মজুদ</div>
-            <div class="kc-left-value">${escHtml(c.left_trad)}</div>
-            <div class="kc-row">
-                <span class="kc-label">মোট স্টক ইন</span>
-                <span class="kc-value">${escHtml(c.total_trad)}</span>
+            <div class="kc-details">
+                <div class="kc-details-inner">
+                    <div class="kc-row kc-total">
+                        <span class="kc-label"><i class="bi bi-box-seam"></i> মোট স্টক ইন</span>
+                        <span class="kc-value">${escHtml(c.total_trad)}</span>
+                    </div>
+                    <div class="kc-row kc-used">
+                        <span class="kc-label"><i class="bi bi-arrow-down-circle"></i> ব্যবহৃত</span>
+                        <span class="kc-value">${escHtml(c.used_trad)}</span>
+                    </div>
+                    <div class="kc-row kc-min">
+                        <span class="kc-label"><i class="bi bi-sliders"></i> সর্বনিম্ন মজুদ</span>
+                        <span class="kc-value">${escHtml(c.min_trad)}</span>
+                    </div>
+                    <button type="button" class="kc-min-btn" data-set-min="${c.purity}" data-min-label="${escHtml(c.purity_label)}">
+                        <i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ নির্ধারণ
+                    </button>
+                    <button type="button" class="kc-stock-btn" data-quick-stock="${c.purity}">
+                        <i class="bi bi-plus-lg me-1"></i> স্টক যোগ করুন
+                    </button>
+                </div>
             </div>
-            <div class="kc-row">
-                <span class="kc-label">ব্যবহৃত</span>
-                <span class="kc-value">${escHtml(c.used_trad)}</span>
-            </div>
-            <div class="kc-row">
-                <span class="kc-label">সর্বনিম্ন মজুদ</span>
-                <span class="kc-value">${escHtml(c.min_trad)}</span>
-            </div>
-            <button type="button" class="kc-min-btn" data-set-min="${c.purity}" data-min-label="${escHtml(c.purity_label)}">
-                <i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ নির্ধারণ
-            </button>
-            <button type="button" class="kc-stock-btn" data-quick-stock="${c.purity}">
-                <i class="bi bi-plus-lg me-1"></i> স্টক যোগ করুন
-            </button>
         </div>
     `).join('');
 
+    el.querySelectorAll('[data-kc-toggle]').forEach(row => {
+        row.addEventListener('click', () => {
+            row.closest('.karat-card').classList.toggle('expanded');
+        });
+    });
     el.querySelectorAll('[data-set-min]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             document.getElementById('msPurity').value = btn.dataset.setMin;
             document.getElementById('minStockTitle').innerHTML =
                 `<i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ — ${escHtml(btn.dataset.minLabel)}`;
@@ -873,7 +918,8 @@ function renderKaratCards(cards) {
         });
     });
     el.querySelectorAll('[data-quick-stock]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             document.getElementById('stockInForm').reset();
             document.getElementById('siPurity').value = parseFloat(btn.dataset.quickStock).toFixed(2);
             document.getElementById('siWeightError').style.display = 'none';
@@ -893,8 +939,8 @@ function renderHistory(rows) {
             <td>${fmtDate(r.created_at)}</td>
             <td><span class="history-karat-badge">${escHtml(r.purity_label)}</span></td>
             <td class="fw-semibold">${escHtml(r.weight_trad)}</td>
-            <td class="history-note">${r.note ? escHtml(r.note) : '—'}</td>
-            <td>${escHtml(r.user_name)}</td>
+            <td class="history-note col-note">${r.note ? escHtml(r.note) : '—'}</td>
+            <td class="col-user">${escHtml(r.user_name)}</td>
             <td>
                 <button type="button" class="btn-del-stock" data-del-stock="${r.id}" title="বাতিল করুন">
                     <i class="bi bi-trash3"></i>

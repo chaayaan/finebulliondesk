@@ -13,7 +13,7 @@ require_once __DIR__ . '/config.php';
 
 // Already logged in? Skip straight to the app.
 if (isset($_SESSION['user_id'])) {
-    header('Location: gold_exchange.php');
+    header('Location: gold_exchange_inventory.php');
     exit;
 }
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
-            header('Location: gold_exchange.php');
+            header('Location: gold_exchange_inventory.php');
             exit;
         } else {
             $error = 'Incorrect username or password.';

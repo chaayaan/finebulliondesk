@@ -214,7 +214,7 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         border-bottom-right-radius: 20px;
     }
 
-    /* Mobile Bottom Navigation (5 Action Items: Dashboard, Exchange, Sale, Buy, Menu) */
+    /* Mobile Bottom Navigation */
     .mobile-bottom-nav {
         display: none; position: fixed; bottom: 0; left: 0; right: 0;
         height: var(--mobile-nav-height); background: var(--nav-bg);
@@ -250,6 +250,19 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     }
     .bottom-sheet-item i { font-size: 1.1rem; color: var(--nav-gold); }
     .bottom-sheet-item.active { background: rgba(212, 168, 71, 0.2); color: var(--nav-gold); }
+
+    /* Mobile Sheet Logo Header */
+    .bottom-sheet-logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .bottom-sheet-logo {
+        max-height: 50px;
+        max-width: 80%;
+        object-fit: contain;
+    }
 
     @media (max-width: 991.98px) {
         .app-sidebar { display: none; }
@@ -380,12 +393,12 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     </div>
 </aside>
 
-<!-- Mobile Bottom Navigation (Dashboard, Exchange, Sale, Buy, Menu) -->
+<!-- Mobile Bottom Navigation -->
 <nav class="mobile-bottom-nav">
     <div class="mobile-nav-container">
-        <a href="dashboard.php" class="mobile-nav-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
+        <button type="button" class="mobile-nav-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>" onclick="openSheet('sheetOther')">
             <i class="bi bi-grid-1x2-fill"></i><span>ড্যাশবোর্ড</span>
-        </a>
+        </button>
         <button type="button" class="mobile-nav-item<?= $isExchangeActive ? ' active' : '' ?>" onclick="openSheet('sheetExchange')">
             <i class="bi bi-arrow-left-right"></i><span>এক্সচেঞ্জ</span>
         </button>
@@ -405,6 +418,16 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
 <div class="bottom-sheet-backdrop" id="sheetBackdrop" onclick="closeSheets()"></div>
 
 <!-- Bottom Sheets -->
+<div class="bottom-sheet" id="sheetOther">
+    <div class="bottom-sheet-drag-handle"></div>
+    <div class="bottom-sheet-title">ড্যাশবোর্ড</div>
+    <div class="bottom-sheet-options">
+        <a href="dashboard.php" class="bottom-sheet-item<?= nav_is_active('dashboard.php', $navCurrentPage) ? ' active' : '' ?>">
+            <i class="bi bi-grid-1x2-fill"></i><span>ড্যাশবোর্ড</span>
+        </a>
+    </div>
+</div>
+
 <div class="bottom-sheet" id="sheetExchange">
     <div class="bottom-sheet-drag-handle"></div>
     <div class="bottom-sheet-title">এক্সচেঞ্জ মডিউল</div>
@@ -447,7 +470,25 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
 <!-- Mobile Menu Sheet (Inventory, Expenses, Customer, Users, Logout) -->
 <div class="bottom-sheet" id="sheetMenu">
     <div class="bottom-sheet-drag-handle"></div>
-    <div class="bottom-sheet-title">প্রধান মেন্যু</div>
+    
+    <!-- Logo display above bottom-sheet-title -->
+    <div class="bottom-sheet-logo-container">
+        <?php if ($hasLogoImage): ?>
+            <img src="<?= htmlspecialchars($logoImagePath) ?>" 
+                 alt="FineBullion Desk" 
+                 class="bottom-sheet-logo" 
+                 onerror="this.style.display='none'; document.getElementById('menuSheetFallbackText').style.display='block';">
+            <div class="nav-brand-text-fallback" id="menuSheetFallbackText" style="display: none;">
+                FineBullion Desk
+            </div>
+        <?php else: ?>
+            <div class="nav-brand-text-fallback">
+                FineBullion Desk
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="bottom-sheet-title">অন্যান্য</div>
     <div class="bottom-sheet-options">
         <a href="inventory.php" class="bottom-sheet-item<?= nav_is_active('inventory.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-box-seam-fill"></i><span>ইনভেন্টরি</span>

@@ -56,6 +56,101 @@ $currentQueryString = $_SERVER['QUERY_STRING'] ?? '';
 $exchangeEditUrl = 'gold_exchange_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 $saleEditUrl     = 'gold_sale_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+
+/* =========================================================
+ * License Status System (self-contained inside navbar.php)
+ * ========================================================= */
+$branchName        = '';
+$licenseKey         = '';
+$branchAppLink      = '';
+$licenseStatusRaw   = '';
+$expireDate         = '';
+$lastRenewDate      = '';
+$daysLeft           = null;
+$daysLeftText       = '';
+$licenseWarningLevel = 'normal'; // normal | orange | red | darkred | today | expired
+$hasLicenseRecord   = false;
+$isLicenseExpired   = false;
+
+/**
+ * Connection settings for the licenses database.
+ * Adjust these constants if the license_manager database
+ * lives on a different host/credentials than the main app DB.
+ */
+if (!defined('LICENSE_DB_HOST')) define('LICENSE_DB_HOST', 'localhost');
+if (!defined('LICENSE_DB_USER')) define('LICENSE_DB_USER', 'root');
+if (!defined('LICENSE_DB_PASS')) define('LICENSE_DB_PASS', '');
+if (!defined('LICENSE_DB_NAME')) define('LICENSE_DB_NAME', 'license_manager');
+
+function license_human_days(?int $days): string
+{
+    if ($days === null) return '';
+
+    if ($days < 0) {
+        $absDays = abs($days);
+        return 'Expired ' . $absDays . ' Day' . ($absDays === 1 ? '' : 's') . ' Ago';
+    }
+    if ($days === 0)  return 'Today';
+    if ($days === 1)  return 'Tomorrow';
+    if ($days < 30)   return $days . ' Days Left';
+
+    $years         = intdiv($days, 365);
+    $remAfterYears = $days % 365;
+    $months        = intdiv($remAfterYears, 30);
+    $remDays       = $remAfterYears % 30;
+
+    $parts = [];
+    if ($years > 0)  $parts[] = $years . ' Year' . ($years > 1 ? 's' : '');
+    if ($months > 0) $parts[] = $months . ' Month' . ($months > 1 ? 's' : '');
+    if ($years === 0 && $remDays > 0) $parts[] = $remDays . ' Day' . ($remDays > 1 ? 's' : '');
+    if (empty($parts)) $parts[] = $days . ' Days';
+
+    return implode(' ', $parts) . ' Left';
+}
+
+$licenseConn = @mysqli_connect(LICENSE_DB_HOST, LICENSE_DB_USER, LICENSE_DB_PASS, LICENSE_DB_NAME);
+
+if ($licenseConn) {
+    $licenseSql = "SELECT branch_name, branch_app_link, license_key, expire_date, last_renew_date, status
+                   FROM finebulion_desk_licenses
+                   ORDER BY id DESC LIMIT 1";
+    $licenseResult = mysqli_query($licenseConn, $licenseSql);
+
+    if ($licenseResult && ($licenseRow = mysqli_fetch_assoc($licenseResult))) {
+        $hasLicenseRecord = true;
+
+        $branchName      = $licenseRow['branch_name'];
+        $licenseKey      = $licenseRow['license_key'];
+        $branchAppLink   = $licenseRow['branch_app_link'];
+        $licenseStatusRaw = $licenseRow['status'];
+        $expireDate      = $licenseRow['expire_date'];
+        $lastRenewDate   = $licenseRow['last_renew_date'];
+
+        $todayDate     = new DateTime('today');
+        $expireDateObj = new DateTime($expireDate);
+        $interval      = $todayDate->diff($expireDateObj);
+        $daysLeft      = (int)$interval->format('%r%a');
+
+        $isLicenseExpired = $daysLeft < 0;
+        $daysLeftText     = license_human_days($daysLeft);
+
+        if ($isLicenseExpired) {
+            $licenseWarningLevel = 'expired';
+        } elseif ($daysLeft === 0) {
+            $licenseWarningLevel = 'today';
+        } elseif ($daysLeft >= 1 && $daysLeft <= 3) {
+            $licenseWarningLevel = 'darkred';
+        } elseif ($daysLeft >= 4 && $daysLeft <= 7) {
+            $licenseWarningLevel = 'red';
+        } elseif ($daysLeft >= 8 && $daysLeft <= 30) {
+            $licenseWarningLevel = 'orange';
+        } else {
+            $licenseWarningLevel = 'normal';
+        }
+    }
+
+    mysqli_close($licenseConn);
+}
 ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -68,6 +163,16 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         --nav-text: #FFFFFF;
         --nav-text-dim: rgba(255, 255, 255, 0.65);
         --mobile-nav-height: 60px;
+
+        /* License status accent colors */
+        --license-gold: #D4AF37;
+        --license-gold-bg: rgba(212, 175, 55, 0.16);
+        --license-orange: #E8973B;
+        --license-orange-bg: rgba(232, 151, 59, 0.18);
+        --license-red: #D64545;
+        --license-red-bg: rgba(214, 69, 69, 0.18);
+        --license-darkred: #8B1E1E;
+        --license-darkred-bg: rgba(139, 30, 30, 0.22);
     }
 
     /* Zero out root margins and body padding */
@@ -363,6 +468,152 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         }
         .bs-item-tile.active { background: #FFFFFF; }
         .bs-item-tile.active .bs-item-icon { background: var(--sky, #C8D9E6); }
+
+        /* License widget inside mobile menu sheet (light theme) */
+        #sheetMenu .nav-license-widget {
+            background: #FFFFFF;
+            border: 1px solid var(--sky, #C8D9E6);
+        }
+        #sheetMenu .nav-license-widget:hover { background: #FFFFFF; }
+        #sheetMenu .nav-license-branch { color: var(--navy, #2F4156); }
+        #sheetMenu .nav-license-widget.nav-license-expired {
+            background: rgba(139, 30, 30, 0.08);
+            border-color: rgba(139, 30, 30, 0.35);
+        }
+        #sheetMenu .nav-license-widget.nav-license-expired .nav-license-icon { color: var(--license-darkred); background: rgba(139,30,30,0.14); }
+        #sheetMenu .nav-license-widget.nav-license-expired .nav-license-days { color: var(--license-darkred); }
+    }
+
+    /* =========================================================
+     * License Status Widget (sidebar / mobile menu)
+     * ========================================================= */
+    @keyframes licensePulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(139, 30, 30, 0.35); }
+        50%      { box-shadow: 0 0 0 6px rgba(139, 30, 30, 0); }
+    }
+
+    .nav-license-widget {
+        display: flex; align-items: center; gap: 0.65rem;
+        margin: 0 0.75rem 0.85rem; padding: 0.6rem 0.7rem;
+        border-radius: 12px; cursor: pointer;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .nav-license-widget:hover { background: rgba(255, 255, 255, 0.12); }
+    .nav-license-widget:active { transform: scale(0.98); }
+
+    .nav-license-icon {
+        width: 34px; height: 34px; min-width: 34px; border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; background: var(--license-gold-bg); color: var(--license-gold);
+    }
+    .nav-license-text { min-width: 0; }
+    .nav-license-branch {
+        font-size: 0.82rem; font-weight: 700; color: #fff;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .nav-license-days { font-size: 0.72rem; font-weight: 600; color: var(--license-gold); margin-top: 1px; }
+
+    .nav-license-widget.nav-license-orange .nav-license-icon { background: var(--license-orange-bg); color: var(--license-orange); }
+    .nav-license-widget.nav-license-orange .nav-license-days { color: var(--license-orange); }
+
+    .nav-license-widget.nav-license-red .nav-license-icon { background: var(--license-red-bg); color: var(--license-red); }
+    .nav-license-widget.nav-license-red .nav-license-days { color: var(--license-red); }
+
+    .nav-license-widget.nav-license-darkred { animation: licensePulse 2s infinite; }
+    .nav-license-widget.nav-license-darkred .nav-license-icon { background: var(--license-darkred-bg); color: var(--license-darkred); }
+    .nav-license-widget.nav-license-darkred .nav-license-days { color: var(--license-darkred); font-weight: 700; }
+
+    .nav-license-widget.nav-license-today { animation: licensePulse 1.4s infinite; }
+    .nav-license-widget.nav-license-today .nav-license-icon { background: var(--license-red-bg); color: var(--license-red); }
+    .nav-license-widget.nav-license-today .nav-license-days { color: var(--license-red); font-weight: 700; }
+
+    .nav-license-widget.nav-license-expired {
+        background: rgba(139, 30, 30, 0.28);
+        border-color: rgba(139, 30, 30, 0.5);
+        animation: licensePulse 1.2s infinite;
+    }
+    .nav-license-widget.nav-license-expired .nav-license-icon { background: rgba(255, 255, 255, 0.18); color: #fff; }
+    .nav-license-widget.nav-license-expired .nav-license-days { color: #fff; font-weight: 700; }
+
+    /* =========================================================
+     * License Details Modal
+     * ========================================================= */
+    .license-modal-backdrop {
+        display: none; position: fixed; inset: 0; z-index: 5000;
+        background: rgba(47, 65, 86, 0.55);
+        align-items: center; justify-content: center; padding: 1rem;
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+    .license-modal-backdrop.open { display: flex; }
+
+    .license-modal {
+        background: #FDFBF8; border-radius: 18px; width: 100%; max-width: 420px;
+        max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+    }
+    .license-modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.1rem 1.3rem; border-bottom: 1px solid #EDE6DC; background: #FFFFFF;
+        border-top-left-radius: 18px; border-top-right-radius: 18px;
+    }
+    .license-modal-header h3 { margin: 0; font-size: 1rem; font-weight: 800; color: #2F4156; }
+    .license-modal-close {
+        background: none; border: none; color: #567C8D; font-size: 1rem;
+        cursor: pointer; padding: 0.2rem; line-height: 1;
+    }
+    .license-modal-close:hover { color: #2F4156; }
+
+    .license-modal-body { padding: 1.15rem 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 0.8rem; }
+    .license-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+    .license-label { color: #8592A6; font-weight: 600; flex-shrink: 0; }
+    .license-value { color: #2F4156; font-weight: 700; text-align: right; word-break: break-word; }
+    .license-key-value { font-family: 'Courier New', monospace; letter-spacing: 0.02em; font-size: 0.82rem; }
+    .license-app-link { color: #567C8D; text-decoration: underline !important; font-size: 0.8rem; word-break: break-all; }
+
+    .license-status-badge {
+        display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px;
+        font-size: 0.7rem; font-weight: 800; text-transform: capitalize;
+        background: var(--license-gold-bg); color: #9C7D18;
+    }
+    .license-remaining-normal { color: #9C7D18; }
+    .license-remaining-orange, .license-status-badge.license-status-orange { color: var(--license-orange); background: var(--license-orange-bg); }
+    .license-remaining-red, .license-status-badge.license-status-red { color: var(--license-red); background: var(--license-red-bg); }
+    .license-remaining-darkred, .license-status-badge.license-status-darkred { color: var(--license-darkred); background: var(--license-darkred-bg); }
+    .license-remaining-today, .license-status-badge.license-status-today { color: var(--license-red); background: var(--license-red-bg); }
+    .license-remaining-expired, .license-status-badge.license-status-expired { color: #fff; background: var(--license-darkred); }
+
+    .license-high-risk-tag {
+        align-self: flex-start; background: var(--license-darkred); color: #fff;
+        padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.68rem;
+        font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    /* =========================================================
+     * Expired License — Full Lock Overlay
+     * ========================================================= */
+    .license-lock-overlay {
+        position: fixed; inset: 0; z-index: 99999;
+        background: rgba(139, 20, 20, 0.96);
+        display: flex; align-items: center; justify-content: center;
+        padding: 1.5rem; font-family: system-ui, -apple-system, sans-serif;
+    }
+    .license-lock-box {
+        background: #FFFFFF; border-radius: 20px; padding: 2.4rem 2rem;
+        max-width: 420px; width: 100%; text-align: center;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+    }
+    .license-lock-icon { font-size: 2.4rem; color: var(--license-darkred); margin-bottom: 0.75rem; }
+    .license-lock-box h2 { margin: 0 0 0.9rem; font-size: 1.25rem; font-weight: 800; color: var(--license-darkred); }
+    .license-lock-branch { font-size: 1rem; font-weight: 700; color: #2F4156; margin-bottom: 0.25rem; }
+    .license-lock-key { font-size: 0.8rem; font-family: 'Courier New', monospace; color: #567C8D; margin-bottom: 0.75rem; }
+    .license-lock-expired-text { font-size: 0.85rem; font-weight: 800; color: var(--license-darkred); margin-bottom: 1rem; }
+    .license-lock-box p { margin: 0; font-size: 0.85rem; color: #567C8D; line-height: 1.5; }
+
+    @media (max-width: 575.98px) {
+        .license-modal { max-width: 100%; }
+        .license-lock-box { padding: 2rem 1.4rem; }
     }
 </style>
 
@@ -476,6 +727,18 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         <?php endif; ?>
     </nav>
 
+    <?php if ($hasLicenseRecord): ?>
+        <div class="nav-license-widget nav-license-<?= htmlspecialchars($licenseWarningLevel) ?>"
+             onclick="openLicenseModal()" role="button" tabindex="0"
+             onkeypress="if(event.key==='Enter'){openLicenseModal();}">
+            <div class="nav-license-icon"><i class="bi bi-shield-lock-fill"></i></div>
+            <div class="nav-license-text">
+                <div class="nav-license-branch"><?= htmlspecialchars($branchName) ?></div>
+                <div class="nav-license-days"><?= htmlspecialchars($daysLeftText) ?></div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="nav-footer">
         <div class="nav-user-name"><?= htmlspecialchars($navUser['username']) ?></div>
         <div class="nav-user-role"><?= htmlspecialchars($navUser['role'] ?: 'Member') ?></div>
@@ -578,6 +841,18 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         <?php endif; ?>
     </div>
 
+    <?php if ($hasLicenseRecord): ?>
+        <div class="nav-license-widget nav-license-<?= htmlspecialchars($licenseWarningLevel) ?>"
+             onclick="openLicenseModal()" role="button" tabindex="0"
+             onkeypress="if(event.key==='Enter'){openLicenseModal();}">
+            <div class="nav-license-icon"><i class="bi bi-shield-lock-fill"></i></div>
+            <div class="nav-license-text">
+                <div class="nav-license-branch"><?= htmlspecialchars($branchName) ?></div>
+                <div class="nav-license-days"><?= htmlspecialchars($daysLeftText) ?></div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- User info card: avatar + name/role on the left, logout on the right -->
     <div class="menu-user-card">
         <div class="menu-user-info">
@@ -622,6 +897,67 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
     </div>
 </div>
 
+<?php if ($hasLicenseRecord): ?>
+<!-- License Details Modal -->
+<div class="license-modal-backdrop" id="licenseModalBackdrop" onclick="closeLicenseModal(event)">
+    <div class="license-modal" onclick="event.stopPropagation()">
+        <div class="license-modal-header">
+            <h3><i class="bi bi-shield-lock-fill"></i> License Details</h3>
+            <?php if (!$isLicenseExpired): ?>
+                <button type="button" class="license-modal-close" onclick="closeLicenseModal()"><i class="bi bi-x-lg"></i></button>
+            <?php endif; ?>
+        </div>
+        <div class="license-modal-body">
+            <div class="license-row">
+                <span class="license-label">Branch Name</span>
+                <span class="license-value"><?= htmlspecialchars($branchName) ?></span>
+            </div>
+            <div class="license-row">
+                <span class="license-label">License Key</span>
+                <span class="license-value license-key-value"><?= htmlspecialchars($licenseKey) ?></span>
+            </div>
+            <div class="license-row">
+                <span class="license-label">Current Status</span>
+                <span class="license-value">
+                    <span class="license-status-badge license-status-<?= htmlspecialchars($licenseWarningLevel) ?>">
+                        <?= htmlspecialchars(ucfirst($licenseStatusRaw)) ?>
+                    </span>
+                </span>
+            </div>
+            <div class="license-row">
+                <span class="license-label">Expiry Date</span>
+                <span class="license-value"><?= htmlspecialchars(date('d M, Y', strtotime($expireDate))) ?></span>
+            </div>
+            <div class="license-row">
+                <span class="license-label">Last Renewal</span>
+                <span class="license-value"><?= $lastRenewDate ? htmlspecialchars(date('d M, Y', strtotime($lastRenewDate))) : '—' ?></span>
+            </div>
+            <div class="license-row">
+                <span class="license-label">Remaining</span>
+                <span class="license-value license-remaining-<?= htmlspecialchars($licenseWarningLevel) ?>"><?= htmlspecialchars($daysLeftText) ?></span>
+            </div>
+            <?php if ($licenseWarningLevel === 'darkred'): ?>
+                <div class="license-high-risk-tag">High Risk</div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<?php if ($isLicenseExpired): ?>
+<!-- Expired License Full Lock -->
+<div class="license-lock-overlay" id="licenseLockOverlay">
+    <div class="license-lock-box">
+        <div class="license-lock-icon"><i class="bi bi-lock-fill"></i></div>
+        <h2>License Expired</h2>
+        <div class="license-lock-branch"><?= htmlspecialchars($branchName) ?></div>
+        <div class="license-lock-key">Key: <?= htmlspecialchars($licenseKey) ?></div>
+        <div class="license-lock-expired-text"><?= htmlspecialchars($daysLeftText) ?></div>
+        <p>Please renew your license to continue using FineBullion Desk.</p>
+    </div>
+</div>
+<?php endif; ?>
+<?php endif; ?>
+
 <script>
     function toggleNavDropdown(btn) {
         const parentDropdown = btn.closest('.nav-dropdown');
@@ -645,4 +981,25 @@ $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecia
         if (backdrop) backdrop.classList.remove('active');
         document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('open'));
     }
+
+    /* ---------------- License Modal ---------------- */
+    var licenseIsExpired = <?= $isLicenseExpired ? 'true' : 'false' ?>;
+
+    function openLicenseModal() {
+        const backdrop = document.getElementById('licenseModalBackdrop');
+        if (backdrop) backdrop.classList.add('open');
+    }
+
+    function closeLicenseModal(event) {
+        if (licenseIsExpired) return; // locked: modal cannot be dismissed
+        const backdrop = document.getElementById('licenseModalBackdrop');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (licenseIsExpired) {
+            openLicenseModal();
+            document.body.style.overflow = 'hidden';
+        }
+    });
 </script>

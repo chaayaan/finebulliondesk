@@ -1086,7 +1086,7 @@ function renderDue(d) {
             <span class="fw-bold" style="color:var(--status-due-bg);">${d.count} টি</span>
         </div>`;
     el.innerHTML = summaryLine + d.top.map(r => {
-        const page = r.type === 'buy' ? 'gold_buy_edit.php' : 'gold_sale_edit.php';
+        const page = r.type === 'buy' ? 'gold_buy_edit.php' : 'gold_sale_edit_inventory.php';
         const typeLabel = r.type === 'buy' ? 'ক্রয়' : 'বিক্রয়';
         return `
         <a href="${page}?id=${r.id}" class="due-row">
@@ -1099,7 +1099,7 @@ function renderDue(d) {
 
 const RECENT_ICON = { exchange: 'bi-arrow-left-right', buy: 'bi-bag-plus', sale: 'bi-bag-check', expense: 'bi-wallet2' };
 const RECENT_LABEL = { exchange: 'বিনিময়', buy: 'ক্রয়', sale: 'বিক্রয়', expense: 'খরচ' };
-const RECENT_PAGE = { exchange: 'gold_exchange_edit.php', buy: 'gold_buy_edit.php', sale: 'gold_sale_edit.php', expense: null };
+const RECENT_PAGE = { exchange: 'gold_exchange_edit_inventory.php', buy: 'gold_buy_edit.php', sale: 'gold_sale_edit_inventory.php', expense: null };
 
 function renderRecent(rows) {
     const el = document.getElementById('recentBody');

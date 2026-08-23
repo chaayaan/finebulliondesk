@@ -570,17 +570,52 @@ label, .form-label {
 }
 
 /* Modals */
-.modal-content {
+#editModal .modal-dialog {
+    max-height: calc(100vh - 3.5rem);
+    margin-top: 1.75rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+}
+
+#editModal .modal-content {
     border-radius: 14px;
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow);
     overflow: hidden;
+    max-height: calc(100vh - 3.5rem);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
-.modal-header {
+
+#editModal .modal-header {
     background: var(--navy);
     color: var(--text-on-navy);
     padding: 1rem 1.25rem;
+    flex-shrink: 0;
 }
+
+#editModal form {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+#editModal .modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    padding: 1rem 1.25rem;
+}
+
+#editModal .modal-footer {
+    flex-shrink: 0;
+    background: #fff;
+    border-top: 1px solid var(--border-default);
+}
+
 .modal-title {
     color: var(--text-on-navy);
     font-weight: 700;
@@ -658,6 +693,14 @@ label, .form-label {
 
 /* Mobile Overrides */
 @media (max-width: 576px) {
+    #editModal .modal-dialog {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        max-height: calc(100vh - 1rem);
+    }
+    #editModal .modal-content {
+        max-height: calc(100vh - 1rem);
+    }
     .page-header {
         padding: 0.85rem 1.1rem;
         border-radius: 0 0 14px 14px;
@@ -682,7 +725,7 @@ label, .form-label {
      PAGE HEADER
 ================================================================ -->
 <div class="page-header mb-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 style="width:100%;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="width:100%;">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
                 <a href="gold_exchange_list.php" class="btn btn-sm btn-ghost-light">
@@ -879,7 +922,7 @@ label, .form-label {
      EDIT ITEMS MODAL (admin only)
 ================================================================ -->
 <div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">

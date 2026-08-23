@@ -785,6 +785,40 @@ tbody tr:hover {
     filter: brightness(0) invert(1);
 }
 
+/* Dynamic & Scrollable Edit Item Modal Fix */
+#editModal .modal-dialog {
+    max-height: calc(100vh - 3.5rem);
+    margin-top: 1.75rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+}
+
+#editModal .modal-content {
+    max-height: calc(100vh - 3.5rem);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#editModal form#editItemsForm {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 100%;
+    margin: 0;
+}
+
+#editModal .modal-header,
+#editModal .modal-footer {
+    flex-shrink: 0;
+}
+
+#editModal .modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
 /* Alerts */
 .alert-danger {
     background: #FBECEC;
@@ -829,6 +863,16 @@ tbody tr:hover {
     .btn-primary, .btn-gold, .btn-fb-primary, .btn-secondary, .btn-fb-secondary {
         font-size: 13.5px;
         padding: .6rem 1rem;
+    }
+
+    #editModal .modal-dialog {
+        max-height: calc(100vh - 1rem);
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    #editModal .modal-content {
+        max-height: calc(100vh - 1rem);
     }
 }
 </style>
@@ -1206,7 +1250,7 @@ tbody tr:hover {
      EDIT ITEMS MODAL (admin only)
 ================================================================ -->
 <div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">

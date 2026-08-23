@@ -914,6 +914,76 @@ tbody tr:hover {
     filter: brightness(0) invert(1);
 }
 
+/* Item Edit Modal — dynamic height, viewport-capped.
+   With few items the modal hugs its content (no wasted empty space).
+   With many items it grows only up to the viewport, then .modal-body
+   becomes the single scrolling region so every item, field, and the
+   Save/Cancel buttons stay reachable either way. */
+#editModal .modal-dialog {
+    max-height: calc(100dvh - 3.5rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 1.75rem;
+    margin-bottom: 1.75rem;
+}
+#editModal .modal-content {
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* keep rounded corners; body scrolls, not this */
+}
+#editModal #editItemsForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+#editModal .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    flex: 1 1 auto;
+    min-height: 0; /* required so flex-child scroll works instead of growing */
+}
+#editModal .modal-header,
+#editModal .modal-footer {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 576px) {
+    #editModal .modal-dialog {
+        margin: 0.5rem auto;
+        max-height: calc(100dvh - 1rem);
+    }
+}
+
+/* Compact per-item live stock row (mirrors gold_sale_inventory.php) */
+.item-stock-row {
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    background: #EAF3EE;
+    border: 1px solid rgba(61, 122, 92, 0.25);
+    margin-top: 0.65rem;
+    font-size: 13px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.item-stock-row .isr-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.item-stock-row .s-label { font-size: 12px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; }
+.item-stock-row .s-value { font-size: 13.5px; font-weight: 700; color: var(--success); }
+.item-stock-row .isr-warning {
+    display: flex; align-items: center;
+    margin-top: 0.35rem; padding-top: 0.35rem;
+    border-top: 1px dashed rgba(166, 67, 75, 0.3);
+    font-size: 12px; font-weight: 600; color: var(--danger);
+}
+.item-stock-row.insufficient {
+    background: #FBECEC;
+    border-color: rgba(166, 67, 75, 0.25);
+}
+.item-stock-row.insufficient .s-value { color: var(--danger); }
+
 /* Alerts */
 .alert-danger {
     background: #FBECEC;
@@ -1369,42 +1439,15 @@ tbody tr:hover {
                         </div>
                     </div>
 
-                    <!-- Live Inventory Stock Status Panel -->
-                    <div class="card mb-4" style="background:var(--beige);border-color:var(--border-default);">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold text-uppercase small" style="color:var(--navy);letter-spacing:.03em;">
-                                    <i class="bi bi-box-seam me-1"></i>ইনভেন্টরি স্টক স্ট্যাটাস
-                                </span>
-                                <span class="badge bg-secondary" id="stockStatusSpinner" style="display:none;">
-                                    <span class="spinner-border spinner-border-sm me-1"></span>আপডেট হচ্ছে…
-                                </span>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm text-center mb-0" style="background:#fff;border-radius:8px;overflow:hidden;">
-                                    <thead>
-                                        <tr>
-                                            <th>ক্যারেট</th>
-                                            <th>বর্তমান মজুদ</th>
-                                            <th>পরিবর্তনের পর অবশিষ্ট</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="stockStatusTableBody">
-                                        <?php foreach (SALE_KARATS as $k): ?>
-                                        <tr id="stockRow_<?= number_format($k, 0) ?>">
-                                            <td class="fw-bold"><?= karat_label($k) ?></td>
-                                            <td id="stockCurr_<?= number_format($k, 0) ?>">—</td>
-                                            <td id="stockRem_<?= number_format($k, 0) ?>" class="fw-bold">—</td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="stockShortageNotice" class="alert alert-danger py-2 mb-0 mt-2 small" style="display:none;">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                সতর্কবার্তা: কিছু ক্যারেটে পর্যাপ্ত ইনভেন্টরি স্টক নেই। সংরক্ষণ করা যাবে না।
-                            </div>
-                        </div>
+                    <!-- Live inventory status: compact, per-item (see item-stock-row below each item) -->
+                    <div class="d-flex justify-content-end mb-2">
+                        <span class="badge bg-secondary" id="stockStatusSpinner" style="display:none;">
+                            <span class="spinner-border spinner-border-sm me-1"></span>মজুদ আপডেট হচ্ছে…
+                        </span>
+                    </div>
+                    <div id="stockShortageNotice" class="alert alert-danger py-2 mb-3 small" style="display:none;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        সতর্কবার্তা: কিছু ক্যারেটে পর্যাপ্ত ইনভেন্টরি স্টক নেই। সংরক্ষণ করা যাবে না।
                     </div>
 
                     <!-- Existing items -->
@@ -1472,6 +1515,20 @@ tbody tr:hover {
                             <div class="item-price-preview mt-2" id="itemPreview_<?= $idx ?>">
                                 আইটেমের দাম: ৳<?= number_format((float)$it['price'], 0) ?>
                             </div>
+
+                            <!-- Live per-karat stock row -->
+                            <div class="item-stock-row" data-item-stock id="itemStockRow_<?= $idx ?>">
+                                <div class="isr-top">
+                                    <span class="s-label"><i class="bi bi-box-seam me-1"></i>
+                                        <span id="itemStockLabel_<?= $idx ?>"><?= karat_label($karat) ?></span> বর্তমান মজুদ
+                                    </span>
+                                    <span class="s-value" id="itemStockValue_<?= $idx ?>">লোড হচ্ছে…</span>
+                                </div>
+                                <div class="isr-warning" id="itemStockWarning_<?= $idx ?>" style="display:none;">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                    <span id="itemStockWarningText_<?= $idx ?>">পর্যাপ্ত মজুদ নেই</span>
+                                </div>
+                            </div>
                         </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -1522,7 +1579,8 @@ const TOTAL_PAID  = <?= (float)$totalPaid ?>;
 const OLD_BY_PURITY = <?= json_encode($oldByPurity) ?>;
 const SALE_KARATS   = [18, 20, 21, 22, 24];
 
-let liveStockData = {};
+let liveStockData   = {};
+let liveStockLoaded = false;
 
 function tradToGrams(v,a,r,p){
     return v*G_VORI + a*G_ANA + r*G_ROTI + p*G_POINT;
@@ -1571,6 +1629,11 @@ function recalcAll(){
     for (let i = 0; i < ITEM_COUNT; i++) recalcItem(i);
 }
 
+function karatLabelJs(k) {
+    const n = Number(k);
+    return (Number.isInteger(n) ? n : n.toFixed(2)) + 'K';
+}
+
 function recalcSummary(){
     let total = 0;
     const pg = getPureGoldPrice();
@@ -1592,36 +1655,61 @@ function recalcSummary(){
     updateStockPanel(newByPurity);
 }
 
+// Per-karat: what would remain in inventory after applying the net delta
+// (new total for this karat across all edited items, minus the old total
+// for this karat before editing).
+function remainingForKarat(kKey){
+    const currStockGrams = liveStockData[kKey] ?? 0;
+    const oldGrams        = OLD_BY_PURITY[kKey] ?? 0;
+
+    let newGrams = 0;
+    for (let i = 0; i < ITEM_COUNT; i++){
+        const {v,a,r,p,k} = getItemInputs(i);
+        if (k.toFixed(2) === kKey) newGrams += tradToGrams(v,a,r,p);
+    }
+
+    const netDelta = newGrams - oldGrams;
+    return currStockGrams - netDelta;
+}
+
 function updateStockPanel(newByPurity){
     let hasShortage = false;
 
-    SALE_KARATS.forEach(k => {
+    for (let i = 0; i < ITEM_COUNT; i++){
+        const {k} = getItemInputs(i);
         const kKey = k.toFixed(2);
-        const kInt = Math.round(k);
 
-        const currStockGrams = liveStockData[kKey] ?? 0;
-        const oldGrams       = OLD_BY_PURITY[kKey] ?? 0;
-        const newGrams       = newByPurity[kKey]   ?? 0;
+        const rowEl     = document.getElementById(`itemStockRow_${i}`);
+        const labelEl   = document.getElementById(`itemStockLabel_${i}`);
+        const valueEl   = document.getElementById(`itemStockValue_${i}`);
+        const warnEl    = document.getElementById(`itemStockWarning_${i}`);
+        const warnTxtEl = document.getElementById(`itemStockWarningText_${i}`);
+        if (!rowEl) continue;
 
-        const netDelta = newGrams - oldGrams;
-        const remGrams = currStockGrams - netDelta;
+        if (labelEl) labelEl.textContent = karatLabelJs(k);
 
-        const elCurr = document.getElementById(`stockCurr_${kInt}`);
-        const elRem  = document.getElementById(`stockRem_${kInt}`);
-
-        if (elCurr) elCurr.textContent = gramsToTradStr(currStockGrams);
-
-        if (elRem) {
-            if (remGrams < -0.0005) {
-                hasShortage = true;
-                elRem.textContent = gramsToTradStr(Math.max(0, remGrams)) + ' (ঘাটতি!)';
-                elRem.className   = 'fw-bold text-danger';
-            } else {
-                elRem.textContent = gramsToTradStr(remGrams);
-                elRem.className   = 'fw-bold text-success';
-            }
+        if (!liveStockLoaded) {
+            valueEl.textContent = 'লোড হচ্ছে…';
+            rowEl.classList.remove('insufficient');
+            if (warnEl) warnEl.style.display = 'none';
+            continue;
         }
-    });
+
+        const remGrams = remainingForKarat(kKey);
+
+        if (remGrams < -0.0005) {
+            hasShortage = true;
+            rowEl.classList.add('insufficient');
+            valueEl.textContent = gramsToTradStr(0);
+            if (warnEl)    warnEl.style.display = 'flex';
+            if (warnTxtEl) warnTxtEl.textContent =
+                `পর্যাপ্ত ${karatLabelJs(k)} মজুদ নেই — অতিরিক্ত প্রয়োজন: ${gramsToTradStr(Math.abs(remGrams))}`;
+        } else {
+            rowEl.classList.remove('insufficient');
+            valueEl.textContent = gramsToTradStr(remGrams);
+            if (warnEl) warnEl.style.display = 'none';
+        }
+    }
 
     const noticeBtn = document.getElementById('stockShortageNotice');
     const saveBtn   = document.getElementById('btnSaveItems');
@@ -1643,10 +1731,11 @@ function fetchStockData(){
                     const kKey = parseFloat(st.purity).toFixed(2);
                     liveStockData[kKey] = parseFloat(st.left_weight) || 0;
                 });
+                liveStockLoaded = true;
             }
             recalcAll();
         })
-        catch(err => {
+        .catch(err => {
             console.error('Failed to fetch stock:', err);
             recalcAll();
         })

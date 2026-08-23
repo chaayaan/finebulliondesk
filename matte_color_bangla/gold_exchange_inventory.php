@@ -615,7 +615,7 @@ html, body {
 
 .item-fields-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.5rem;
 }
 .item-fields-row .field-col label {
@@ -635,29 +635,13 @@ html, body {
 }
 
 .item-fields-row input.form-control.is-valid,
-.item-fields-row input.form-control.is-invalid,
-.karat-row input.form-control.is-valid,
-.karat-row input.form-control.is-invalid {
+.item-fields-row input.form-control.is-invalid {
     background-image: none !important;
     padding-right: 0.25rem !important;
 }
-.item-fields-row input.form-control.is-invalid,
-.karat-row input.form-control.is-invalid {
+.item-fields-row input.form-control.is-invalid {
     border-color: var(--danger);
     box-shadow: 0 0 0 3px rgba(166,67,75,.12);
-}
-
-.karat-row {
-    margin-top: 0.6rem;
-}
-.karat-row label {
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin-bottom: 0.3rem;
-    color: var(--text-secondary);
 }
 
 @media (max-width: 576px) {
@@ -687,7 +671,7 @@ html, body {
     .gold-item-card .item-index { top: -9px; left: 12px; font-size: 10px; padding: 0.08rem 0.5rem; }
     .gold-item-card .btn-remove-item { top: 6px; right: 6px; padding: 0.2rem 0.5rem; font-size: 12px; }
     .gold-item-card .form-control-sm { font-size: 16px; padding: 0.6rem 0.8rem; }
-    .item-fields-row { gap: 0.4rem; }
+    .item-fields-row { gap: 0.25rem; }
     .item-pure-result { padding: 0.4rem 0.7rem; font-size: 12.5px; margin-top: 0.5rem !important; }
 
     #note { min-height: 44px; font-size: 16px; padding: 0.6rem 0.8rem; }
@@ -849,30 +833,30 @@ html, body {
         </button>
         <div class="item-fields-row mt-2">
             <div class="field-col">
+                <label>ক্যারেট</label>
+                <input type="number" min="0.01" max="24" step="0.01" class="form-control form-control-sm" data-field="karat" value="22" placeholder="যেমন: ১৯.০০">
+                <div class="invalid-feedback" data-error="karat"></div>
+            </div>
+            <div class="field-col">
                 <label>ভরি</label>
-                <input type="number" min="0" step="1" class="form-control form-control-sm" data-field="vori" value="0" inputmode="numeric">
+                <input type="number" min="0" step="1" class="form-control form-control-sm" data-field="vori" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="vori"></div>
             </div>
             <div class="field-col">
                 <label>আনা</label>
-                <input type="number" min="0" max="15" step="1" class="form-control form-control-sm" data-field="ana" value="0" inputmode="numeric">
+                <input type="number" min="0" max="15" step="1" class="form-control form-control-sm" data-field="ana" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="ana"></div>
             </div>
             <div class="field-col">
                 <label>রতি</label>
-                <input type="number" min="0" max="5" step="1" class="form-control form-control-sm" data-field="roti" value="0" inputmode="numeric">
+                <input type="number" min="0" max="5" step="1" class="form-control form-control-sm" data-field="roti" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="roti"></div>
             </div>
             <div class="field-col">
                 <label>পয়েন্ট</label>
-                <input type="number" min="0" max="9" step="1" class="form-control form-control-sm" data-field="point" value="0" inputmode="numeric">
+                <input type="number" min="0" max="9" step="1" class="form-control form-control-sm" data-field="point" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="point"></div>
             </div>
-        </div>
-        <div class="karat-row">
-            <label>ক্যারেট</label>
-            <input type="number" min="0.01" max="24" step="0.01" class="form-control form-control-sm" data-field="karat" value="22" placeholder="যেমন: ১৯.০০">
-            <div class="invalid-feedback" data-error="karat"></div>
         </div>
         <div class="item-pure-result mt-2" data-pure-result>
             পাকা সোনা: ০ ভরি ০ আনা ০ রতি ০ পয়েন্ট

@@ -899,19 +899,19 @@ label, .form-label {
             <div class="item-fields-row mb-2">
                 <div class="field-col">
                     <label>ভরি</label>
-                    <input type="number" min="0" step="1" class="form-control" id="siVori" value="0" inputmode="numeric">
+                    <input type="number" min="0" step="1" class="form-control traditional-weight-input" id="siVori" placeholder="0" value="" inputmode="numeric">
                 </div>
                 <div class="field-col">
                     <label>আনা</label>
-                    <input type="number" min="0" max="15" step="1" class="form-control" id="siAna" value="0" inputmode="numeric">
+                    <input type="number" min="0" max="15" step="1" class="form-control traditional-weight-input" id="siAna" placeholder="0" value="" inputmode="numeric">
                 </div>
                 <div class="field-col">
                     <label>রতি</label>
-                    <input type="number" min="0" max="5" step="1" class="form-control" id="siRoti" value="0" inputmode="numeric">
+                    <input type="number" min="0" max="5" step="1" class="form-control traditional-weight-input" id="siRoti" placeholder="0" value="" inputmode="numeric">
                 </div>
                 <div class="field-col">
                     <label>পয়েন্ট</label>
-                    <input type="number" min="0" max="9" step="1" class="form-control" id="siPoint" value="0" inputmode="numeric">
+                    <input type="number" min="0" max="9" step="1" class="form-control traditional-weight-input" id="siPoint" placeholder="0" value="" inputmode="numeric">
                 </div>
             </div>
             <div class="text-danger small mb-3" id="siWeightError" style="display:none;"></div>
@@ -946,19 +946,19 @@ label, .form-label {
             <div class="item-fields-row mb-1">
                 <div class="field-col">
                     <label>ভরি</label>
-                    <input type="number" min="0" step="1" class="form-control" id="msVori" value="0" inputmode="numeric">
+                    <input type="number" min="0" step="1" class="form-control traditional-weight-input" id="msVori" placeholder="0" value="" inputmode="numeric">
                 </div>
                 <div class="field-col">
                     <label>আনা</label>
-                    <input type="number" min="0" max="15" step="1" class="form-control" id="msAna" value="0" inputmode="numeric">
+                    <input type="number" min="0" max="15" step="1" class="form-control traditional-weight-input" id="msAna" placeholder="0" value="" inputmode="numeric">
                 </div>
                 <div class="field-col">
                     <label>রতি</label>
-                    <input type="number" min="0" max="5" step="1" class="form-control" id="msRoti" value="0" inputmode="numeric">
+                    <input type="number" min="0" max="5" step="1" class="form-control traditional-weight-input" id="msRoti" placeholder="0" value="" inputmode="numeric">
                 </div>
                 <div class="field-col">
                     <label>পয়েন্ট</label>
-                    <input type="number" min="0" max="9" step="1" class="form-control" id="msPoint" value="0" inputmode="numeric">
+                    <input type="number" min="0" max="9" step="1" class="form-control traditional-weight-input" id="msPoint" placeholder="0" value="" inputmode="numeric">
                 </div>
             </div>
         </div>
@@ -994,11 +994,29 @@ function fmtDate(s) {
     return d.toLocaleDateString('bn-BD', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// -----------------------------------------------------------------------
+// Input Placeholder Logic
+// -----------------------------------------------------------------------
+document.querySelectorAll('.traditional-weight-input').forEach(input => {
+    input.addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+
+    input.addEventListener('blur', function() {
+        if (this.value.trim() === '0') {
+            this.value = '';
+        }
+    });
+});
+
 const stockInModal = new bootstrap.Modal(document.getElementById('stockInModal'));
 const minStockModal = new bootstrap.Modal(document.getElementById('minStockModal'));
 
 document.getElementById('btnOpenStockIn').addEventListener('click', () => {
     document.getElementById('stockInForm').reset();
+    document.querySelectorAll('#stockInForm .traditional-weight-input').forEach(input => input.value = '');
     document.getElementById('siWeightError').style.display = 'none';
     stockInModal.show();
 });
@@ -1138,6 +1156,7 @@ function renderKaratCards(cards) {
             document.getElementById('minStockTitle').innerHTML =
                 `<i class="bi bi-sliders me-1"></i> সর্বনিম্ন মজুদ — ${escHtml(btn.dataset.minLabel)}`;
             document.getElementById('minStockForm').reset();
+            document.querySelectorAll('#minStockForm .traditional-weight-input').forEach(input => input.value = '');
             document.getElementById('msPurity').value = btn.dataset.setMin;
             minStockModal.show();
         });
@@ -1146,6 +1165,7 @@ function renderKaratCards(cards) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             document.getElementById('stockInForm').reset();
+            document.querySelectorAll('#stockInForm .traditional-weight-input').forEach(input => input.value = '');
             document.getElementById('siPurity').value = parseFloat(btn.dataset.quickStock).toFixed(2);
             document.getElementById('siWeightError').style.display = 'none';
             stockInModal.show();

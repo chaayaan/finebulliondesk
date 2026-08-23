@@ -656,18 +656,19 @@ label, .form-label {
 
 .item-fields-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.35rem;
 }
 .item-fields-row .field-col label {
     display: block;
     font-size: 11px;
     margin-bottom: 0.15rem;
+    white-space: nowrap;
 }
 .item-fields-row .field-col input {
     text-align: center;
-    padding-left: 0.25rem;
-    padding-right: 0.25rem;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
 }
 
 /* Stock Status Display */
@@ -965,6 +966,15 @@ label, .form-label {
 
                             <div class="item-fields-row mt-2">
                                 <div class="field-col">
+                                    <label>ক্যারেট</label>
+                                    <input type="number" name="items[<?= $idx ?>][karat]"
+                                           class="form-control"
+                                           min="0.01" max="24" step="0.01"
+                                           placeholder="যেমন: ২২"
+                                           value="<?= h($karat) ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="field-col">
                                     <label>ভরি</label>
                                     <input type="number" name="items[<?= $idx ?>][vori]"
                                            class="form-control"
@@ -996,16 +1006,6 @@ label, .form-label {
                                            value="<?= $trad['p'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                            </div>
-
-                            <div class="mt-2">
-                                <label>সোনার মান (ক্যারেট)</label>
-                                <input type="number" name="items[<?= $idx ?>][karat]"
-                                       class="form-control"
-                                       min="0.01" max="24" step="0.01"
-                                       placeholder="যেমন: ২২"
-                                       value="<?= h($karat) ?>"
-                                       oninput="recalcItem(<?= $idx ?>)">
                             </div>
 
                             <div class="item-pure-preview mt-2" id="itemPreview_<?= $idx ?>">

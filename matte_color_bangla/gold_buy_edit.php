@@ -744,8 +744,8 @@ tbody tr:hover {
 
 .item-fields-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: .5rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: .35rem;
 }
 
 .item-fields-row .field-col label {
@@ -1299,6 +1299,15 @@ tbody tr:hover {
 
                             <div class="item-fields-row mt-2">
                                 <div class="field-col">
+                                    <label>ক্যারেট</label>
+                                    <input type="number" name="items[<?= $idx ?>][purity]"
+                                           class="form-control form-control-sm"
+                                           min="0.01" max="24" step="0.01"
+                                           placeholder="যেমন: ২২"
+                                           value="<?= h($karat) ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="field-col">
                                     <label>ভরি</label>
                                     <input type="number" name="items[<?= $idx ?>][vori]"
                                            class="form-control form-control-sm"
@@ -1330,16 +1339,6 @@ tbody tr:hover {
                                            value="<?= $trad['p'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                            </div>
-
-                            <div class="mt-2">
-                                <label class="form-label">সোনার মান (ক্যারেট)</label>
-                                <input type="number" name="items[<?= $idx ?>][purity]"
-                                       class="form-control form-control-sm"
-                                       min="0.01" max="24" step="0.01"
-                                       placeholder="যেমন: ২২"
-                                       value="<?= h($karat) ?>"
-                                       oninput="recalcItem(<?= $idx ?>)">
                             </div>
 
                             <div class="item-price-preview mt-2" id="itemPreview_<?= $idx ?>">

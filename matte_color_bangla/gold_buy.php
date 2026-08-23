@@ -532,23 +532,37 @@ label, .form-label {
     right: 10px;
 }
 
-/* Weight grid */
-.weight-grid {
+/* Single compact horizontal row grid for items */
+.compact-item-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.4rem;
+    align-items: flex-start;
 }
-.weight-grid .field-col input { text-align: center; padding-left: 0.25rem; padding-right: 0.25rem; }
+.compact-item-row .field-col label {
+    font-size: 11.5px;
+    margin-bottom: 0.2rem;
+    text-align: center;
+    white-space: nowrap;
+}
+.compact-item-row .field-col input {
+    text-align: center;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+    height: 32px;
+    font-size: 13.5px;
+}
+.compact-item-row input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
 
-/* Remove Bootstrap icon decorations on validated weight/purity inputs */
-.weight-grid input.form-control.is-valid,
-.weight-grid input.form-control.is-invalid,
-.purity-row input.form-control.is-valid,
-.purity-row input.form-control.is-invalid {
+/* Remove Bootstrap icon decorations on validated item inputs */
+.compact-item-row input.form-control.is-valid,
+.compact-item-row input.form-control.is-invalid {
     background-image: none !important;
-    padding-right: 0.25rem !important;
+    padding-right: 0.15rem !important;
 }
-.purity-row { margin-top: 0.6rem; }
 
 /* Item price result chip */
 .item-price-result {
@@ -666,7 +680,8 @@ label, .form-label {
     }
 
     .gold-item-card { padding: 0.85rem; margin-bottom: 0.75rem; }
-    .weight-grid { gap: 0.4rem; }
+    .compact-item-row { gap: 0.25rem; }
+    .compact-item-row .field-col label { font-size: 10px; }
 
     .summary-card .sum-body { padding: 0.75rem; }
     .paid-row input { width: 110px; }
@@ -825,39 +840,38 @@ label, .form-label {
             <i class="bi bi-trash3"></i>
         </button>
 
-        <div class="weight-grid mt-3">
+        <div class="compact-item-row mt-3">
+            <div class="field-col">
+                <label>ক্যারেট</label>
+                <input type="number" min="0.01" max="24" step="0.01"
+                       class="form-control form-control-sm" data-field="purity" value="24"
+                       placeholder="24">
+                <div class="invalid-feedback" data-error="purity"></div>
+            </div>
             <div class="field-col">
                 <label>ভরি</label>
                 <input type="number" min="0" step="1"
-                       class="form-control form-control-sm" data-field="vori" value="0" inputmode="numeric">
+                       class="form-control form-control-sm" data-field="vori" value="" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="vori"></div>
             </div>
             <div class="field-col">
                 <label>আনা</label>
                 <input type="number" min="0" max="15" step="1"
-                       class="form-control form-control-sm" data-field="ana" value="0" inputmode="numeric">
+                       class="form-control form-control-sm" data-field="ana" value="" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="ana"></div>
             </div>
             <div class="field-col">
                 <label>রতি</label>
                 <input type="number" min="0" max="5" step="1"
-                       class="form-control form-control-sm" data-field="roti" value="0" inputmode="numeric">
+                       class="form-control form-control-sm" data-field="roti" value="" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="roti"></div>
             </div>
             <div class="field-col">
                 <label>পয়েন্ট</label>
                 <input type="number" min="0" max="9" step="1"
-                       class="form-control form-control-sm" data-field="point" value="0" inputmode="numeric">
+                       class="form-control form-control-sm" data-field="point" value="" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="point"></div>
             </div>
-        </div>
-
-        <div class="purity-row">
-            <label>সোনার মান (ক্যারেট)</label>
-            <input type="number" min="0.01" max="24" step="0.01"
-                   class="form-control form-control-sm" data-field="purity" value="24"
-                   placeholder="যেমন: ২২, ১৮.৫">
-            <div class="invalid-feedback" data-error="purity"></div>
         </div>
 
         <div class="item-price-result" data-price-result>

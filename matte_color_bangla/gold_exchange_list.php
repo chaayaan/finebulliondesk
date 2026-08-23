@@ -12,7 +12,7 @@ $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH'])
 $action = $_GET['action'] ?? $_POST['action'] ?? null;
 
 // -----------------------------------------------------------------------
-// Helper
+// Helper & Conversion Functions
 // -----------------------------------------------------------------------
 function json_out(array $data, int $status = 200): void
 {
@@ -22,8 +22,57 @@ function json_out(array $data, int $status = 200): void
     exit;
 }
 
+define('G_PER_VORI', 11.664);
+define('G_PER_ANA', 0.729);
+define('G_PER_ROTI', 0.1215);
+define('G_PER_POINT', 0.01215);
+
+function gramsToTraditionalPHP($grams): array
+{
+    $EPS = 1e-9;
+    $grams = (float)($grams ?? 0);
+    $totalVori = $grams / G_PER_VORI;
+    $vori = (int)floor($totalVori + $EPS);
+    $fracVori = max(0.0, $totalVori - $vori);
+
+    $totalAna = $fracVori * 16;
+    $ana = (int)floor($totalAna + $EPS);
+    $fracAna = max(0.0, $totalAna - $ana);
+
+    $totalRoti = $fracAna * 6;
+    $roti = (int)floor($totalRoti + $EPS);
+    $fracRoti = max(0.0, $totalRoti - $roti);
+
+    $point = (int)round($fracRoti * 10);
+
+    if ($point >= 10) { $point -= 10; $roti += 1; }
+    if ($roti >= 6)   { $roti -= 6;   $ana  += 1; }
+    if ($ana  >= 16)  { $ana  -= 16;  $vori += 1; }
+
+    return ['vori' => $vori, 'ana' => $ana, 'roti' => $roti, 'point' => $point];
+}
+
+function fmtTradPHP($grams): string
+{
+    $t = gramsToTraditionalPHP($grams);
+    return "{$t['vori']} ভ {$t['ana']} আ {$t['roti']} র {$t['point']} প";
+}
+
+function lossPointsPHP($lossGrams): int
+{
+    return (int)round((float)($lossGrams ?? 0) / G_PER_POINT);
+}
+
+function fmtDatePHP($s): string
+{
+    if (!$s) return '—';
+    $time = strtotime($s);
+    if (!$time) return '—';
+    return date('d M Y', $time);
+}
+
 // -----------------------------------------------------------------------
-// AJAX actions
+// AJAX / Server-Rendered Actions
 // -----------------------------------------------------------------------
 if ($isAjax || $action !== null) {
 
@@ -121,10 +170,13 @@ if ($isAjax || $action !== null) {
         ]);
     }
 
-    // ---- GET single (with items) -----------------------------------------
+    // ---- GET single (Server-Rendered PHP) --------------------------------
     if ($action === 'get' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $id = (int)($_GET['id'] ?? 0);
-        if ($id <= 0) json_out(['success' => false, 'message' => 'আইডি সঠিক নয়।'], 400);
+        if ($id <= 0) {
+            echo '<div class="text-danger p-3">আইডি সঠিক নয়।</div>';
+            exit;
+        }
 
         $stmt = mysqli_prepare($conn,
             "SELECT ge.id, ge.customer_id, c.name AS customer_name, c.phone AS customer_phone,
@@ -138,7 +190,10 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_execute($stmt);
         $exchange = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-        if (!$exchange) json_out(['success' => false, 'message' => 'সোনা বদলের তথ্য পাওয়া যায়নি।'], 404);
+        if (!$exchange) {
+            echo '<div class="text-danger p-3">সোনা বদলের তথ্য পাওয়া যায়নি।</div>';
+            exit;
+        }
 
         $itemStmt = mysqli_prepare($conn,
             "SELECT id, old_gold_weight, old_gold_purity, pure_gold_weight
@@ -153,8 +208,69 @@ if ($isAjax || $action !== null) {
             $items[] = $row;
         }
 
-        $exchange['items'] = $items;
-        json_out(['success' => true, 'data' => $exchange]);
+        $lossRate = isset($exchange['loss_rate_points_per_vori']) ? (float)$exchange['loss_rate_points_per_vori'] : 1;
+        $lossPointsVal = lossPointsPHP($exchange['loss']);
+        ?>
+        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+            <div>
+                <div class="fw-bold fs-6"><?= htmlspecialchars($exchange['customer_name']) ?></div>
+                <small class="text-secondary"><?= htmlspecialchars($exchange['customer_phone'] ?? '') ?></small>
+            </div>
+            <div class="text-end">
+                <small class="text-secondary d-block"><?= htmlspecialchars(fmtDatePHP($exchange['created_at'])) ?></small>
+                <small class="text-secondary">এন্ট্রি প্রদানকারী: <?= htmlspecialchars($exchange['created_by_username'] ?? '—') ?></small>
+            </div>
+        </div>
+
+        <div class="table-responsive mb-3">
+          <table class="table align-middle gold-items-table">
+              <thead>
+                  <tr>
+                      <th class="col-num">#</th>
+                      <th class="col-old">পুরাতন সোনা</th>
+                      <th class="col-karat">ক্যারেট</th>
+                      <th class="col-pure">পাকা সোনা</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  <?php foreach ($items as $idx => $it): 
+                      $karat = ((float)$it['old_gold_purity'] / 100) * 24;
+                      $oldTrad = fmtTradPHP($it['old_gold_weight']);
+                      $pureTrad = fmtTradPHP($it['pure_gold_weight']);
+                  ?>
+                  <tr>
+                      <td class="text-secondary col-num"><?= $idx + 1 ?></td>
+                      <td class="col-old"><?= htmlspecialchars($oldTrad) ?></td>
+                      <td class="col-karat"><?= number_format($karat, 2, '.', '') ?> K</td>
+                      <td class="col-pure"><?= htmlspecialchars($pureTrad) ?></td>
+                  </tr>
+                  <?php endforeach; ?>
+              </tbody>
+          </table>
+      </div>
+
+        <table class="ledger-table mb-3">
+            <tbody>
+                <tr class="ledger-total">
+                    <td class="ledger-label">মোট পাকা সোনা</td>
+                    <td class="ledger-vorp"><?= htmlspecialchars(fmtTradPHP($exchange['total_pure_gold'])) ?></td>
+                </tr>
+                <tr class="ledger-loss">
+                    <td class="ledger-label">লস <span class="ledger-rate">(<?= $lossPointsVal ?> পয়েন্ট @ <?= $lossRate ?> প/ভ)</span></td>
+                    <td class="ledger-vorp"><?= htmlspecialchars(fmtTradPHP($exchange['loss'])) ?></td>
+                </tr>
+                <tr class="ledger-final">
+                    <td class="ledger-label">চূড়ান্ত পাকা সোনা</td>
+                    <td class="ledger-vorp"><?= htmlspecialchars(fmtTradPHP($exchange['final_pure_gold'])) ?></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <?php if (!empty($exchange['note'])): ?>
+            <div class="alert-fb mb-0"><strong>নোট:</strong> <?= htmlspecialchars($exchange['note']) ?></div>
+        <?php endif; ?>
+        <?php
+        exit;
     }
 
     json_out(['success' => false, 'message' => 'অজানা অ্যাকশন।'], 400);
@@ -651,6 +767,39 @@ table.table-hover tbody tr:hover {
   border-top: 1px solid var(--border-default);
   padding: .75rem 1.25rem;
   background: #fff;
+}
+/* Gold items modal table styling */
+.gold-items-table {
+  width: 100%;
+}
+
+/* Reduced spacing for mobile view */
+.gold-items-table th, 
+.gold-items-table td {
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+  white-space: nowrap;
+}
+
+.gold-items-table .col-num { width: 25px; }
+.gold-items-table .col-old { text-align: left; }
+.gold-items-table .col-karat { text-align: center; width: 70px; }
+.gold-items-table .col-pure { text-align: right; }
+
+/* PC View: Space-around column distribution */
+@media (min-width: 768px) {
+  .gold-items-table {
+    table-layout: fixed;
+  }
+  .gold-items-table th, 
+  .gold-items-table td {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+  .gold-items-table .col-num { width: 8%; }
+  .gold-items-table .col-old { width: 34%; text-align: left; }
+  .gold-items-table .col-karat { width: 24%; text-align: center; }
+  .gold-items-table .col-pure { width: 34%; text-align: right; }
 }
 
 /* Modal Summary Ledger Table */
@@ -1251,7 +1400,7 @@ document.getElementById('clearDatesBtn').addEventListener('click', () => {
 });
 
 // ----------------------------------------------------------------
-// View modal
+// View modal (Loads server-rendered PHP snippet)
 // ----------------------------------------------------------------
 document.getElementById('tableBody').addEventListener('click', async function (e) {
     const btn = e.target.closest('.btn-view');
@@ -1271,79 +1420,10 @@ async function openView(id) {
         const res  = await fetch('gold_exchange_list.php?action=get&id=' + id, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
-        const data = await res.json();
-
-        if (!data.success) {
-            document.getElementById('viewBody').innerHTML =
-                `<div class="text-danger">${escHtml(data.message || 'লোড করতে ব্যর্থ হয়েছে।')}</div>`;
-            return;
-        }
-
-        const ex       = data.data;
-        const lossRate = ex.loss_rate_points_per_vori !== undefined
-                            ? parseFloat(ex.loss_rate_points_per_vori) : 1;
-        const lossPointsVal = lossPoints(ex.loss);
-
-        const itemsHtml = ex.items.map((it, idx) => {
-            const karat  = (parseFloat(it.old_gold_purity) / 100) * 24;
-            const oldTrad = fmtTrad(it.old_gold_weight);
-            const pureTrad = fmtTrad(it.pure_gold_weight);
-            return `
-                <tr>
-                    <td class="text-secondary">${idx + 1}</td>
-                    <td>${escHtml(oldTrad)}</td>
-                    <td>${karat.toFixed(2)} ক্যারেট</td>
-                    <td>${escHtml(pureTrad)}</td>
-                </tr>`;
-        }).join('');
-
-        document.getElementById('viewBody').innerHTML = `
-            <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
-                <div>
-                    <div class="fw-bold fs-6">${escHtml(ex.customer_name)}</div>
-                    <small class="text-secondary">${escHtml(ex.customer_phone || '')}</small>
-                </div>
-                <div class="text-end">
-                    <small class="text-secondary d-block">${fmtDate(ex.created_at)}</small>
-                    <small class="text-secondary">এন্ট্রি প্রদানকারী: ${escHtml(ex.created_by_username || '—')}</small>
-                </div>
-            </div>
-
-            <div class="table-responsive mb-3">
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th style="width:20px;">#</th>
-                            <th>পুরাতন সোনা (ভরি-আনা-রতি-পয়েন্ট)</th>
-                            <th style="width:80px;">ক্যারেট</th>
-                            <th>পাকা সোনা (ভরি-আনা-রতি-পয়েন্ট)</th>
-                        </tr>
-                    </thead>
-                    <tbody>${itemsHtml}</tbody>
-                </table>
-            </div>
-
-            <table class="ledger-table mb-3">
-                <tbody>
-                    <tr class="ledger-total">
-                        <td class="ledger-label">মোট পাকা সোনা</td>
-                        <td class="ledger-vorp">${escHtml(fmtTrad(ex.total_pure_gold))}</td>
-                    </tr>
-                    <tr class="ledger-loss">
-                        <td class="ledger-label">লস <span class="ledger-rate">(${lossPointsVal} পয়েন্ট @ ${lossRate} প/ভ)</span></td>
-                        <td class="ledger-vorp">${escHtml(fmtTrad(ex.loss))}</td>
-                    </tr>
-                    <tr class="ledger-final">
-                        <td class="ledger-label">চূড়ান্ত পাকা সোনা</td>
-                        <td class="ledger-vorp">${escHtml(fmtTrad(ex.final_pure_gold))}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            ${ex.note ? `<div class="alert-fb mb-0"><strong>নোট:</strong> ${escHtml(ex.note)}</div>` : ''}
-        `;
+        const html = await res.text();
+        document.getElementById('viewBody').innerHTML = html;
     } catch (err) {
-        document.getElementById('viewBody').innerHTML = '<div class="text-danger">নেটওয়ার্ক ত্রুটি।</div>';
+        document.getElementById('viewBody').innerHTML = '<div class="text-danger p-3">নেটওয়ার্ক ত্রুটি।</div>';
     }
 }
 

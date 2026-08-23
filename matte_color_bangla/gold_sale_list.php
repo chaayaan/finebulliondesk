@@ -28,6 +28,99 @@ function json_out(array $data, int $status = 200): void
     exit;
 }
 
+function gramsToTraditionalPHP($grams): string
+{
+    $grams = (float)$grams;
+    $EPS = 1e-9;
+    $totalVori = $grams / 11.664;
+    $vori = (int)floor($totalVori + $EPS);
+    $fracVori = max(0, $totalVori - $vori);
+    $totalAna = $fracVori * 16;
+    $ana = (int)floor($totalAna + $EPS);
+    $fracAna = max(0, $totalAna - $ana);
+    $totalRoti = $fracAna * 6;
+    $roti = (int)floor($totalRoti + $EPS);
+    $fracRoti = max(0, $totalRoti - $roti);
+    $point = (int)round($fracRoti * 10);
+    if ($point >= 10) { $point -= 10; $roti++; }
+    if ($roti >= 6)   { $roti -= 6;   $ana++;  }
+    if ($ana >= 16)   { $ana -= 16;   $vori++; }
+    return "{$vori} ভ {$ana} আ {$roti} র {$point} প";
+}
+
+function fmtBDTPHP($n): string
+{
+    return '৳' . number_format((float)round((float)$n));
+}
+
+function fmtDatePHP($s): string
+{
+    if (!$s) return '—';
+    $t = strtotime($s);
+    return $t ? date('d M Y', $t) : '—';
+}
+
+// -----------------------------------------------------------------------
+// Server-side View Data Fetching (When view_id is passed)
+// -----------------------------------------------------------------------
+$viewId = isset($_GET['view_id']) ? (int)$_GET['view_id'] : 0;
+$viewSale = null;
+$viewItems = [];
+$viewPayments = [];
+
+if ($viewId > 0 && !$isAjax && $action === null) {
+    $stmt = mysqli_prepare($conn,
+        "SELECT gs.id, gs.customer_id, c.name AS customer_name, c.phone AS customer_phone,
+                gs.pure_gold_price, gs.total_amount,
+                COALESCE(gsp.paid_sum, 0)                             AS paid_amount,
+                (gs.total_amount - COALESCE(gsp.paid_sum, 0))         AS due_amount,
+                gs.note, gs.created_at, gs.updated_at, u.username AS created_by_username
+         FROM gold_sales gs
+         JOIN customers c ON c.id = gs.customer_id
+         LEFT JOIN users u ON u.id = gs.created_by
+         LEFT JOIN (
+             SELECT gold_sale_id, SUM(paid_amount) AS paid_sum
+             FROM gold_sale_payments
+             GROUP BY gold_sale_id
+         ) gsp ON gsp.gold_sale_id = gs.id
+         WHERE gs.id = ?");
+    mysqli_stmt_bind_param($stmt, 'i', $viewId);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $viewSale = mysqli_fetch_assoc($res);
+    mysqli_stmt_close($stmt);
+
+    if ($viewSale) {
+        // Items
+        $itemStmt = mysqli_prepare($conn,
+            "SELECT id, weight, purity, price
+             FROM gold_sale_items WHERE gold_sale_id = ? ORDER BY id ASC");
+        mysqli_stmt_bind_param($itemStmt, 'i', $viewId);
+        mysqli_stmt_execute($itemStmt);
+        $itemRes = mysqli_stmt_get_result($itemStmt);
+        while ($row = mysqli_fetch_assoc($itemRes)) {
+            $viewItems[] = $row;
+        }
+        mysqli_stmt_close($itemStmt);
+
+        // Payments
+        $pmtStmt = mysqli_prepare($conn,
+            "SELECT p.id, p.paid_amount, p.transaction_ref, p.payment_date, p.note,
+                    p.created_at, u.username AS received_by_username
+             FROM gold_sale_payments p
+             LEFT JOIN users u ON u.id = p.received_by
+             WHERE p.gold_sale_id = ?
+             ORDER BY p.payment_date ASC, p.created_at ASC");
+        mysqli_stmt_bind_param($pmtStmt, 'i', $viewId);
+        mysqli_stmt_execute($pmtStmt);
+        $pmtRes = mysqli_stmt_get_result($pmtStmt);
+        while ($row = mysqli_fetch_assoc($pmtRes)) {
+            $viewPayments[] = $row;
+        }
+        mysqli_stmt_close($pmtStmt);
+    }
+}
+
 // -----------------------------------------------------------------------
 // AJAX actions
 // -----------------------------------------------------------------------
@@ -196,7 +289,8 @@ if ($isAjax || $action !== null) {
              WHERE gs.id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
-        $sale = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $saleRes = mysqli_stmt_get_result($stmt);
+        $sale = mysqli_fetch_assoc($saleRes);
         if (!$sale) json_out(['success' => false, 'message' => 'কোনো তথ্য পাওয়া যায়নি।'], 404);
 
         $itemStmt = mysqli_prepare($conn,
@@ -204,8 +298,9 @@ if ($isAjax || $action !== null) {
              FROM gold_sale_items WHERE gold_sale_id = ? ORDER BY id ASC");
         mysqli_stmt_bind_param($itemStmt, 'i', $id);
         mysqli_stmt_execute($itemStmt);
+        $itemRes = mysqli_stmt_get_result($itemStmt);
         $items = [];
-        while ($row = mysqli_fetch_assoc(mysqli_stmt_get_result($itemStmt))) $items[] = $row;
+        while ($row = mysqli_fetch_assoc($itemRes)) $items[] = $row;
 
         // Payment history
         $pmtStmt = mysqli_prepare($conn,
@@ -217,8 +312,9 @@ if ($isAjax || $action !== null) {
              ORDER BY p.payment_date ASC, p.created_at ASC");
         mysqli_stmt_bind_param($pmtStmt, 'i', $id);
         mysqli_stmt_execute($pmtStmt);
+        $pmtRes = mysqli_stmt_get_result($pmtStmt);
         $payments = [];
-        while ($row = mysqli_fetch_assoc(mysqli_stmt_get_result($pmtStmt))) $payments[] = $row;
+        while ($row = mysqli_fetch_assoc($pmtRes)) $payments[] = $row;
 
         $sale['items']    = $items;
         $sale['payments'] = $payments;
@@ -772,31 +868,116 @@ body {
 </div>
 
 <!-- ================================================================
-     VIEW MODAL
+     VIEW MODAL (Server-Rendered PHP)
 ================================================================ -->
+<?php if ($viewSale): ?>
 <div class="modal fade" id="viewModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-receipt me-2"></i>বিক্রয় #<span id="viewId"></span>
+                    <i class="bi bi-receipt me-2"></i>বিক্রয় #<?= (int)$viewSale['id'] ?>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="viewBody">
-                <div class="text-center text-muted py-4">লোড হচ্ছে…</div>
+                <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                    <div>
+                        <div class="fw-semibold fs-6"><?= htmlspecialchars($viewSale['customer_name'] ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                        <small class="text-muted"><?= htmlspecialchars($viewSale['customer_phone'] ?? '', ENT_QUOTES, 'UTF-8') ?></small>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block"><?= fmtDatePHP($viewSale['created_at']) ?></small>
+                        <small class="text-muted">গ্রহীতা: <?= htmlspecialchars($viewSale['created_by_username'] ?? '—', ENT_QUOTES, 'UTF-8') ?></small>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:32px;">#</th>
+                                <th>ওজন (ভ-আ-র-প)</th>
+                                <th style="width:70px;">ক্যারেট</th>
+                                <th class="text-end"> দাম</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($viewItems)): ?>
+                                <tr><td colspan="4" class="text-center text-muted">কোনো আইটেম পাওয়া যায়নি।</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($viewItems as $idx => $it): ?>
+                                    <tr>
+                                        <td class="text-muted"><?= $idx + 1 ?></td>
+                                        <td><?= gramsToTraditionalPHP($it['weight']) ?></td>
+                                        <td><?= number_format((float)$it['purity'], 2) ?> K</td>
+                                        <td class="text-end"><?= fmtBDTPHP($it['price']) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mb-3">
+                    <div class="fw-semibold small text-muted mb-1">পেমেন্ট ইতিহাস</div>
+                    <?php if (empty($viewPayments)): ?>
+                        <p class="text-muted small mb-0">এখনো কোনো পেমেন্ট করা হয়নি।</p>
+                    <?php else: ?>
+                        <?php foreach ($viewPayments as $p): ?>
+                            <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size:.82rem;">
+                                <span class="text-muted">
+                                    <?= fmtDatePHP($p['payment_date']) ?>
+                                </span>
+                                <span class="fw-semibold text-success"><?= fmtBDTPHP($p['paid_amount']) ?></span>
+                                <span class="text-muted small"><?= htmlspecialchars($p['received_by_username'] ?? '—', ENT_QUOTES, 'UTF-8') ?></span>
+                                <?php if (!empty($p['transaction_ref'])): ?>
+                                    <span class="badge bg-light text-dark border">#<?= htmlspecialchars($p['transaction_ref'], ENT_QUOTES, 'UTF-8') ?></span>
+                                <?php else: ?>
+                                    <span></span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <?php $due = (float)($viewSale['due_amount'] ?? 0); ?>
+                <table class="table table-sm mb-3 ledger-table">
+                    <tbody>
+                        <tr class="ledger-total">
+                            <td class="ledger-label">২৪ ক্যারেট পাকা সোনার দাম (প্রতি ভরি)</td>
+                            <td class="ledger-vorp"><?= fmtBDTPHP($viewSale['pure_gold_price']) ?></td>
+                        </tr>
+                        <tr class="ledger-total">
+                            <td class="ledger-label">মোট</td>
+                            <td class="ledger-vorp"><?= fmtBDTPHP($viewSale['total_amount']) ?></td>
+                        </tr>
+                        <tr class="ledger-paid">
+                            <td class="ledger-label">পরিশোধিত</td>
+                            <td class="ledger-vorp"><?= fmtBDTPHP($viewSale['paid_amount']) ?></td>
+                        </tr>
+                        <tr class="ledger-due">
+                            <td class="ledger-label">বকেয়া</td>
+                            <td class="ledger-vorp"><?= fmtBDTPHP($due) ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <?php if (!empty($viewSale['note'])): ?>
+                    <div class="alert alert-light border mb-0 py-2"><strong>নোট:</strong> <?= htmlspecialchars($viewSale['note'], ENT_QUOTES, 'UTF-8') ?></div>
+                <?php endif; ?>
             </div>
             <div class="modal-footer justify-content-between">
                 <button type="button" class="btn btn-fb-secondary btn-sm" data-bs-dismiss="modal">
                     <i class="bi bi-x-lg me-1"></i>বন্ধ করুন
                 </button>
-                <a id="btnOpenEdit" href="#" class="btn btn-fb-primary btn-sm">
+                <a id="btnOpenEdit" href="gold_sale_edit_inventory.php?id=<?= (int)$viewSale['id'] ?>" class="btn btn-fb-primary btn-sm">
                     <i class="bi bi-pencil-square me-1"></i>সম্পূর্ণ বিস্তারিত / এডিট
                 </a>
             </div>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -821,12 +1002,12 @@ function gramsToTraditional(grams) {
     if (point >= 10) { point -= 10; roti++; }
     if (roti >= 6)   { roti -= 6;   ana++;  }
     if (ana >= 16)   { ana -= 16;   vori++; }
-    return { vori, ana, roti, point };
+    return `${vori} ভ ${ana} আ ${roti} র ${point} প`;
 }
 
 function fmtTrad(grams) {
     const t = gramsToTraditional(parseFloat(grams) || 0);
-    return `${t.vori}ভ ${t.ana}আ ${t.roti}র ${t.point}প`;
+    return t;
 }
 
 function fmtBDT(n) {
@@ -951,9 +1132,9 @@ async function loadList(page = 1) {
                     <td class="small d-none d-md-table-cell">${escHtml(row.created_by_username || '—')}</td>
                     <td>
                         <div class="btn-actions">
-                            <button class="btn btn-sm btn-outline-secondary btn-view" title="দ্রুত দেখুন" data-id="${row.id}">
+                            <a href="gold_sale_list.php?view_id=${row.id}" class="btn btn-sm btn-outline-secondary btn-view" title="দ্রুত দেখুন">
                                 <i class="bi bi-eye"></i>
-                            </button>
+                            </a>
                             <a href="gold_sale_edit_inventory.php?id=${row.id}" class="btn btn-sm btn-outline-primary" title="এডিট / বিস্তারিত">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
@@ -1010,113 +1191,6 @@ document.getElementById('clearDatesBtn').addEventListener('click', () => {
     currentFrom = ''; currentTo = ''; loadList(1);
 });
 
-// ── View modal ──
-document.getElementById('tableBody').addEventListener('click', async function (e) {
-    const btn = e.target.closest('.btn-view');
-    if (!btn) return;
-    await openView(btn.dataset.id);
-});
-
-async function openView(id) {
-    document.getElementById('btnOpenEdit').href = 'gold_sale_edit_inventory.php?id=' + id;
-    document.getElementById('viewId').textContent = id;
-    document.getElementById('viewBody').innerHTML = '<div class="text-center text-muted py-4">লোড হচ্ছে…</div>';
-    const modal = new bootstrap.Modal(document.getElementById('viewModal'));
-    modal.show();
-
-    try {
-        const res  = await fetch('gold_sale_list.php?action=get&id=' + id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        const data = await res.json();
-        if (!data.success) {
-            document.getElementById('viewBody').innerHTML = `<div class="text-danger">${escHtml(data.message || 'ব্যর্থ হয়েছে।')}</div>`;
-            return;
-        }
-        const b = data.data;
-
-        const itemsHtml = b.items.map((it, idx) => {
-            const t = gramsToTraditional(parseFloat(it.weight) || 0);
-            return `<tr>
-                <td class="text-muted">${idx + 1}</td>
-                <td>${t.vori}ভ ${t.ana}আ ${t.roti}র ${t.point}প</td>
-                <td>${parseFloat(it.purity).toFixed(2)} ক্যারেট</td>
-                <td class="text-end">${fmtBDT(it.price)}</td>
-            </tr>`;
-        }).join('');
-
-        const due = parseFloat(b.due_amount) || 0;
-
-        const pmtHtml = (!b.payments || b.payments.length === 0)
-            ? '<p class="text-muted small mb-0">এখনো কোনো পেমেন্ট করা হয়নি।</p>'
-            : b.payments.map(p => `
-                <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size:.82rem;">
-                    <span class="text-muted">
-                        ${new Date(p.payment_date).toLocaleDateString('bn-BD', {day:'2-digit',month:'short',year:'numeric'})}
-                    </span>
-                    <span class="fw-semibold text-success">${fmtBDT(p.paid_amount)}</span>
-                    <span class="text-muted small">${escHtml(p.received_by_username ?? '—')}</span>
-                    ${p.transaction_ref
-                        ? `<span class="badge bg-light text-dark border">#${escHtml(p.transaction_ref)}</span>`
-                        : '<span></span>'}
-                </div>`).join('');
-
-        document.getElementById('viewBody').innerHTML = `
-            <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
-                <div>
-                    <div class="fw-semibold fs-6">${escHtml(b.customer_name)}</div>
-                    <small class="text-muted">${escHtml(b.customer_phone || '')}</small>
-                </div>
-                <div class="text-end">
-                    <small class="text-muted d-block">${fmtDate(b.created_at)}</small>
-                    <small class="text-muted">গ্রহীতা: ${escHtml(b.created_by_username || '—')}</small>
-                </div>
-            </div>
-
-            <div class="table-responsive mb-3">
-                <table class="table table-sm table-bordered align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:32px;">#</th>
-                            <th>সোনার ওজন (ভ-আ-র-প)</th>
-                            <th style="width:70px;">সোনার মান</th>
-                            <th class="text-end">আইটেমের দাম</th>
-                        </tr>
-                    </thead>
-                    <tbody>${itemsHtml}</tbody>
-                </table>
-            </div>
-
-            <div class="mb-3">
-                <div class="fw-semibold small text-muted mb-1">পেমেন্ট ইতিহাস</div>
-                ${pmtHtml}
-            </div>
-
-            <table class="table table-sm mb-3 ledger-table">
-                <tbody>
-                    <tr class="ledger-total">
-                        <td class="ledger-label">২৪ ক্যারেট পাকা সোনার দাম (প্রতি ভরি)</td>
-                        <td class="ledger-vorp">${fmtBDT(b.pure_gold_price)}</td>
-                    </tr>
-                    <tr class="ledger-total">
-                        <td class="ledger-label">মোট</td>
-                        <td class="ledger-vorp">${fmtBDT(b.total_amount)}</td>
-                    </tr>
-                    <tr class="ledger-paid">
-                        <td class="ledger-label">পরিশোধিত</td>
-                        <td class="ledger-vorp">${fmtBDT(b.paid_amount)}</td>
-                    </tr>
-                    <tr class="ledger-due">
-                        <td class="ledger-label">বকেয়া</td>
-                        <td class="ledger-vorp">${fmtBDT(due)}</td>
-                    </tr>
-                </tbody>
-            </table>
-            ${b.note ? `<div class="alert alert-light border mb-0 py-2"><strong>নোট:</strong> ${escHtml(b.note)}</div>` : ''}
-        `;
-    } catch {
-        document.getElementById('viewBody').innerHTML = '<div class="text-danger">নেটওয়ার্ক সমস্যা।</div>';
-    }
-}
-
 // Set default date range: current month (1st → today)
 (function setDefaultDates() {
     const localDateStr = d => {
@@ -1135,6 +1209,18 @@ async function openView(id) {
 
 loadList(1);
 </script>
+
+<?php if ($viewSale): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const viewModalEl = document.getElementById('viewModal');
+    if (viewModalEl) {
+        const modal = new bootstrap.Modal(viewModalEl);
+        modal.show();
+    }
+});
+</script>
+<?php endif; ?>
 
 </body>
 </html>

@@ -781,34 +781,27 @@ label, .form-label {
     <div class="row g-3">
         <div class="col-md-6">
             <div class="mb-2">
-                <div class="detail-label">কাস্টমারের নাম</div>
-                <div class="detail-val"><?= h($ex['customer_name']) ?></div>
+                <div class="detail-label">কাস্টমারের নাম:&ensp;&ensp;<span class="detail-val"><?= h($ex['customer_name']) ?></span></div>
+                
             </div>
             <div class="mb-2">
-                <div class="detail-label">ফোন নম্বর</div>
-                <div class="detail-val"><?= h($ex['customer_phone'] ?: '—') ?></div>
+                <div class="detail-label">ফোন নম্বর:&ensp;&ensp;<span class="detail-val"><?= h($ex['customer_phone'] ?: '—') ?></span></div>
             </div>
             <div>
-                <div class="detail-label">ঠিকানা</div>
-                <div class="detail-val"><?= h($ex['customer_address'] ?: '—') ?></div>
+                <div class="detail-label">ঠিকানা:&ensp;&ensp;<span class="detail-val"><?= h($ex['customer_address'] ?: '—') ?></span></div>
             </div>
         </div>
 
         <div class="col-md-6 border-start-md ps-md-4">
             <div class="mb-2">
-                <div class="detail-label">তারিখ ও সময়</div>
-                <div class="detail-val"><?= h(fmt_dt($ex['created_at'])) ?></div>
+                <div class="detail-label">তারিখ ও সময়:&ensp;&ensp;<span class="detail-val"><?= h(fmt_dt($ex['created_at'])) ?></span></div>
             </div>
             <div class="mb-2">
-                <div class="detail-label">তৈরি করেছেন</div>
-                <div class="detail-val"><?= h($ex['created_by_username'] ?? '—') ?></div>
+                <div class="detail-label">তৈরি করেছেন:&ensp;&ensp;<span class="detail-val"><?= h($ex['created_by_username'] ?? '—') ?></span></div>
             </div>
             <?php if ($ex['updated_at'] && $ex['updated_at'] !== $ex['created_at']): ?>
             <div>
-                <div class="detail-label">সর্বশেষ আপডেট</div>
-                <div class="detail-val" style="color:var(--text-secondary);">
-                    <?= h(fmt_dt($ex['updated_at'])) ?>
-                </div>
+                <div class="detail-label">সর্বশেষ আপডেট:&ensp;&ensp;<span class="detail-val"><?= h(fmt_dt($ex['updated_at'])) ?></span></div>
             </div>
             <?php endif; ?>
         </div>

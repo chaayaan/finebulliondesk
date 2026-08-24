@@ -36,6 +36,9 @@ $hasLogoImage = file_exists(__DIR__ . '/' . $logoImagePath);
 // Active State Logic
 $isCustomerActive     = in_array($navCurrentPage, ['customers.php', 'customer_history.php']);
 $isInventoryActive    = in_array($navCurrentPage, ['inventory.php', 'inventory_list.php', 'inventory_add.php']);
+$isExpenseActive      = ($navCurrentPage === 'expenses.php');
+$isUserActive         = ($navCurrentPage === 'users.php');
+
 $isExchangeActive     = in_array($navCurrentPage, ['gold_exchange_inventory.php', 'gold_exchange_list.php', 'gold_exchange_edit_inventory.php']);
 $isExchangeEditActive = ($navCurrentPage === 'gold_exchange_edit_inventory.php');
 
@@ -45,7 +48,7 @@ $isSaleEditActive     = ($navCurrentPage === 'gold_sale_edit_inventory.php');
 $isBuyActive          = in_array($navCurrentPage, ['gold_buy.php', 'gold_buy_list.php', 'gold_buy_edit.php']);
 $isBuyEditActive      = ($navCurrentPage === 'gold_buy_edit.php');
 
-$isMenuActive         = in_array($navCurrentPage, ['inventory.php', 'expenses.php', 'customers.php', 'users.php']);
+$isMenuActive         = ($isInventoryActive || $isExpenseActive || $isCustomerActive || $isUserActive);
 
 function nav_is_active(string $href, string $current): bool {
     return $href === $current;
@@ -56,6 +59,24 @@ $currentQueryString = $_SERVER['QUERY_STRING'] ?? '';
 $exchangeEditUrl = 'gold_exchange_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 $saleEditUrl     = 'gold_sale_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+
+/* Dynamic Menu Icon Logic for Mobile 3-Dot Menu */
+$menuIconClass = 'bi-three-dots';
+$menuLabelText = 'মেন্যু';
+
+if ($isInventoryActive) {
+    $menuIconClass = 'bi-box-seam-fill';
+    $menuLabelText = 'ইনভেন্টরি';
+} elseif ($isExpenseActive) {
+    $menuIconClass = 'bi-wallet2';
+    $menuLabelText = 'খরচ';
+} elseif ($isCustomerActive) {
+    $menuIconClass = 'bi-person-fill';
+    $menuLabelText = 'কাস্টমার';
+} elseif ($isUserActive) {
+    $menuIconClass = 'bi-people-fill';
+    $menuLabelText = 'ইউজার';
+}
 
 /* =========================================================
  * License Status System (self-contained inside navbar.php)
@@ -68,15 +89,10 @@ $expireDate         = '';
 $lastRenewDate      = '';
 $daysLeft           = null;
 $daysLeftText       = '';
-$licenseWarningLevel = 'normal'; // normal | orange | red | darkred | today | expired
+$licenseWarningLevel = 'normal';
 $hasLicenseRecord   = false;
 $isLicenseExpired   = false;
 
-/**
- * Connection settings for the licenses database.
- * Adjust these constants if the license_manager database
- * lives on a different host/credentials than the main app DB.
- */
 if (!defined('LICENSE_DB_HOST')) define('LICENSE_DB_HOST', 'localhost');
 if (!defined('LICENSE_DB_USER')) define('LICENSE_DB_USER', 'root');
 if (!defined('LICENSE_DB_PASS')) define('LICENSE_DB_PASS', '');
@@ -162,7 +178,7 @@ if ($licenseConn) {
         --nav-gold: #C8D9E6;
         --nav-text: #FFFFFF;
         --nav-text-dim: rgba(255, 255, 255, 0.65);
-        --mobile-nav-height: 60px;
+        --mobile-nav-height: 66px;
 
         /* License status accent colors */
         --license-gold: #D4AF37;
@@ -175,20 +191,17 @@ if ($licenseConn) {
         --license-darkred-bg: rgba(139, 30, 30, 0.22);
     }
 
-    /* Zero out root margins and body padding */
     html, body {
         margin: 0 !important;
         padding: 0 !important;
     }
 
-    /* Ensure no underlines across all interactive navigation links and buttons */
     a, a:hover, a:focus, a:active,
     button, button:hover, button:focus, button:active,
     .nav-link-item, .nav-sub-item, .mobile-nav-item, .bottom-sheet-item, .nav-logout-btn {
         text-decoration: none !important;
     }
 
-    /* Remove spacing from parent layout wrappers */
     .page-content,
     .main-wrapper,
     .content-wrapper,
@@ -198,7 +211,6 @@ if ($licenseConn) {
         padding-top: 0 !important;
     }
 
-    /* Force header banner flush to the top edge */
     .list-header {
         margin-top: 0 !important;
         border-top-left-radius: 0 !important;
@@ -207,7 +219,6 @@ if ($licenseConn) {
         top: 0;
     }
 
-    /* Prevent CSS margin collapsing from child headings/icons */
     .page-content > *:first-child,
     .list-header > *:first-child {
         margin-top: 0 !important;
@@ -222,7 +233,6 @@ if ($licenseConn) {
         font-family: system-ui, -apple-system, sans-serif;
     }
     
-    /* Full-Width Logo Header Container */
     .nav-brand {
         display: flex;
         align-items: center;
@@ -233,7 +243,6 @@ if ($licenseConn) {
         box-sizing: border-box;
     }
     
-    /* Full-width logo image layout */
     .nav-brand-logo-full {
         width: 100%;
         max-height: 42px;
@@ -241,7 +250,6 @@ if ($licenseConn) {
         display: block;
     }
 
-    /* Fallback Text Layout */
     .nav-brand-text-fallback {
         font-size: 1.05rem;
         font-weight: 800;
@@ -262,28 +270,11 @@ if ($licenseConn) {
     .nav-link-item:hover { background: var(--nav-bg-soft); color: #fff; text-decoration: none !important; }
     .nav-link-item.active { background: rgba(200, 217, 230, 0.18); color: var(--nav-gold); }
 
-    /* Desktop Dropdown Styles */
-    .nav-dropdown-toggle {
-        justify-content: space-between;
-    }
-    .nav-dropdown-toggle .chevron-icon {
-        font-size: 0.75rem;
-        transition: transform 0.2s ease;
-        color: var(--nav-text-dim);
-    }
-    .nav-dropdown.open .chevron-icon {
-        transform: rotate(180deg);
-    }
-    .nav-submenu {
-        display: none;
-        flex-direction: column;
-        gap: 0.15rem;
-        padding-left: 0.8rem;
-        margin-top: 0.15rem;
-    }
-    .nav-dropdown.open .nav-submenu {
-        display: flex;
-    }
+    .nav-dropdown-toggle { justify-content: space-between; }
+    .nav-dropdown-toggle .chevron-icon { font-size: 0.75rem; transition: transform 0.2s ease; color: var(--nav-text-dim); }
+    .nav-dropdown.open .chevron-icon { transform: rotate(180deg); }
+    .nav-submenu { display: none; flex-direction: column; gap: 0.15rem; padding-left: 0.8rem; margin-top: 0.15rem; }
+    .nav-dropdown.open .nav-submenu { display: flex; }
     .nav-sub-item {
         display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.75rem;
         border-radius: 6px; color: var(--nav-text-dim); text-decoration: none !important;
@@ -310,7 +301,6 @@ if ($licenseConn) {
         background: #F5EFEB; 
     }
 
-    /* Global Header Fix: Ensures no top spacing and rounds bottom corners only */
     .list-header {
         margin-top: 0 !important;
         border-top-left-radius: 0 !important;
@@ -322,18 +312,31 @@ if ($licenseConn) {
     /* Mobile Bottom Navigation */
     .mobile-bottom-nav {
         display: none; position: fixed; bottom: 0; left: 0; right: 0;
-        height: var(--mobile-nav-height); background: var(--nav-bg);
-        border-top: 1px solid var(--nav-border); z-index: 1050;
+        height: var(--mobile-nav-height); background: #F8F5F0;
+        border-top: 1px solid #C8D9E6; z-index: 1050; padding: 0 4px;
     }
-    .mobile-nav-container { display: flex; height: 100%; align-items: center; justify-content: space-around; }
+    .mobile-nav-container { display: flex; height: 100%; align-items: center; justify-content: space-between; }
     .mobile-nav-item {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        flex: 1; height: 100%; color: var(--nav-text-dim); background: none; border: none; padding: 0; gap: 3px; cursor: pointer;
-        text-decoration: none !important;
+        flex: 1; height: 82%; color: #567C8D; background: none; border: none; padding: 2px 4px; gap: 2px; cursor: pointer;
+        text-decoration: none !important; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 24px; margin: 0 2px;
     }
-    .mobile-nav-item i { font-size: 1.2rem; }
-    .mobile-nav-item span { font-size: 0.65rem; font-weight: 500; }
-    .mobile-nav-item.active { color: var(--nav-gold); }
+    .mobile-nav-item i { font-size: 1.25rem; }
+    .mobile-nav-item span { font-size: 0.68rem; font-weight: 600; line-height: 1; }
+
+    /* Active State: Capsule/Pill Glow Effect */
+    .mobile-nav-item.active {
+        background: #1C2D42;
+        color: #FFFFFF !important;
+        flex-direction: row;
+        gap: 6px;
+        padding: 0 12px;
+        border-radius: 30px;
+        box-shadow: 0 0 12px rgba(28, 45, 66, 0.35);
+    }
+    .mobile-nav-item.active i { font-size: 1.15rem; color: #FFFFFF; }
+    .mobile-nav-item.active span { font-size: 0.8rem; font-weight: 700; color: #FFFFFF; }
 
     /* Bottom Sheets */
     .bottom-sheet-backdrop {
@@ -341,33 +344,24 @@ if ($licenseConn) {
     }
     .bottom-sheet-backdrop.active { display: block; opacity: 1; }
     .bottom-sheet {
-        position: fixed; left: 0; right: 0; bottom: 0; background: var(--nav-bg);
-        border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid var(--nav-border);
+        position: fixed; left: 0; right: 0; bottom: 0; background: #F8F5F0;
+        border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid #C8D9E6;
         padding: 0.75rem 1.25rem 1.5rem; z-index: 1070; transform: translateY(100%); transition: transform 0.25s ease;
     }
     .bottom-sheet.open { transform: translateY(0); }
-    .bottom-sheet-drag-handle { width: 36px; height: 4px; background: var(--nav-border); border-radius: 2px; margin: 0 auto 0.85rem; }
-    .bottom-sheet-title { color: #fff; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.85rem; text-align: center; }
+    .bottom-sheet-drag-handle { width: 36px; height: 4px; background: #C8D9E6; border-radius: 2px; margin: 0 auto 0.85rem; }
+    .bottom-sheet-title { color: #2F4156; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.85rem; text-align: center; }
     .bottom-sheet-options { display: flex; flex-direction: column; gap: 0.5rem; }
     .bottom-sheet-item {
         display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 1rem; border-radius: 10px;
-        background: var(--nav-bg-soft); color: var(--nav-text); text-decoration: none !important; font-size: 0.9rem; font-weight: 500;
+        background: #FFFFFF; color: #2F4156; text-decoration: none !important; font-size: 0.9rem; font-weight: 500;
+        border: 1px solid #C8D9E6;
     }
-    .bottom-sheet-item i { font-size: 1.1rem; color: var(--nav-gold); }
-    .bottom-sheet-item.active { background: rgba(200, 217, 230, 0.2); color: var(--nav-gold); }
+    .bottom-sheet-item i { font-size: 1.1rem; color: #2F4156; }
+    .bottom-sheet-item.active { background: rgba(47, 65, 86, 0.08); color: #2F4156; }
 
-    /* Mobile Sheet Logo Header */
-    .bottom-sheet-logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 0.5rem;
-    }
-    .bottom-sheet-logo {
-        max-height: 50px;
-        max-width: 80%;
-        object-fit: contain;
-    }
+    .bottom-sheet-logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem; }
+    .bottom-sheet-logo { max-height: 50px; max-width: 80%; object-fit: contain; }
 
     @media (max-width: 991.98px) {
         .app-sidebar { display: none; }
@@ -379,114 +373,55 @@ if ($licenseConn) {
             padding-bottom: calc(var(--mobile-nav-height) + 12px); 
         }
 
-        /* ---- Mobile-only inversion: off-white surfaces, navy icons/text/logo ---- */
-        .mobile-bottom-nav {
-            background: #F8F5F0;
-            border-top: 1px solid var(--sky, #C8D9E6);
-        }
-        .mobile-nav-item { color: var(--teal, #567C8D); }
-        .mobile-nav-item.active { color: var(--navy, #2F4156); }
-
-        .bottom-sheet {
-            background: #F8F5F0;
-            border-top: 1px solid var(--sky, #C8D9E6);
-        }
-        .bottom-sheet-drag-handle { background: var(--sky, #C8D9E6); }
-        .bottom-sheet-title { color: var(--navy, #2F4156); }
-        .bottom-sheet-item {
-            background: #FFFFFF;
-            color: var(--navy, #2F4156);
-            border: 1px solid var(--sky, #C8D9E6);
-        }
-        .bottom-sheet-item i { color: var(--navy, #2F4156); }
-        .bottom-sheet-item.active {
-            background: rgba(47, 65, 86, 0.08);
-            color: var(--navy, #2F4156);
-        }
-
-        /* Logo/wordmark inside the mobile menu sheet turns navy */
-        #sheetMenu .nav-brand-text-fallback { color: var(--navy, #2F4156); }
+        #sheetMenu .nav-brand-text-fallback { color: #2F4156; }
         #sheetMenu .bottom-sheet-logo {
             filter: brightness(0) saturate(100%) invert(20%) sepia(22%) saturate(910%) hue-rotate(163deg) brightness(94%) contrast(88%);
         }
 
-        /* ---- User info card (avatar/name/role + logout) in the mobile menu sheet ---- */
         .menu-user-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            background: rgba(47, 65, 86, 0.06);
-            border-radius: 14px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.85rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+            background: rgba(47, 65, 86, 0.06); border-radius: 14px; padding: 0.75rem 1rem; margin-bottom: 0.85rem;
         }
         .menu-user-info { display: flex; align-items: center; gap: 0.65rem; min-width: 0; }
-        .menu-user-avatar {
-            width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
-        }
+        .menu-user-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
         .menu-user-avatar-fallback {
             display: flex; align-items: center; justify-content: center;
-            background: var(--sky, #C8D9E6); color: var(--navy, #2F4156); font-size: 1.1rem;
+            background: #C8D9E6; color: #2F4156; font-size: 1.1rem;
         }
         .menu-user-text { min-width: 0; }
-        .menu-user-name {
-            font-size: 0.9rem; font-weight: 700; color: var(--navy, #2F4156);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .menu-user-role {
-            font-size: 0.75rem; color: var(--teal, #567C8D); text-transform: capitalize;
-        }
+        .menu-user-name { font-size: 0.9rem; font-weight: 700; color: #2F4156; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .menu-user-role { font-size: 0.75rem; color: #567C8D; text-transform: capitalize; }
         .menu-logout-btn {
             display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;
-            font-size: 0.82rem; font-weight: 600; color: #A6434B;
-            text-decoration: none !important; padding: 0.3rem 0.1rem;
+            font-size: 0.82rem; font-weight: 600; color: #A6434B; text-decoration: none !important; padding: 0.3rem 0.1rem;
         }
         .menu-logout-btn i { font-size: 1rem; color: #A6434B; }
 
-        /* ---- Icon-tile menu items (Inventory/Expenses/Customers/Users) ---- */
         .bs-item-tile {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            background: #FFFFFF;
-            border: none;
-            border-radius: 14px;
-            padding: 0.85rem 1rem;
+            display: flex; align-items: center; gap: 0.85rem; background: #FFFFFF;
+            border: none; border-radius: 14px; padding: 0.85rem 1rem;
         }
         .bs-item-tile .bs-item-icon {
             width: 40px; height: 40px; min-width: 40px; border-radius: 12px;
-            background: rgba(47, 65, 86, 0.06);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; color: var(--navy, #2F4156);
+            background: rgba(47, 65, 86, 0.06); display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: #2F4156;
         }
-        .bs-item-tile .bs-item-label {
-            flex: 1; font-size: 0.92rem; font-weight: 600; color: var(--navy, #2F4156);
-        }
-        .bs-item-tile .bs-item-chevron {
-            font-size: 0.85rem; color: var(--teal, #567C8D);
-        }
+        .bs-item-tile .bs-item-label { flex: 1; font-size: 0.92rem; font-weight: 600; color: #2F4156; }
+        .bs-item-tile .bs-item-chevron { font-size: 0.85rem; color: #567C8D; }
         .bs-item-tile.active { background: #FFFFFF; }
-        .bs-item-tile.active .bs-item-icon { background: var(--sky, #C8D9E6); }
+        .bs-item-tile.active .bs-item-icon { background: #C8D9E6; }
 
-        /* License widget inside mobile menu sheet (light theme) */
-        #sheetMenu .nav-license-widget {
-            background: #FFFFFF;
-            border: 1px solid var(--sky, #C8D9E6);
-        }
+        #sheetMenu .nav-license-widget { background: #FFFFFF; border: 1px solid #C8D9E6; }
         #sheetMenu .nav-license-widget:hover { background: #FFFFFF; }
-        #sheetMenu .nav-license-branch { color: var(--navy, #2F4156); }
+        #sheetMenu .nav-license-branch { color: #2F4156; }
         #sheetMenu .nav-license-widget.nav-license-expired {
-            background: rgba(139, 30, 30, 0.08);
-            border-color: rgba(139, 30, 30, 0.35);
+            background: rgba(139, 30, 30, 0.08); border-color: rgba(139, 30, 30, 0.35);
         }
         #sheetMenu .nav-license-widget.nav-license-expired .nav-license-icon { color: var(--license-darkred); background: rgba(139,30,30,0.14); }
         #sheetMenu .nav-license-widget.nav-license-expired .nav-license-days { color: var(--license-darkred); }
     }
 
-    /* =========================================================
-     * License Status Widget (sidebar / mobile menu)
-     * ========================================================= */
+    /* License Status Widget */
     @keyframes licensePulse {
         0%, 100% { box-shadow: 0 0 0 0 rgba(139, 30, 30, 0.35); }
         50%      { box-shadow: 0 0 0 6px rgba(139, 30, 30, 0); }
@@ -509,10 +444,7 @@ if ($licenseConn) {
         font-size: 1rem; background: var(--license-gold-bg); color: var(--license-gold);
     }
     .nav-license-text { min-width: 0; }
-    .nav-license-branch {
-        font-size: 0.82rem; font-weight: 700; color: #fff;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+    .nav-license-branch { font-size: 0.82rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .nav-license-days { font-size: 0.72rem; font-weight: 600; color: var(--license-gold); margin-top: 1px; }
 
     .nav-license-widget.nav-license-orange .nav-license-icon { background: var(--license-orange-bg); color: var(--license-orange); }
@@ -537,9 +469,7 @@ if ($licenseConn) {
     .nav-license-widget.nav-license-expired .nav-license-icon { background: rgba(255, 255, 255, 0.18); color: #fff; }
     .nav-license-widget.nav-license-expired .nav-license-days { color: #fff; font-weight: 700; }
 
-    /* =========================================================
-     * License Details Modal
-     * ========================================================= */
+    /* License Details Modal */
     .license-modal-backdrop {
         display: none; position: fixed; inset: 0; z-index: 5000;
         background: rgba(47, 65, 86, 0.55);
@@ -559,10 +489,7 @@ if ($licenseConn) {
         border-top-left-radius: 18px; border-top-right-radius: 18px;
     }
     .license-modal-header h3 { margin: 0; font-size: 1rem; font-weight: 800; color: #2F4156; }
-    .license-modal-close {
-        background: none; border: none; color: #567C8D; font-size: 1rem;
-        cursor: pointer; padding: 0.2rem; line-height: 1;
-    }
+    .license-modal-close { background: none; border: none; color: #567C8D; font-size: 1rem; cursor: pointer; padding: 0.2rem; line-height: 1; }
     .license-modal-close:hover { color: #2F4156; }
 
     .license-modal-body { padding: 1.15rem 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 0.8rem; }
@@ -570,7 +497,6 @@ if ($licenseConn) {
     .license-label { color: #8592A6; font-weight: 600; flex-shrink: 0; }
     .license-value { color: #2F4156; font-weight: 700; text-align: right; word-break: break-word; }
     .license-key-value { font-family: 'Courier New', monospace; letter-spacing: 0.02em; font-size: 0.82rem; }
-    .license-app-link { color: #567C8D; text-decoration: underline !important; font-size: 0.8rem; word-break: break-all; }
 
     .license-status-badge {
         display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px;
@@ -590,9 +516,7 @@ if ($licenseConn) {
         font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
     }
 
-    /* =========================================================
-     * Expired License — Full Lock Overlay
-     * ========================================================= */
+    /* Expired License Full Lock */
     .license-lock-overlay {
         position: fixed; inset: 0; z-index: 99999;
         background: rgba(139, 20, 20, 0.96);
@@ -621,7 +545,6 @@ if ($licenseConn) {
 <aside class="app-sidebar">
     <div class="nav-brand">
         <?php if ($hasLogoImage): ?>
-            <!-- Full Width Image Logo -->
             <img src="<?= htmlspecialchars($logoImagePath) ?>" 
                  alt="FineBullion Desk" 
                  class="nav-brand-logo-full" 
@@ -630,7 +553,6 @@ if ($licenseConn) {
                 FineBullion Desk
             </div>
         <?php else: ?>
-            <!-- Text Fallback when logo file is missing -->
             <div class="nav-brand-text-fallback">
                 FineBullion Desk
             </div>
@@ -762,7 +684,7 @@ if ($licenseConn) {
             <i class="bi bi-cart-fill"></i><span>ক্রয়</span>
         </button>
         <button type="button" class="mobile-nav-item<?= $isMenuActive ? ' active' : '' ?>" onclick="openSheet('sheetMenu')">
-            <i class="bi bi-three-dots"></i><span>মেন্যু</span>
+            <i class="bi <?= $menuIconClass ?>"></i><span><?= $menuLabelText ?></span>
         </button>
     </div>
 </nav>
@@ -820,11 +742,10 @@ if ($licenseConn) {
     </div>
 </div>
 
-<!-- Mobile Menu Sheet (Inventory, Expenses, Customer, Users, Logout) -->
+<!-- Mobile Menu Sheet -->
 <div class="bottom-sheet" id="sheetMenu">
     <div class="bottom-sheet-drag-handle"></div>
 
-    <!-- Logo display above user info card -->
     <div class="bottom-sheet-logo-container">
         <?php if ($hasLogoImage): ?>
             <img src="<?= htmlspecialchars($logoImagePath) ?>" 
@@ -853,7 +774,6 @@ if ($licenseConn) {
         </div>
     <?php endif; ?>
 
-    <!-- User info card: avatar + name/role on the left, logout on the right -->
     <div class="menu-user-card">
         <div class="menu-user-info">
             <?php if (!empty($navUser['photo_path'])): ?>
@@ -982,7 +902,6 @@ if ($licenseConn) {
         document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('open'));
     }
 
-    /* ---------------- License Modal ---------------- */
     var licenseIsExpired = <?= $isLicenseExpired ? 'true' : 'false' ?>;
 
     function openLicenseModal() {
@@ -991,7 +910,7 @@ if ($licenseConn) {
     }
 
     function closeLicenseModal(event) {
-        if (licenseIsExpired) return; // locked: modal cannot be dismissed
+        if (licenseIsExpired) return;
         const backdrop = document.getElementById('licenseModalBackdrop');
         if (backdrop) backdrop.classList.remove('open');
     }

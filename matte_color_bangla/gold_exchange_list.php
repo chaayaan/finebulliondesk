@@ -1394,9 +1394,7 @@ document.getElementById('dateTo').addEventListener('change', function () {
     currentTo = this.value; loadList(1);
 });
 document.getElementById('clearDatesBtn').addEventListener('click', () => {
-    document.getElementById('dateFrom').value = '';
-    document.getElementById('dateTo').value   = '';
-    currentFrom = ''; currentTo = ''; loadList(1);
+    resetFilters();
 });
 
 // ----------------------------------------------------------------
@@ -1427,8 +1425,11 @@ async function openView(id) {
     }
 }
 
-// Set default date range: current month (1st → today)
-(function setDefaultDates() {
+// Reset all filters back to current month (1st → today) and clear search
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    currentSearch = '';
+
     const localDateStr = d => {
         const y  = d.getFullYear();
         const m  = String(d.getMonth() + 1).padStart(2, '0');
@@ -1437,13 +1438,17 @@ async function openView(id) {
     };
     const today = new Date();
     const from  = new Date(today.getFullYear(), today.getMonth(), 1);
+
     document.getElementById('dateFrom').value = localDateStr(from);
     document.getElementById('dateTo').value   = localDateStr(today);
     currentFrom = localDateStr(from);
     currentTo   = localDateStr(today);
-})();
 
-loadList(1);
+    loadList(1);
+}
+
+// Set default date range on page load
+resetFilters();
 </script>
 
 </body>

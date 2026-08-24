@@ -925,6 +925,33 @@ let currentFrom   = '';
 let currentTo     = '';
 let searchTimer   = null;
 
+// Helper to format Date objects as YYYY-MM-DD local string
+function localDateStr(d) {
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, '0');
+    const dy = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dy}`;
+}
+
+// Reset filters to current month view
+function resetToCurrentMonth() {
+    const today = new Date();
+    const from  = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    document.getElementById('searchInput').value = '';
+    currentSearch = '';
+    
+    const fromStr = localDateStr(from);
+    const toStr   = localDateStr(today);
+    
+    document.getElementById('dateFrom').value = fromStr;
+    document.getElementById('dateTo').value   = toStr;
+    currentFrom = fromStr;
+    currentTo   = toStr;
+    
+    loadList(1);
+}
+
 // ── Load list ──
 async function loadList(page = 1) {
     currentPage = page;
@@ -1053,8 +1080,7 @@ document.getElementById('searchInput').addEventListener('input', function () {
     searchTimer = setTimeout(() => { currentSearch = val.trim(); loadList(1); }, 350);
 });
 document.getElementById('clearSearchBtn').addEventListener('click', () => {
-    document.getElementById('searchInput').value = '';
-    currentSearch = ''; loadList(1);
+    resetToCurrentMonth();
 });
 document.getElementById('dateFrom').addEventListener('change', function () {
     currentFrom = this.value; loadList(1);
@@ -1063,28 +1089,11 @@ document.getElementById('dateTo').addEventListener('change', function () {
     currentTo = this.value; loadList(1);
 });
 document.getElementById('clearDatesBtn').addEventListener('click', () => {
-    document.getElementById('dateFrom').value = '';
-    document.getElementById('dateTo').value   = '';
-    currentFrom = ''; currentTo = ''; loadList(1);
+    resetToCurrentMonth();
 });
 
 // Set default date range: current month (1st → today)
-(function setDefaultDates() {
-    const localDateStr = d => {
-        const y  = d.getFullYear();
-        const m  = String(d.getMonth() + 1).padStart(2, '0');
-        const dy = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${dy}`;
-    };
-    const today = new Date();
-    const from  = new Date(today.getFullYear(), today.getMonth(), 1);
-    document.getElementById('dateFrom').value = localDateStr(from);
-    document.getElementById('dateTo').value   = localDateStr(today);
-    currentFrom = localDateStr(from);
-    currentTo   = localDateStr(today);
-})();
-
-loadList(1);
+resetToCurrentMonth();
 </script>
 
 <?php if ($viewBuy): ?>

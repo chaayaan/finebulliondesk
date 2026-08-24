@@ -1169,30 +1169,8 @@ function renderPagination(page, totalPages) {
     el.appendChild(mk('»', page + 1, page >= totalPages, false));
 }
 
-// ── Filters ──
-document.getElementById('searchInput').addEventListener('input', function () {
-    clearTimeout(searchTimer);
-    const val = this.value;
-    searchTimer = setTimeout(() => { currentSearch = val.trim(); loadList(1); }, 350);
-});
-document.getElementById('clearSearchBtn').addEventListener('click', () => {
-    document.getElementById('searchInput').value = '';
-    currentSearch = ''; loadList(1);
-});
-document.getElementById('dateFrom').addEventListener('change', function () {
-    currentFrom = this.value; loadList(1);
-});
-document.getElementById('dateTo').addEventListener('change', function () {
-    currentTo = this.value; loadList(1);
-});
-document.getElementById('clearDatesBtn').addEventListener('click', () => {
-    document.getElementById('dateFrom').value = '';
-    document.getElementById('dateTo').value   = '';
-    currentFrom = ''; currentTo = ''; loadList(1);
-});
-
-// Set default date range: current month (1st → today)
-(function setDefaultDates() {
+// ── Set Default / Reset Date Range (Current Month) ──
+function resetToCurrentMonth() {
     const localDateStr = d => {
         const y  = d.getFullYear();
         const m  = String(d.getMonth() + 1).padStart(2, '0');
@@ -1205,7 +1183,35 @@ document.getElementById('clearDatesBtn').addEventListener('click', () => {
     document.getElementById('dateTo').value   = localDateStr(today);
     currentFrom = localDateStr(from);
     currentTo   = localDateStr(today);
-})();
+}
+
+// ── Filters ──
+document.getElementById('searchInput').addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    const val = this.value;
+    searchTimer = setTimeout(() => { currentSearch = val.trim(); loadList(1); }, 350);
+});
+document.getElementById('clearSearchBtn').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    currentSearch = '';
+    resetToCurrentMonth();
+    loadList(1);
+});
+document.getElementById('dateFrom').addEventListener('change', function () {
+    currentFrom = this.value; loadList(1);
+});
+document.getElementById('dateTo').addEventListener('change', function () {
+    currentTo = this.value; loadList(1);
+});
+document.getElementById('clearDatesBtn').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    currentSearch = '';
+    resetToCurrentMonth();
+    loadList(1);
+});
+
+// Set default date range: current month (1st → today)
+resetToCurrentMonth();
 
 loadList(1);
 </script>

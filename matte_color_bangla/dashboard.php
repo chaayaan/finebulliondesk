@@ -757,7 +757,7 @@ body {
                         <div class="s-text">
                             <span class="s-label">লো স্টক অ্যালার্ট</span>
                             <span class="s-value" id="invLowStock">—</span>
-                            <span class="s-sub" id="invLowStockSub">সর্বনিম্ন মজুদের নিচে কোনো ক্যারেট নেই</span>
+                            <span class="s-sub" id="invLowStockSub">কম মজুদের কোনো ক্যারেট নেই</span>
                         </div>
                     </div>
                     <div class="stat-cell" id="invOutOfStockCard">
@@ -765,7 +765,7 @@ body {
                         <div class="s-text">
                             <span class="s-label">স্টক আউট</span>
                             <span class="s-value" id="invOutOfStock">—</span>
-                            <span class="s-sub" id="invOutOfStockSub">শূন্য মজুদে কোনো ক্যারেট নেই</span>
+                            <span class="s-sub" id="invOutOfStockSub">এমন কোনো ক্যারেট নেই</span>
                         </div>
                     </div>
                     <div class="stat-cell">
@@ -1106,13 +1106,13 @@ function renderInventorySummary(s) {
     lowEl.textContent = s.low_stock_count + ' টি';
     document.getElementById('invLowStockCard').classList.toggle('warn', s.low_stock_count > 0);
     document.getElementById('invLowStockSub').textContent = (s.low_stock_karats && s.low_stock_karats.length)
-        ? s.low_stock_karats.join(', ') : 'সর্বনিম্ন মজুদের নিচে কোনো ক্যারেট নেই';
+        ? s.low_stock_karats.join(', ') : 'কম মজুদের কোনো ক্যারেট নেই';
 
     const outEl = document.getElementById('invOutOfStock');
     outEl.textContent = s.out_of_stock_count + ' টি';
     document.getElementById('invOutOfStockCard').classList.toggle('danger', s.out_of_stock_count > 0);
     document.getElementById('invOutOfStockSub').textContent = (s.out_of_stock_karats && s.out_of_stock_karats.length)
-        ? s.out_of_stock_karats.join(', ') : 'শূন্য মজুদে কোনো ক্যারেট নেই';
+        ? s.out_of_stock_karats.join(', ') : 'এমন কোনো ক্যারেট নেই';
 
     document.getElementById('invTotalWeight').textContent = fmtTrad(s.total_left_weight);
     document.getElementById('invTotalWeightSub').textContent = ` ${(parseFloat(s.total_left_weight) || 0).toFixed(2)} গ্রাম`;

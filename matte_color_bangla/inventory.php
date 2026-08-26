@@ -131,6 +131,7 @@ if ($isAjax || $action !== null) {
         $totalStockIn = 0.0;
         $totalLeft = 0.0;
         $lowStockCount = 0;
+        $outOfStockCount = 0;
         foreach ($invRows as $row) {
             $purity = (float)$row['purity'];
             $totalW = (float)$row['total_weight'];
@@ -141,7 +142,9 @@ if ($isAjax || $action !== null) {
             $exchW  = (abs($purity - 24.00) < 0.001) ? $exchanged24 : 0.0;
             $usedW  = $soldW + $exchW;
             $isLow  = $minW > 0 && $leftW < $minW;
+            $isOut  = $leftW <= 0.0009;
             if ($isLow) $lowStockCount++;
+            if ($isOut) $outOfStockCount++;
 
             $totalStockIn += $totalW;
             $totalLeft    += $leftW;
@@ -160,6 +163,7 @@ if ($isAjax || $action !== null) {
                 'used_trad'     => format_traditional(grams_to_traditional($usedW)),
                 'min_trad'      => format_traditional(grams_to_traditional($minW)),
                 'is_low'        => $isLow,
+                'is_out'        => $isOut,
             ];
         }
 
@@ -224,6 +228,7 @@ if ($isAjax || $action !== null) {
                 'period_exchanged'      => $periodExchanged,
                 'period_exchanged_trad' => format_traditional(grams_to_traditional($periodExchanged)),
                 'low_stock_count' => $lowStockCount,
+                'out_of_stock_count' => $outOfStockCount,
             ],
             'cards'   => $cards,
             'recent'  => $recent,
@@ -394,6 +399,7 @@ if ($isAjax || $action !== null) {
     --bg-hover: #EAF1F6;
     --success: #3D7A5C;
     --danger: #A6434B;
+    --warning: #B7791F;
     --shadow: 0 2px 8px rgba(47, 65, 86, 0.08);
 }
 
@@ -568,10 +574,10 @@ html, body {
     width: 34px; height: 34px; border-radius: 10px; background: var(--sky);
     color: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 1rem;
 }
-.summary-card.low .sc-badge-icon { background: #FBECEC; color: var(--danger); }
+.summary-card.low .sc-badge-icon { background: #FBF3D9; color: var(--warning); }
 .summary-card .sc-main-value { font-size: 1.25rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; }
 .summary-card .sc-sub-value { font-size: 12.5px; color: var(--text-secondary); margin-top: .15rem; }
-.summary-card.low .sc-main-value { color: var(--danger); }
+.summary-card.low .sc-main-value { color: var(--warning); }
 
 .card-header-custom {
     background: var(--bg-card);
@@ -602,7 +608,8 @@ html, body {
     box-shadow: var(--shadow);
     padding: .75rem .85rem;
 }
-.karat-card.low { border-color: var(--danger); }
+.karat-card.low { border-color: var(--warning); }
+.karat-card.out { border-color: var(--danger); border-width: 2px; background: #FFF5F5; }
 
 .kc-details-inner { display: flex; flex-direction: column; padding: 0; }
 .kc-header-row {
@@ -614,7 +621,14 @@ html, body {
     border-radius: 8px; padding: .25rem .55rem; display: inline-flex; align-items: center; gap: .3rem;
     flex-shrink: 0;
 }
-.karat-card.low .kc-badge { background: var(--danger); }
+.karat-card.low .kc-badge { background: var(--warning); }
+.karat-card.out .kc-badge { background: #8B0000; }
+
+.kc-out-pill {
+    font-size: 10.5px; font-weight: 800; color: #fff; background: #8B0000;
+    border-radius: 6px; padding: .15rem .45rem; display: inline-flex; align-items: center; gap: .25rem;
+    letter-spacing: .01em; flex-shrink: 0;
+}
 
 .kc-mobile-plus {
     width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-default);
@@ -631,7 +645,8 @@ html, body {
 .kc-row .kc-value { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .kc-row.kc-used .kc-value { color: var(--danger); }
 .kc-row.kc-current .kc-value { color: var(--success); font-weight: 700; }
-.karat-card.low .kc-row.kc-current .kc-value { color: var(--danger); }
+.karat-card.low .kc-row.kc-current .kc-value { color: var(--warning); }
+.karat-card.out .kc-row.kc-current .kc-value { color: var(--danger); }
 
 /* Input Fields (§6) */
 .form-control, .form-select, textarea {
@@ -723,11 +738,19 @@ label, .form-label {
     .low-stock-banner.d-none { display: none !important; }
     .low-stock-banner {
         display: flex; align-items: center; gap: .55rem;
-        background: #FBECEC; border: 1px solid var(--danger);
-        color: var(--danger); border-radius: 12px; padding: .65rem .9rem;
+        background: #FBF3D9; border: 1px solid var(--warning);
+        color: var(--warning); border-radius: 12px; padding: .65rem .9rem;
         font-size: 13.5px; font-weight: 700; margin: .6rem 0 1.1rem;
     }
     .low-stock-banner.zero { background: #EAF3EE; border-color: var(--success); color: var(--success); }
+
+    .stockout-banner.d-none { display: none !important; }
+    .stockout-banner {
+        display: flex; align-items: center; gap: .55rem;
+        background: #FDE8E8; border: 1.5px solid #8B0000;
+        color: #8B0000; border-radius: 12px; padding: .65rem .9rem;
+        font-size: 13.5px; font-weight: 700; margin: .6rem 0 1.1rem;
+    }
 
     .card { border-radius: 14px; margin-bottom: .8rem; padding: .85rem; }
     .history-table th, .history-table td { padding: .55rem .5rem; font-size: 13px; }
@@ -811,6 +834,12 @@ label, .form-label {
         <div class="low-stock-banner d-none" id="lowStockBanner">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <span>কম মজুদ&nbsp; <span class="lsb-count" id="lsbCount">0</span> ক্যারেট <span class="lsb-list" id="lsbList"></span></span>
+        </div>
+
+        <!-- Stockout banner (mobile only) -->
+        <div class="stockout-banner d-none" id="stockoutBanner">
+            <i class="bi bi-x-octagon-fill"></i>
+            <span>স্টক আউট&nbsp; <span class="osb-count" id="osbCount">0</span> ক্যারেট <span class="osb-list" id="osbList"></span></span>
         </div>
         
         <!-- Date range filter -->
@@ -1118,15 +1147,26 @@ function renderKaratCards(cards) {
     banner.classList.remove('d-none');
     banner.classList.toggle('zero', lowCards.length === 0);
 
+    const outBanner = document.getElementById('stockoutBanner');
+    const outCards = (cards || []).filter(c => c.is_out);
+    if (outCards.length > 0) {
+        document.getElementById('osbCount').textContent = outCards.length;
+        document.getElementById('osbList').textContent = '(' + outCards.map(c => c.purity_label).join(',') + ')';
+        outBanner.classList.remove('d-none');
+    } else {
+        outBanner.classList.add('d-none');
+    }
+
     if (!cards || cards.length === 0) {
         el.innerHTML = '<div class="empty-state">কোনো ইনভেন্টরি পাওয়া যায়নি</div>';
         return;
     }
     el.innerHTML = cards.map(c => `
-        <div class="karat-card ${c.is_low ? 'low' : ''}" data-karat-card="${c.purity}">
+        <div class="karat-card ${c.is_low ? 'low' : ''} ${c.is_out ? 'out' : ''}" data-karat-card="${c.purity}">
             <div class="kc-details-inner">
                 <div class="kc-header-row">
                     <span class="kc-badge"><i class="bi bi-gem"></i> ${escHtml(c.purity_label)}</span>
+                    ${c.is_out ? `<span class="kc-out-pill"><i class="bi bi-x-octagon-fill"></i> স্টক আউট (${escHtml(c.purity_label)})</span>` : ''}
                     <button type="button" class="kc-mobile-plus" data-quick-stock="${c.purity}" title="স্টক যোগ করুন">
                         <i class="bi bi-plus-lg"></i>
                     </button>

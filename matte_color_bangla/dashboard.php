@@ -1358,7 +1358,7 @@ function renderRecent(rows) {
             rightMain = fmtBDT(r.amount);
         } else {
             rightMain = fmtBDT(r.amount);
-            if (r.due > 0.009) rightSub = `বকেয়া ${fmtBDT(r.due)}`;
+            if (r.due > 0.009) rightSub = `${r.type === 'buy' ? 'পরিশোধ বাকি' : 'পাওনা বাকি'} ${fmtBDT(r.due)}`;
         }
 
         const subtitle = r.type === 'expense'

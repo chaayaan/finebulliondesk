@@ -913,7 +913,7 @@ const HEAD = {
         <th class="d-none d-md-table-cell">ওজন</th>
         <th class="d-none d-md-table-cell">মোট পরিমাণ</th>
         <th class="d-none d-md-table-cell">পরিশোধিত</th>
-        <th class="d-none d-md-table-cell">বকেয়া</th>
+        <th class="d-none d-md-table-cell">পরিশোধ বাকি</th>
         <th class="d-md-none">বাই তথ্য</th>
         <th class="d-none d-md-table-cell" style="width:140px;">তারিখ</th>
         <th style="width:70px;" class="text-center">অ্যাকশন</th>
@@ -923,7 +923,7 @@ const HEAD = {
         <th class="d-none d-md-table-cell">ওজন</th>
         <th class="d-none d-md-table-cell">মোট পরিমাণ</th>
         <th class="d-none d-md-table-cell">পরিশোধিত</th>
-        <th class="d-none d-md-table-cell">বকেয়া</th>
+        <th class="d-none d-md-table-cell">পাওনা বাকি</th>
         <th class="d-md-none">সেল তথ্য</th>
         <th class="d-none d-md-table-cell" style="width:140px;">তারিখ</th>
         <th style="width:70px;" class="text-center">অ্যাকশন</th>
@@ -996,7 +996,7 @@ function rowBuySale(row, type) {
             <div class="info-row"><span class="info-label">ওজন</span><span class="info-value">${fmtTrad(row.total_weight_g)}</span></div>
             <div class="info-row"><span class="info-label">মোট</span><span class="info-value">${fmtBDT(row.total_amount)}</span></div>
             <div class="info-row"><span class="info-label">পরিশোধিত</span><span class="info-value green">${fmtBDT(row.paid_amount)}</span></div>
-            <div class="info-row"><span class="info-label">বকেয়া</span><span class="info-value ${due <= 0 ? 'green' : 'red'}">${fmtBDT(due)}</span></div>
+            <div class="info-row"><span class="info-label">${type === 'buy' ? 'পরিশোধ বাকি' : 'পাওনা বাকি'}</span><span class="info-value ${due <= 0 ? 'green' : 'red'}">${fmtBDT(due)}</span></div>
         </td>
         <td class="d-none d-md-table-cell text-muted small">${fmtDate(row.created_at)}</td>
         <td class="text-center">

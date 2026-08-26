@@ -59,6 +59,11 @@ function json_out(array $data, int $status = 200): void {
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
+/** "18.00" -> "18K" — same karat display convention used in inventory.php. */
+function karat_label(float $p): string {
+    $s = rtrim(rtrim(number_format($p, 2, '.', ''), '0'), '.');
+    return $s . 'K';
+}
 
 /** Resolve a period keyword (+ optional custom range) into [from, to, label]. */
 function resolve_period(string $period, string $from, string $to): array {
@@ -370,6 +375,74 @@ if (($isAjax || $action !== null) && $action === 'data' && $_SERVER['REQUEST_MET
     ]);
 }
 
+// =========================================================================
+// AJAX: inventory summary widget data (cards + karat-wise stock chart)
+// Reuses the exact same `inventory` table and calculation logic as
+// inventory.php — no new tables, no duplicated business rules.
+// =========================================================================
+if (($isAjax || $action !== null) && $action === 'inventory_summary' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+
+    $res = mysqli_query($conn,
+        "SELECT purity, total_weight, left_weight, minimum_stock FROM inventory ORDER BY purity ASC");
+    $invRows = $res ? mysqli_fetch_all($res, MYSQLI_ASSOC) : [];
+
+    $totalItems      = count($invRows);   // one "item" per tracked karat, per current scope
+    $totalLeft       = 0.0;
+    $lowStockCount   = 0;
+    $outOfStockCount = 0;
+    $lowKarats       = [];
+    $outKarats       = [];
+    $pureGold24k     = 0.0; // left_weight specifically for 24K (fine/pure gold)
+    $chart           = [];
+
+    foreach ($invRows as $row) {
+        $purity = (float)$row['purity'];
+        $leftW  = (float)$row['left_weight'];
+        $minW   = (float)$row['minimum_stock'];
+
+        $totalLeft += $leftW;
+
+        if (abs($purity - 24.00) < 0.005) {
+            $pureGold24k = $leftW;
+        }
+
+        $isOut = $leftW <= 0.0005; // true zero stock (epsilon-safe)
+        $isLow = !$isOut && $minW > 0 && $leftW < $minW;
+
+        if ($isOut) {
+            $outOfStockCount++;
+            $outKarats[] = karat_label($purity);
+        } elseif ($isLow) {
+            $lowStockCount++;
+            $lowKarats[] = karat_label($purity);
+        }
+
+        $chart[] = [
+            'purity'       => $purity,
+            'purity_label' => karat_label($purity),
+            'left_weight'  => $leftW,
+            'minimum_stock'=> $minW,
+            'is_low'       => $isLow,
+            'is_out'       => $isOut,
+        ];
+    }
+
+    json_out([
+        'success' => true,
+        'summary' => [
+            'low_stock_count'     => $lowStockCount,
+            'low_stock_karats'    => $lowKarats,
+            'out_of_stock_count'  => $outOfStockCount,
+            'out_of_stock_karats' => $outKarats,
+            'total_left_weight'   => $totalLeft,
+            'total_left_trad'     => fmt_trad($totalLeft),
+            'total_items'         => $totalItems,
+            'pure_gold_24k'       => $pureGold24k,
+        ],
+        'chart' => $chart,
+    ]);
+}
+
 if ($isAjax || $action !== null) {
     json_out(['success' => false, 'message' => 'অজানা অ্যাকশন।'], 400);
 }
@@ -502,6 +575,12 @@ body {
 }
 .summary-card .sc-main-value { font-size: 1.35rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; }
 .summary-card .sc-sub-value { font-size: .8rem; color: var(--text-secondary); margin-top: .15rem; }
+
+/* ---- Inventory Summary Cells (reuses .stat-bar / .stat-cell like Gold Movement card) ---- */
+.stat-cell.warn .s-icon { background: #FCEFD2; color: #9A6B00; }
+.stat-cell.warn .s-value { color: #9A6B00; }
+.stat-cell.danger .s-icon { background: var(--status-due-bg); color: var(--danger); }
+.stat-cell.danger .s-value { color: var(--danger); }
 
 /* ---- Financial Overview Grid ---- */
 .fin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
@@ -660,6 +739,69 @@ body {
             <a href="expenses.php" class="qa-btn">
                 <span class="qa-icon"><i class="bi bi-wallet2"></i></span> নতুন খরচ
             </a>
+        </div>
+
+        <!-- Inventory summary cards -->
+        <div class="section-block">
+            <div class="sc-card">
+                <div class="sc-header">
+                    <div class="sc-header-left">
+                        <div class="sc-icon"><i class="bi bi-boxes"></i></div>
+                        <p class="section-label">ইনভেন্টরি সারসংক্ষেপ</p>
+                    </div>
+                    <a href="inventory.php" class="view-all-link">বিস্তারিত দেখুন</a>
+                </div>
+                <div class="stat-bar" id="invSummaryGrid">
+                    <div class="stat-cell" id="invLowStockCard">
+                        <div class="s-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                        <div class="s-text">
+                            <span class="s-label">লো স্টক অ্যালার্ট</span>
+                            <span class="s-value" id="invLowStock">—</span>
+                            <span class="s-sub" id="invLowStockSub">সর্বনিম্ন মজুদের নিচে কোনো ক্যারেট নেই</span>
+                        </div>
+                    </div>
+                    <div class="stat-cell" id="invOutOfStockCard">
+                        <div class="s-icon"><i class="bi bi-x-octagon-fill"></i></div>
+                        <div class="s-text">
+                            <span class="s-label">স্টক আউট</span>
+                            <span class="s-value" id="invOutOfStock">—</span>
+                            <span class="s-sub" id="invOutOfStockSub">শূন্য মজুদে কোনো ক্যারেট নেই</span>
+                        </div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="s-icon"><i class="bi bi-gem"></i></div>
+                        <div class="s-text">
+                            <span class="s-label">মোট মজুদ (ওজন)</span>
+                            <span class="s-value" id="invTotalWeight">—</span>
+                            <span class="s-sub" id="invTotalWeightSub">সকল ক্যারেট মিলিয়ে</span>
+                        </div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="s-icon"><i class="bi bi-award-fill"></i></div>
+                        <div class="s-text">
+                            <span class="s-label">খাঁটি সোনা (২৪K)</span>
+                            <span class="s-value" id="invPure24k">—</span>
+                            <span class="s-sub" id="invPure24kSub">বর্তমান মজুদ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock level chart -->
+        <div class="section-block">
+            <div class="sc-card">
+                <div class="sc-header">
+                    <div class="sc-header-left">
+                        <div class="sc-icon"><i class="bi bi-bar-chart-steps"></i></div>
+                        <p class="section-label">ক্যারেট অনুযায়ী মজুদের অবস্থা</p>
+                    </div>
+                    <i class="bi bi-boxes sc-header-icon"></i>
+                </div>
+                <div class="sc-body">
+                    <div class="chart-wrap"><canvas id="stockLevelChart"></canvas></div>
+                </div>
+            </div>
         </div>
 
         <!-- Primary summary cards -->
@@ -885,6 +1027,7 @@ const SYSTEM_COLORS = ['#2F4156', '#567C8D', '#3D7A5C', '#A6434B', '#8E6C88', '#
 
 let trendChart = null;
 let bvsChart   = null;
+let stockLevelChart = null;
 let currentPeriod = 'today';
 let customFrom = '';
 let customTo   = '';
@@ -942,6 +1085,108 @@ async function loadDashboard() {
     } catch (e) {
         console.error(e);
     }
+    loadInventorySummary();
+}
+
+// ── Load inventory summary (cards + stock-level chart) ──
+async function loadInventorySummary() {
+    try {
+        const res  = await fetch('dashboard.php?action=inventory_summary', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const data = await res.json();
+        if (!data.success) return;
+        renderInventorySummary(data.summary);
+        renderStockLevelChart(data.chart);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderInventorySummary(s) {
+    const lowEl = document.getElementById('invLowStock');
+    lowEl.textContent = s.low_stock_count + ' টি';
+    document.getElementById('invLowStockCard').classList.toggle('warn', s.low_stock_count > 0);
+    document.getElementById('invLowStockSub').textContent = (s.low_stock_karats && s.low_stock_karats.length)
+        ? s.low_stock_karats.join(', ') : 'সর্বনিম্ন মজুদের নিচে কোনো ক্যারেট নেই';
+
+    const outEl = document.getElementById('invOutOfStock');
+    outEl.textContent = s.out_of_stock_count + ' টি';
+    document.getElementById('invOutOfStockCard').classList.toggle('danger', s.out_of_stock_count > 0);
+    document.getElementById('invOutOfStockSub').textContent = (s.out_of_stock_karats && s.out_of_stock_karats.length)
+        ? s.out_of_stock_karats.join(', ') : 'শূন্য মজুদে কোনো ক্যারেট নেই';
+
+    document.getElementById('invTotalWeight').textContent = fmtTrad(s.total_left_weight);
+    document.getElementById('invTotalWeightSub').textContent = ` ${(parseFloat(s.total_left_weight) || 0).toFixed(2)} গ্রাম`;
+
+    document.getElementById('invPure24k').textContent = fmtTrad(s.pure_gold_24k);
+    document.getElementById('invPure24kSub').textContent = ` ${(parseFloat(s.pure_gold_24k) || 0).toFixed(2)} গ্রাম`;
+}
+
+function renderStockLevelChart(rows) {
+    const ctx = document.getElementById('stockLevelChart').getContext('2d');
+    if (stockLevelChart) stockLevelChart.destroy();
+    if (!rows || rows.length === 0) return;
+
+    const labels = rows.map(r => r.purity_label);
+    // Chart values are converted to vori (গ্রাম ÷ 11.664) so the y-axis reads in vori.
+    // Gram values are kept alongside (in dataset._grams) for the tooltip.
+    const stockDataVori = rows.map(r => r.left_weight / G_PER_VORI);
+    const minDataVori    = rows.map(r => r.minimum_stock / G_PER_VORI);
+    const stockDataGrams = rows.map(r => r.left_weight);
+    const minDataGrams   = rows.map(r => r.minimum_stock);
+    const barColors = rows.map(r => r.is_out ? '#A6434B' : (r.is_low ? '#C98A1B' : '#3D7A5C'));
+
+    stockLevelChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'বর্তমান মজুদ (ভরি)',
+                    data: stockDataVori,
+                    _grams: stockDataGrams,
+                    backgroundColor: barColors,
+                    borderRadius: 6,
+                    maxBarThickness: 56,
+                },
+                {
+                    label: 'সর্বনিম্ন মজুদ (ভরি)',
+                    data: minDataVori,
+                    _grams: minDataGrams,
+                    type: 'line',
+                    borderColor: '#567C8D',
+                    borderDash: [5, 4],
+                    pointRadius: 0,
+                    borderWidth: 2,
+                    fill: false,
+                },
+            ],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const vori = ctx.raw || 0;
+                            const grams = (ctx.dataset._grams && ctx.dataset._grams[ctx.dataIndex]) || 0;
+                            return ctx.dataset.label.replace(' (ভরি)', '') + ': ' + fmtTrad(grams) + ` (${vori.toFixed(3)} ভরি · ${grams.toFixed(2)} গ্রাম)`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' } } },
+                y: {
+                    beginAtZero: true,
+                    ticks: { font: { size: 10 }, callback: v => v.toFixed(1) + ' ভ' },
+                    title: { display: true, text: 'ভরি', font: { size: 10, weight: '600' } },
+                    grid: { color: '#C8D9E6', borderDash: [3,3] },
+                },
+            },
+        },
+    });
 }
 
 function renderCards(d) {

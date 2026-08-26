@@ -1072,7 +1072,7 @@ tbody tr:hover {
                     <td class="l-val">৳<?= number_format((float)$totalPaid, 0) ?></td>
                 </tr>
                 <tr class="l-due">
-                    <td class="l-label">বকেয়া টাকা</td>
+                    <td class="l-label">পরিশোধের বাকি</td>
                     <td class="l-val">৳<?= number_format((float)$buy['due_amount'], 0) ?></td>
                 </tr>
             </tbody>
@@ -1189,17 +1189,17 @@ tbody tr:hover {
                             <strong class="text-success">৳<?= number_format((float)$totalPaid, 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1">
-                            <span class="fw-bold">বকেয়া টাকা:</span>
+                            <span class="fw-bold">এখন পরিশোধ করছি:</span>
                             <strong class="text-danger" id="modalCurrentDue">৳<?= number_format($dueAmount, 0) ?></strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-1 mt-1" id="dueAfterRow" style="display:none;">
-                            <span class="fw-bold">এই পেমেন্টের পর অবশিষ্ট বকেয়া:</span>
+                            <span class="fw-bold">এই পেমেন্টের পর বাকি:</span>
                             <strong id="dueAfterValue">—</strong>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">পরিশোধিত টাকা (টাকা) <span class="text-danger">*</span></label>
+                        <label class="form-label">পরিশোধ করছি (টাকা) <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text" style="background:var(--navy);color:#fff;border-color:var(--navy);">৳</span>
                             <input type="number" name="paid_amount" id="buyPayAmountInput" class="form-control"
@@ -1363,7 +1363,7 @@ tbody tr:hover {
                                     <td class="l-val" id="previewPaid">৳<?= number_format((float)$totalPaid, 0) ?></td>
                                 </tr>
                                 <tr class="l-due">
-                                    <td class="l-label">বকেয়া টাকা</td>
+                                    <td class="l-label">পরিশোধ বাকি</td>
                                     <td class="l-val" id="previewDue">—</td>
                                 </tr>
                             </tbody>

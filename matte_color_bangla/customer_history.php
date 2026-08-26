@@ -771,7 +771,7 @@ table.table tbody tr:hover {
                     <div class="stat-cell stat-due">
                         <div class="s-icon"><i class="bi bi-file-earmark-text"></i></div>
                         <div class="s-text">
-                            <span class="s-label">মোট বকেয়া</span>
+                            <span class="s-label">পরিশোধ বাকি</span>
                             <span class="s-value" id="statBuyDue">—</span>
                         </div>
                     </div>
@@ -813,7 +813,7 @@ table.table tbody tr:hover {
                     <div class="stat-cell stat-due">
                         <div class="s-icon"><i class="bi bi-file-earmark-text"></i></div>
                         <div class="s-text">
-                            <span class="s-label">মোট বকেয়া</span>
+                            <span class="s-label">পাওনা বাকি</span>
                             <span class="s-value" id="statSaleDue">—</span>
                         </div>
                     </div>

@@ -798,7 +798,7 @@ body {
                 <div class="stat-cell stat-due">
                     <div class="s-icon"><i class="bi bi-file-earmark-text"></i></div>
                     <div class="s-text">
-                        <span class="s-label">মোট বকেয়া</span>
+                        <span class="s-label">পাওনা বাকি</span>
                         <span class="s-value" id="statDue">—</span>
                     </div>
                 </div>
@@ -843,7 +843,7 @@ body {
                             <th class="d-none d-md-table-cell">ওজন</th>
                             <th class="d-none d-md-table-cell">মোট পরিমাণ</th>
                             <th class="d-none d-md-table-cell">পরিশোধিত টাকা</th>
-                            <th class="d-none d-md-table-cell">বকেয়া টাকা</th>
+                            <th class="d-none d-md-table-cell">পাওনা বাকি</th>
                             <!-- Mobile combined column -->
                             <th class="d-md-none">ওজন ও পরিমাণ</th>
                             <th class="d-none d-md-table-cell" style="width:130px;">তারিখ</th>
@@ -957,7 +957,7 @@ body {
                             <td class="ledger-vorp"><?= fmtBDTPHP($viewSale['paid_amount']) ?></td>
                         </tr>
                         <tr class="ledger-due">
-                            <td class="ledger-label">বকেয়া</td>
+                            <td class="ledger-label">পাওনা বাকি</td>
                             <td class="ledger-vorp"><?= fmtBDTPHP($due) ?></td>
                         </tr>
                     </tbody>
@@ -1123,7 +1123,7 @@ async function loadList(page = 1) {
                             <span class="info-value">${fmtBDT(row.paid_amount)}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">বকেয়া</span>
+                            <span class="info-label">পাওনা বাকি</span>
                             <span class="info-value ${dueClass}">${dueVal}</span>
                         </div>
                     </td>

@@ -734,11 +734,11 @@ label, .form-label {
                 </a>
                 <h5 class="mb-0">
                     <i class="bi bi-arrow-left-right me-1"></i>
-                    সোনা বদল
+                    সোনা এক্সচেঞ্জ
                     <span style="opacity:.75;">&nbsp;#<?= $exchangeId ?></span>
                 </h5>
             </div>
-            <small class="subtitle">সোনা বদল বিস্তারিত — ফাইনবুলিয়ন ডেস্ক</small>
+            <small class="subtitle">সোনা এক্সচেঞ্জ বিস্তারিত — ফাইনবুলিয়ন ডেস্ক</small>
         </div>
         <div class="text-end">
             <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,.75); font-weight:700;">তৈরি করেছেন</div>

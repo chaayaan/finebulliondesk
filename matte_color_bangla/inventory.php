@@ -344,7 +344,7 @@ if ($isAjax || $action !== null) {
         if ($currentLeft - $weight < -0.0005) {
             json_out([
                 'success' => false,
-                'message' => 'এই স্টক ইন বাতিল করা যাবে না — এই স্টক ইতিমধ্যে বিক্রয়/বিনিময়ে ব্যবহৃত হয়েছে।',
+                'message' => 'এই স্টক ইন বাতিল করা যাবে না — এই স্টক ইতিমধ্যে বিক্রয়/এক্সচেঞ্জে ব্যবহৃত হয়েছে।',
             ], 409);
         }
 
@@ -814,7 +814,7 @@ label, .form-label {
             </div>
             <div class="summary-card">
                 <div class="sc-top">
-                    <span class="sc-title">বিনিময়ে গেছে</span>
+                    <span class="sc-title">এক্সচেঞ্জে গেছে</span>
                     <span class="sc-badge-icon"><i class="bi bi-arrow-left-right"></i></span>
                 </div>
                 <div class="sc-main-value" id="sumExchanged"><span class="skel d-inline-block" style="width:70px;">&nbsp;</span></div>

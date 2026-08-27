@@ -191,7 +191,7 @@ if ($isAjax || $action !== null) {
         $exchange = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
         if (!$exchange) {
-            echo '<div class="text-danger p-3">সোনা বদলের তথ্য পাওয়া যায়নি।</div>';
+            echo '<div class="text-danger p-3">সোনা এক্সচেঞ্জের তথ্য পাওয়া যায়নি।</div>';
             exit;
         }
 
@@ -281,7 +281,7 @@ if ($isAjax || $action !== null) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>সোনা বদলের ইতিহাস — FineBullion Desk</title>
+<title>সোনা এক্সচেঞ্জের ইতিহাস — FineBullion Desk</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -1073,14 +1073,14 @@ table.table-hover tbody tr:hover {
     <div class="header-left">
       <h1>
         <i class="bi bi-arrow-left-right me-1"></i>
-        <span class="d-none d-md-inline">সোনা বদলের ইতিহাস</span>
-        <span class="d-md-none">সোনা বদলের তালিকা</span>
+        <span class="d-none d-md-inline">সোনা এক্সচেঞ্জের ইতিহাস</span>
+        <span class="d-md-none">সোনা এক্সচেঞ্জের তালিকা</span>
       </h1>
       <small class="subtitle">FineBullion Desk</small>
     </div>
     <div class="header-right">
       <a href="gold_exchange_inventory.php" class="header-action-btn">
-        <i class="bi bi-plus-lg"></i> <span>নতুন সোনা বদল</span>
+        <i class="bi bi-plus-lg"></i> <span>নতুন সোনা এক্সচেঞ্জ</span>
       </a>
     </div>
   </div>
@@ -1092,7 +1092,7 @@ table.table-hover tbody tr:hover {
         <div class="sc-header">
           <div class="sc-header-left">
             <div class="sc-icon"><i class="bi bi-arrow-left-right"></i></div>
-            <p class="section-label">সোনা বদল</p>
+            <p class="section-label">সোনা এক্সচেঞ্জ</p>
           </div>
           <i class="bi bi-bar-chart-line sc-header-icon"></i>
         </div>
@@ -1132,7 +1132,7 @@ table.table-hover tbody tr:hover {
     <!-- Main Data Table Container -->
     <div class="card">
       <div class="card-header-custom">
-        <h2 class="card-header-title"><i class="bi bi-list-ul me-1"></i> সোনা বদলসমূহ</h2>
+        <h2 class="card-header-title"><i class="bi bi-list-ul me-1"></i> সোনা এক্সচেঞ্জসমূহ</h2>
         <div class="input-group" style="max-width:320px;">
           <input type="text" id="searchInput" class="form-control" placeholder="কাস্টমারের নাম, ফোন নম্বর খুঁজুন…">
           <button class="btn btn-secondary" id="clearSearchBtn" type="button"><i class="bi bi-x-lg"></i></button>
@@ -1159,7 +1159,7 @@ table.table-hover tbody tr:hover {
               <th class="d-none d-md-table-cell">মোট পাকা</th>
               <th class="d-none d-md-table-cell">লস</th>
               <th class="d-none d-md-table-cell">নেট পাকা</th>
-              <th class="d-md-none">সোনা বদলের তথ্য</th>
+              <th class="d-md-none">সোনা এক্সচেঞ্জের তথ্য</th>
               <th class="d-none d-md-table-cell" style="width:110px;">তারিখ</th>
               <th class="d-none d-md-table-cell" style="width:100px;">এন্ট্রি প্রদানকারী</th>
               <th style="width:70px;" class="text-center">অ্যাকশন</th>
@@ -1189,7 +1189,7 @@ table.table-hover tbody tr:hover {
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-receipt me-2"></i>সোনা বদল #<span id="viewId"></span>
+          <i class="bi bi-receipt me-2"></i>সোনা এক্সচেঞ্জ #<span id="viewId"></span>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
@@ -1342,7 +1342,7 @@ async function loadList(page = 1) {
         }
 
         document.getElementById('paginationInfo').textContent =
-            `মোট ${data.totalRows} টি সোনা বদলের মধ্যে ${data.data.length} টি দেখানো হচ্ছে`;
+            `মোট ${data.totalRows} টি সোনা এক্সচেঞ্জের মধ্যে ${data.data.length} টি দেখানো হচ্ছে`;
         renderPagination(data.page, data.totalPages);
     } catch (err) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">নেটওয়ার্ক ত্রুটি।</td></tr>';

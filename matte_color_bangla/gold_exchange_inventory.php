@@ -274,7 +274,7 @@ if ($isAjax || $action !== null) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>সোনা বদল — FineBullion Desk</title>
+<title>সোনা এক্সচেঞ্জ — FineBullion Desk</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -702,7 +702,7 @@ html, body {
     <div class="ge-header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-arrow-left-right text-white fs-4"></i>
-            <h4 class="m-0 text-white fw-bold">সোনা বদল</h4>
+            <h4 class="m-0 text-white fw-bold">সোনা এক্সচেঞ্জ</h4>
         </div>
         <div>
             <a href="gold_exchange_list.php" class="btn btn-history d-inline-flex align-items-center gap-1">

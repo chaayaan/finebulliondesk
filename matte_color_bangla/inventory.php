@@ -199,7 +199,9 @@ if ($isAjax || $action !== null) {
         mysqli_stmt_execute($stmt);
         $recentRes = mysqli_stmt_get_result($stmt);
         $recent = [];
+        $today = date('Y-m-d');
         while ($row = mysqli_fetch_assoc($recentRes)) {
+            $entryDate = date('Y-m-d', strtotime($row['created_at']));
             $recent[] = [
                 'id'         => (int)$row['id'],
                 'purity'     => (float)$row['purity'],
@@ -209,6 +211,7 @@ if ($isAjax || $action !== null) {
                 'note'       => $row['note'],
                 'created_at' => $row['created_at'],
                 'user_name'  => $row['user_name'] ?? '—',
+                'can_modify' => is_admin() && $entryDate === $today,
             ];
         }
 
@@ -323,14 +326,22 @@ if ($isAjax || $action !== null) {
     }
 
     if ($action === 'delete_stock_in' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!is_admin()) {
+            json_out(['success' => false, 'message' => 'শুধুমাত্র অ্যাডমিন এই কাজ করতে পারবেন।'], 403);
+        }
+
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) json_out(['success' => false, 'message' => 'অকার্যকর আইডি।'], 400);
 
-        $stmt = mysqli_prepare($conn, "SELECT purity, weight FROM stock_in WHERE id = ?");
+        $stmt = mysqli_prepare($conn, "SELECT purity, weight, created_at FROM stock_in WHERE id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
         $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
         if (!$row) json_out(['success' => false, 'message' => 'রেকর্ড পাওয়া যায়নি।'], 404);
+
+        if (date('Y-m-d', strtotime($row['created_at'])) !== date('Y-m-d')) {
+            json_out(['success' => false, 'message' => 'শুধুমাত্র আজকের এন্ট্রি বাতিল করা যাবে।'], 403);
+        }
 
         $purity = (float)$row['purity'];
         $weight = (float)$row['weight'];
@@ -367,6 +378,113 @@ if ($isAjax || $action !== null) {
         }
 
         json_out(['success' => true, 'message' => 'স্টক ইন এন্ট্রি বাতিল করা হয়েছে।']);
+    }
+
+    if ($action === 'edit_stock_in' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!is_admin()) {
+            json_out(['success' => false, 'message' => 'শুধুমাত্র অ্যাডমিন এই কাজ করতে পারবেন।'], 403);
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) json_out(['success' => false, 'message' => 'অকার্যকর আইডি।'], 400);
+
+        $stmt = mysqli_prepare($conn, "SELECT purity, weight, created_at FROM stock_in WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+        mysqli_stmt_execute($stmt);
+        $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        if (!$row) json_out(['success' => false, 'message' => 'রেকর্ড পাওয়া যায়নি।'], 404);
+
+        if (date('Y-m-d', strtotime($row['created_at'])) !== date('Y-m-d')) {
+            json_out(['success' => false, 'message' => 'শুধুমাত্র আজকের এন্ট্রি সম্পাদনা করা যাবে।'], 403);
+        }
+
+        $oldPurity = (float)$row['purity'];
+        $oldWeight = (float)$row['weight'];
+
+        $newPurity = (float)($_POST['purity'] ?? 0);
+        $note      = trim($_POST['note'] ?? '') ?: null;
+        $vori      = (int)($_POST['vori']  ?? 0);
+        $ana       = (int)($_POST['ana']   ?? 0);
+        $roti      = (int)($_POST['roti']  ?? 0);
+        $point     = (int)($_POST['point'] ?? 0);
+
+        $errors = [];
+        if (!in_array(round($newPurity, 2), KARATS, true)) {
+            $errors['purity'] = 'সঠিক ক্যারেট নির্বাচন করুন।';
+        }
+        if ($vori < 0)               $errors['vori']  = 'সঠিক মান দিন।';
+        if ($ana  < 0 || $ana  > 15) $errors['ana']   = 'আনা 0–15 এর মধ্যে হতে হবে।';
+        if ($roti < 0 || $roti > 5)  $errors['roti']  = 'রতি 0–5 এর মধ্যে হতে হবে।';
+        if ($point < 0 || $point > 9) $errors['point'] = 'পয়েন্ট 0–9 এর মধ্যে হতে হবে।';
+
+        $newWeight = traditional_to_grams($vori, $ana, $roti, $point);
+        if ($newWeight <= 0) {
+            $errors['weight'] = 'মোট ওজন শূন্যের বেশি হতে হবে।';
+        }
+
+        if (!empty($errors)) {
+            json_out(['success' => false, 'message' => 'তথ্য যাচাই ব্যর্থ হয়েছে।', 'errors' => $errors], 422);
+        }
+
+        // If this stock-in already fed a sale/exchange for its karat, reducing
+        // its weight (or moving it to another karat) below what's currently
+        // used elsewhere would drive left_weight negative — block that.
+        $stmt = mysqli_prepare($conn, "SELECT left_weight FROM inventory WHERE purity = ?");
+        mysqli_stmt_bind_param($stmt, 'd', $oldPurity);
+        mysqli_stmt_execute($stmt);
+        $invRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $oldPurityLeft = (float)($invRow['left_weight'] ?? 0);
+
+        // Simulate reverting the old entry first.
+        $simulatedLeftAfterRevert = $oldPurityLeft - $oldWeight;
+        if ($simulatedLeftAfterRevert < -0.0005) {
+            json_out([
+                'success' => false,
+                'message' => 'এই স্টক ইন সম্পাদনা করা যাবে না — এই স্টক ইতিমধ্যে বিক্রয়/বিনিময়ে ব্যবহৃত হয়েছে।',
+            ], 409);
+        }
+
+        mysqli_begin_transaction($conn);
+        try {
+            if (abs($oldPurity - $newPurity) < 0.0001) {
+                // Same karat — just adjust the delta.
+                $delta = $newWeight - $oldWeight;
+                $stmt = mysqli_prepare($conn,
+                    "UPDATE inventory SET total_weight = total_weight + ?, left_weight = left_weight + ?
+                     WHERE purity = ?");
+                mysqli_stmt_bind_param($stmt, 'ddd', $delta, $delta, $newPurity);
+                mysqli_stmt_execute($stmt);
+            } else {
+                // Karat changed — revert from old karat, apply to new karat.
+                $stmt = mysqli_prepare($conn,
+                    "UPDATE inventory SET total_weight = total_weight - ?, left_weight = left_weight - ?
+                     WHERE purity = ?");
+                mysqli_stmt_bind_param($stmt, 'ddd', $oldWeight, $oldWeight, $oldPurity);
+                mysqli_stmt_execute($stmt);
+
+                $stmt = mysqli_prepare($conn,
+                    "UPDATE inventory SET total_weight = total_weight + ?, left_weight = left_weight + ?
+                     WHERE purity = ?");
+                mysqli_stmt_bind_param($stmt, 'ddd', $newWeight, $newWeight, $newPurity);
+                mysqli_stmt_execute($stmt);
+            }
+
+            $stmt = mysqli_prepare($conn,
+                "UPDATE stock_in SET purity = ?, weight = ?, note = ? WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, 'ddsi', $newPurity, $newWeight, $note, $id);
+            mysqli_stmt_execute($stmt);
+
+            mysqli_commit($conn);
+        } catch (\Throwable $e) {
+            mysqli_rollback($conn);
+            json_out(['success' => false, 'message' => 'সম্পাদনা করতে ব্যর্থ হয়েছে।'], 500);
+        }
+
+        json_out([
+            'success' => true,
+            'message' => 'স্টক ইন এন্ট্রি সম্পাদনা করা হয়েছে।',
+            'weight_trad' => format_traditional(grams_to_traditional($newWeight)),
+        ]);
     }
 
     json_out(['success' => false, 'message' => 'অজানা অ্যাকশন।'], 400);
@@ -911,10 +1029,11 @@ label, .form-label {
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:14px; border:1px solid var(--border-default); box-shadow:var(--shadow);">
       <div class="modal-header" style="background:var(--navy); color:#fff; border-radius:13px 13px 0 0;">
-        <h5 class="modal-title fw-bold text-white fs-6"><i class="bi bi-box-arrow-in-down me-1"></i> নতুন স্টক যোগ করুন</h5>
+        <h5 class="modal-title fw-bold text-white fs-6" id="stockInModalTitle"><i class="bi bi-box-arrow-in-down me-1"></i> নতুন স্টক যোগ করুন</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form id="stockInForm" autocomplete="off">
+        <input type="hidden" id="siEditId" value="">
         <div class="modal-body p-3">
 
             <label class="form-label">ক্যারেট</label>
@@ -954,7 +1073,7 @@ label, .form-label {
         <div class="modal-footer" style="border-top:1px solid var(--border-default);">
             <button type="button" class="btn-secondary btn-sm-custom" data-bs-dismiss="modal">বাতিল</button>
             <button type="submit" class="btn-primary btn-sm-custom" id="btnSaveStockIn">
-                <i class="bi bi-save-fill me-1"></i> স্টক যোগ করুন
+                <i class="bi bi-save-fill me-1"></i> <span id="btnSaveStockInLabel">স্টক যোগ করুন</span>
             </button>
         </div>
       </form>
@@ -1013,6 +1132,31 @@ function traditionalToGrams(vori, ana, roti, point) {
     return (vori * G_PER_VORI) + (ana * G_PER_ANA) + (roti * G_PER_ROTI) + (point * G_PER_POINT);
 }
 
+function gramsToTraditional(grams) {
+    grams = Math.max(0, grams);
+    const EPS = 1e-9;
+    const totalVori = grams / G_PER_VORI;
+
+    let vori = Math.floor(totalVori + EPS);
+    const fracVori = Math.max(0, totalVori - vori);
+
+    const totalAna = fracVori * 16;
+    let ana = Math.floor(totalAna + EPS);
+    const fracAna = Math.max(0, totalAna - ana);
+
+    const totalRoti = fracAna * 6;
+    let roti = Math.floor(totalRoti + EPS);
+    const fracRoti = Math.max(0, totalRoti - roti);
+
+    let point = Math.round(fracRoti * 10);
+
+    if (point >= 10) { point -= 10; roti += 1; }
+    if (roti >= 6)   { roti -= 6;   ana += 1; }
+    if (ana >= 16)   { ana -= 16;   vori += 1; }
+
+    return { vori, ana, roti, point };
+}
+
 function escHtml(s) {
     const d = document.createElement('div');
     d.textContent = s ?? '';
@@ -1049,6 +1193,9 @@ document.getElementById('btnOpenStockIn').addEventListener('click', () => {
     document.getElementById('stockInForm').reset();
     document.querySelectorAll('#stockInForm .traditional-weight-input').forEach(input => input.value = '');
     document.getElementById('siWeightError').style.display = 'none';
+    document.getElementById('siEditId').value = '';
+    document.getElementById('stockInModalTitle').innerHTML = '<i class="bi bi-box-arrow-in-down me-1"></i> নতুন স্টক যোগ করুন';
+    document.getElementById('btnSaveStockInLabel').textContent = 'স্টক যোগ করুন';
     stockInModal.show();
 });
 
@@ -1210,6 +1357,9 @@ function renderKaratCards(cards) {
             document.querySelectorAll('#stockInForm .traditional-weight-input').forEach(input => input.value = '');
             document.getElementById('siPurity').value = parseFloat(btn.dataset.quickStock).toFixed(2);
             document.getElementById('siWeightError').style.display = 'none';
+            document.getElementById('siEditId').value = '';
+            document.getElementById('stockInModalTitle').innerHTML = '<i class="bi bi-box-arrow-in-down me-1"></i> নতুন স্টক যোগ করুন';
+            document.getElementById('btnSaveStockInLabel').textContent = 'স্টক যোগ করুন';
             stockInModal.show();
         });
     });
@@ -1229,9 +1379,16 @@ function renderHistory(rows) {
             <td class="history-note col-note">${r.note ? escHtml(r.note) : '—'}</td>
             <td class="col-user">${escHtml(r.user_name)}</td>
             <td>
+                ${r.can_modify ? `
+                <button type="button" class="btn-icon-round" data-edit-stock="${r.id}"
+                    data-purity="${r.purity}" data-weight="${r.weight}" data-note="${r.note ? escHtml(r.note) : ''}"
+                    title="সম্পাদনা করুন">
+                    <i class="bi bi-pencil"></i>
+                </button>
                 <button type="button" class="btn-icon-round" data-del-stock="${r.id}" title="বাতিল করুন">
                     <i class="bi bi-trash3"></i>
                 </button>
+                ` : ''}
             </td>
         </tr>
     `).join('');
@@ -1239,6 +1396,30 @@ function renderHistory(rows) {
     el.querySelectorAll('[data-del-stock]').forEach(btn => {
         btn.addEventListener('click', () => deleteStockIn(btn.dataset.delStock, btn));
     });
+    el.querySelectorAll('[data-edit-stock]').forEach(btn => {
+        btn.addEventListener('click', () => openEditStockIn(btn));
+    });
+}
+
+function openEditStockIn(btn) {
+    const id = btn.dataset.editStock;
+    const purity = parseFloat(btn.dataset.purity);
+    const weightGrams = parseFloat(btn.dataset.weight);
+    const note = btn.dataset.note || '';
+    const trad = gramsToTraditional(weightGrams);
+
+    document.getElementById('stockInForm').reset();
+    document.getElementById('siEditId').value = id;
+    document.getElementById('siPurity').value = purity.toFixed(2);
+    document.getElementById('siVori').value = trad.vori || '';
+    document.getElementById('siAna').value = trad.ana || '';
+    document.getElementById('siRoti').value = trad.roti || '';
+    document.getElementById('siPoint').value = trad.point || '';
+    document.getElementById('siNote').value = note;
+    document.getElementById('siWeightError').style.display = 'none';
+    document.getElementById('stockInModalTitle').innerHTML = '<i class="bi bi-pencil me-1"></i> স্টক এন্ট্রি সম্পাদনা করুন';
+    document.getElementById('btnSaveStockInLabel').textContent = 'পরিবর্তন সংরক্ষণ করুন';
+    stockInModal.show();
 }
 
 async function deleteStockIn(id, btn) {
@@ -1267,6 +1448,7 @@ async function deleteStockIn(id, btn) {
 // -----------------------------------------------------------------------
 document.getElementById('stockInForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const editId = document.getElementById('siEditId').value;
     const purity = document.getElementById('siPurity').value;
     const vori  = parseInt(document.getElementById('siVori').value || '0', 10);
     const ana   = parseInt(document.getElementById('siAna').value || '0', 10);
@@ -1284,12 +1466,14 @@ document.getElementById('stockInForm').addEventListener('submit', async (e) => {
     errEl.style.display = 'none';
 
     const btn = document.getElementById('btnSaveStockIn');
+    const label = document.getElementById('btnSaveStockInLabel');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> সংরক্ষণ হচ্ছে…';
 
     try {
         const fd = new FormData();
-        fd.append('action', 'stock_in');
+        fd.append('action', editId ? 'edit_stock_in' : 'stock_in');
+        if (editId) fd.append('id', editId);
         fd.append('purity', purity);
         fd.append('vori', vori);
         fd.append('ana', ana);
@@ -1301,7 +1485,7 @@ document.getElementById('stockInForm').addEventListener('submit', async (e) => {
         const data = await res.json();
 
         if (!data.success) {
-            errEl.textContent = data.message || 'স্টক যোগ করতে ব্যর্থ হয়েছে।';
+            errEl.textContent = data.message || (editId ? 'সম্পাদনা করতে ব্যর্থ হয়েছে।' : 'স্টক যোগ করতে ব্যর্থ হয়েছে।');
             errEl.style.display = 'block';
             return;
         }
@@ -1313,7 +1497,7 @@ document.getElementById('stockInForm').addEventListener('submit', async (e) => {
         errEl.style.display = 'block';
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-save-fill me-1"></i> স্টক যোগ করুন';
+        btn.innerHTML = `<i class="bi bi-save-fill me-1"></i> <span id="btnSaveStockInLabel">${label ? label.textContent : 'স্টক যোগ করুন'}</span>`;
     }
 });
 

@@ -97,7 +97,7 @@ $action = $_GET['action'] ?? null;
 if (($isAjax || $action !== null) && $action === 'data' && $_SERVER['REQUEST_METHOD'] === 'GET') {
 
     [$from, $to, $periodLabel] = resolve_period(
-        trim($_GET['period'] ?? 'today'),
+        trim($_GET['period'] ?? 'month'),
         trim($_GET['from']   ?? ''),
         trim($_GET['to']     ?? '')
     );
@@ -710,10 +710,10 @@ body {
             <small>ব্যবসায়িক কার্যক্রমের সংক্ষিপ্তসার</small>
         </div>
         <div class="period-pills" id="periodPills">
-            <button type="button" class="period-pill active" data-period="today">আজ</button>
+            <button type="button" class="period-pill" data-period="today">আজ</button>
             <button type="button" class="period-pill" data-period="yesterday">গতকাল</button>
             <button type="button" class="period-pill" data-period="week">এই সপ্তাহ</button>
-            <button type="button" class="period-pill" data-period="month">এই মাস</button>
+            <button type="button" class="period-pill active" data-period="month">এই মাস</button>
             <button type="button" class="period-pill" data-period="custom">কাস্টম</button>
             <div class="custom-range-box" id="customRangeBox">
                 <input type="date" id="customFrom">
@@ -728,7 +728,7 @@ body {
         <!-- Quick actions -->
         <div class="quick-actions">
             <a href="gold_exchange_inventory.php" class="qa-btn">
-                <span class="qa-icon"><i class="bi bi-arrow-left-right"></i></span> নতুন সোনা বিনিময়
+                <span class="qa-icon"><i class="bi bi-arrow-left-right"></i></span> নতুন সোনা এক্সচেঞ্জ
             </a>
             <a href="gold_buy.php" class="qa-btn">
                 <span class="qa-icon"><i class="bi bi-bag-plus"></i></span> নতুন সোনা ক্রয়
@@ -808,7 +808,7 @@ body {
         <div class="summary-grid" id="summaryGrid">
             <div class="summary-card">
                 <div class="sc-top">
-                    <span class="sc-title">সোনা বিনিময়</span>
+                    <span class="sc-title">সোনা এক্সচেঞ্জ</span>
                     <span class="sc-badge-icon"><i class="bi bi-arrow-left-right"></i></span>
                 </div>
                 <div class="sc-main-value" id="cardExCount">—</div>
@@ -882,7 +882,7 @@ body {
                     </div>
                     <div class="stat-cell">
                         <div class="s-icon"><i class="bi bi-arrow-left-right"></i></div>
-                        <div class="s-text"><span class="s-label">বিনিময়কৃত সোনা</span><span class="s-value" id="gmExOld">—</span></div>
+                        <div class="s-text"><span class="s-label">এক্সচেঞ্জকৃত সোনা</span><span class="s-value" id="gmExOld">—</span></div>
                     </div>
                     <div class="stat-cell">
                         <div class="s-icon"><i class="bi bi-bullseye"></i></div>
@@ -1028,7 +1028,7 @@ const SYSTEM_COLORS = ['#2F4156', '#567C8D', '#3D7A5C', '#A6434B', '#8E6C88', '#
 let trendChart = null;
 let bvsChart   = null;
 let stockLevelChart = null;
-let currentPeriod = 'today';
+let currentPeriod = 'month';
 let customFrom = '';
 let customTo   = '';
 
@@ -1337,7 +1337,7 @@ function renderDue(d) {
 }
 
 const RECENT_ICON = { exchange: 'bi-arrow-left-right', buy: 'bi-bag-plus', sale: 'bi-bag-check', expense: 'bi-wallet2' };
-const RECENT_LABEL = { exchange: 'বিনিময়', buy: 'ক্রয়', sale: 'বিক্রয়', expense: 'খরচ' };
+const RECENT_LABEL = { exchange: 'এক্সচেঞ্জ', buy: 'ক্রয়', sale: 'বিক্রয়', expense: 'খরচ' };
 const RECENT_PAGE = { exchange: 'gold_exchange_edit_inventory.php', buy: 'gold_buy_edit.php', sale: 'gold_sale_edit_inventory.php', expense: null };
 
 function renderRecent(rows) {

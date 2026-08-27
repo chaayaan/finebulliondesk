@@ -344,7 +344,7 @@ if ($isAjax || $action !== null) {
         if ($currentLeft - $weight < -0.0005) {
             json_out([
                 'success' => false,
-                'message' => 'এই স্টক ইন বাতিল করা যাবে না — এই স্টক ইতিমধ্যে বিক্রয়/এক্সচেঞ্জে ব্যবহৃত হয়েছে।',
+                'message' => 'এই স্টক ইন বাতিল করা যাবে না — এই স্টক ইতিমধ্যে বিক্রয়/বিনিময়ে ব্যবহৃত হয়েছে।',
             ], 409);
         }
 
@@ -599,7 +599,7 @@ html, body {
 .card-header-custom .title-text i { color: var(--teal); }
 
 .karat-grid {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem; margin-bottom: 1.25rem;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.25rem;
 }
 .karat-card {
     background: var(--bg-card);
@@ -647,6 +647,24 @@ html, body {
 .kc-row.kc-current .kc-value { color: var(--success); font-weight: 700; }
 .karat-card.low .kc-row.kc-current .kc-value { color: var(--warning); }
 .karat-card.out .kc-row.kc-current .kc-value { color: var(--danger); }
+
+.low-stock-banner.d-none { display: none !important; }
+.low-stock-banner {
+    display: flex; align-items: center; gap: .55rem;
+    background: #FBF3D9; border: 1px solid var(--warning);
+    color: var(--warning); border-radius: 12px; padding: .65rem .9rem;
+    font-size: 13.5px; font-weight: 700; margin: .6rem 0 1.1rem;
+}
+.low-stock-banner.zero { background: #EAF3EE; border-color: var(--success); color: var(--success); }
+
+.stockout-banner.d-none { display: none !important; }
+.stockout-banner {
+    display: flex; align-items: center; gap: .55rem;
+    background: #FDE8E8; border: 1.5px solid #8B0000;
+    color: #8B0000; border-radius: 12px; padding: .65rem .9rem;
+    font-size: 13.5px; font-weight: 700; margin: .6rem 0 1.1rem;
+}
+
 
 /* Input Fields (§6) */
 .form-control, .form-select, textarea {
@@ -720,7 +738,7 @@ label, .form-label {
 }
 @media (max-width: 991.98px) {
     .summary-grid { grid-template-columns: repeat(3, 1fr); }
-    .karat-grid { grid-template-columns: repeat(3, 1fr); }
+    .karat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 576px) {
     .page-content .container-fluid { padding: 0 !important; }
@@ -735,22 +753,6 @@ label, .form-label {
     .summary-card .sc-main-value { font-size: 1rem; }
 
     .summary-grid #lowStockCard { display: none !important; }
-    .low-stock-banner.d-none { display: none !important; }
-    .low-stock-banner {
-        display: flex; align-items: center; gap: .55rem;
-        background: #FBF3D9; border: 1px solid var(--warning);
-        color: var(--warning); border-radius: 12px; padding: .65rem .9rem;
-        font-size: 13.5px; font-weight: 700; margin: .6rem 0 1.1rem;
-    }
-    .low-stock-banner.zero { background: #EAF3EE; border-color: var(--success); color: var(--success); }
-
-    .stockout-banner.d-none { display: none !important; }
-    .stockout-banner {
-        display: flex; align-items: center; gap: .55rem;
-        background: #FDE8E8; border: 1.5px solid #8B0000;
-        color: #8B0000; border-radius: 12px; padding: .65rem .9rem;
-        font-size: 13.5px; font-weight: 700; margin: .6rem 0 1.1rem;
-    }
 
     .card { border-radius: 14px; margin-bottom: .8rem; padding: .85rem; }
     .history-table th, .history-table td { padding: .55rem .5rem; font-size: 13px; }
@@ -814,7 +816,7 @@ label, .form-label {
             </div>
             <div class="summary-card">
                 <div class="sc-top">
-                    <span class="sc-title">এক্সচেঞ্জে গেছে</span>
+                    <span class="sc-title">বিনিময়ে গেছে</span>
                     <span class="sc-badge-icon"><i class="bi bi-arrow-left-right"></i></span>
                 </div>
                 <div class="sc-main-value" id="sumExchanged"><span class="skel d-inline-block" style="width:70px;">&nbsp;</span></div>

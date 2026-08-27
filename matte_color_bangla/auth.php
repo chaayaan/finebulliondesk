@@ -143,7 +143,7 @@ function require_role($roles, bool $isAjax = false): void
            . '<body style="font-family:sans-serif;text-align:center;padding:4rem;">'
            . '<h2>403 — Access Denied</h2>'
            . '<p>You do not have permission to view this page.</p>'
-           . '<p><a href="customers.php">Return to Dashboard</a></p>'
+           . '<p><a href="dashboard.php">Return to Dashboard</a></p>'
            . '</body></html>';
         exit;
     }

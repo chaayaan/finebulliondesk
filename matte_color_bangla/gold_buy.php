@@ -99,7 +99,7 @@ if ($isAjax || $action !== null) {
     if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $customerId     = (int)($_POST['customer_id']      ?? 0);
         $pureGoldPrice  = (float)($_POST['pure_gold_price'] ?? 0);
-        $paidAmount     = (float)($_POST['paid_amount']      ?? 0);
+        $paidAmount     = (int) round((float)($_POST['paid_amount'] ?? 0));
         $note           = trim($_POST['note'] ?? '') ?: null;
         $items          = json_decode($_POST['items'] ?? '[]', true);
 
@@ -158,7 +158,7 @@ if ($isAjax || $action !== null) {
             }
 
             // Price = (grams / G_PER_VORI) * (purity / 24) * pureGoldPrice
-            $price = ($grams / G_PER_VORI) * ($purity / 24) * $pureGoldPrice;
+            $price = (int) round(($grams / G_PER_VORI) * ($purity / 24) * $pureGoldPrice);
             $totalAmount += $price;
 
             $calcItems[] = [
@@ -1086,7 +1086,7 @@ function getItemValues(card) {
 
 function calcItemPrice(v, pureGoldPrice) {
     const grams = traditionalToGrams(v.vori, v.ana, v.roti, v.point);
-    const price = (grams / G_PER_VORI) * (v.purity / 24) * pureGoldPrice;
+    const price = Math.round((grams / G_PER_VORI) * (v.purity / 24) * pureGoldPrice);
     return { grams, price };
 }
 
@@ -1154,7 +1154,7 @@ function renderSummary() {
     document.getElementById('sumTotalWeight').textContent = formatTrad(trad);
     document.getElementById('sumTotalPrice').textContent  = formatBDT(totalPrice);
 
-    const paid = Math.max(0, parseFloat(paidAmountInput.value) || 0);
+    const paid = Math.round(Math.max(0, parseFloat(paidAmountInput.value) || 0));
     const due  = totalPrice - paid;
 
     const dueEl = document.getElementById('sumDueAmount');
@@ -1193,7 +1193,7 @@ document.getElementById('buyForm').addEventListener('submit', async function (e)
         }
     }
 
-    const paid = Math.max(0, parseFloat(paidAmountInput.value) || 0);
+    const paid = Math.round(Math.max(0, parseFloat(paidAmountInput.value) || 0));
 
     const btn = document.getElementById('btnSave');
     btn.disabled = true;

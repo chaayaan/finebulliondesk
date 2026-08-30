@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- Add payment (any logged-in user) --------------------------------
     if ($action === 'add_payment') {
-        $paidAmount     = (float)($_POST['paid_amount']    ?? 0);
+        $paidAmount     = (int) round((float)($_POST['paid_amount'] ?? 0));
         $paymentDate    = trim($_POST['payment_date']      ?? '');
         $transactionRef = trim($_POST['transaction_ref']   ?? '') ?: null;
         $paymentNote    = trim($_POST['payment_note']      ?? '') ?: null;
@@ -191,14 +191,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_execute($chkStmt);
         $chk        = mysqli_fetch_assoc(mysqli_stmt_get_result($chkStmt));
         mysqli_stmt_close($chkStmt);
-        $currentDue = $chk ? round((float)$chk['total_amount'] - (float)$chk['paid_so_far'], 2) : 0.0;
+        $currentDue = $chk ? (int) round((float)$chk['total_amount'] - (float)$chk['paid_so_far']) : 0;
 
         $errors = [];
         if ($currentDue <= 0) {
             $errors[] = 'এই বিক্রির টাকা আগেই সম্পূর্ণ পরিশোধ করা হয়েছে।';
         } elseif ($paidAmount <= 0) {
             $errors[] = 'পরিশোধিত টাকা শূন্যের চেয়ে বেশি হতে হবে।';
-        } elseif ($paidAmount > $currentDue + 0.009) {
+        } elseif ($paidAmount > $currentDue) {
             $errors[] = 'পরিমাণ অবশিষ্ট বকেয়ার (৳' . number_format($currentDue, 0) . ') চেয়ে বেশি।';
         }
         if (empty($paymentDate)) $errors[] = 'পেমেন্টের তারিখ দেওয়া আবশ্যক।';
@@ -289,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $grams = trad_to_grams($vori, $ana, $roti, $point);
             if ($grams <= 0) $errors[] = "আইটেম $n: ওজন শূন্যের বেশি হতে হবে।";
 
-            $price = ($grams / G_VORI) * ($purity / 24) * $pureGoldPrice;
+            $price = (int) round(($grams / G_VORI) * ($purity / 24) * $pureGoldPrice);
             $totalAmt += $price;
 
             $calcItems[] = [
@@ -505,7 +505,7 @@ $payments = mysqli_fetch_all(mysqli_stmt_get_result($pStmt), MYSQLI_ASSOC);
 mysqli_stmt_close($pStmt);
 
 $totalPaid = array_sum(array_column($payments, 'paid_amount'));
-$dueAmount = round((float)$sale['due_amount'], 2);
+$dueAmount = (int) round((float)$sale['due_amount']);
 $fullyPaid = $dueAmount <= 0;
 ?>
 <!DOCTYPE html>
@@ -1359,9 +1359,9 @@ tbody tr:hover {
                         <div class="input-group">
                             <span class="input-group-text" style="background:var(--navy);color:#fff;border-color:var(--navy);">৳</span>
                             <input type="number" name="paid_amount" id="salePayAmountInput" class="form-control"
-                                   min="0.01" max="<?= $dueAmount ?>" step="0.01" required
+                                   min="1" max="<?= $dueAmount ?>" step="1" required
                                    placeholder="পেমেন্টের পরিমাণ লিখুন"
-                                   value="<?= number_format($dueAmount, 2, '.', '') ?>">
+                                   value="<?= $dueAmount ?>">
                         </div>
                         <div class="form-text" id="salePayAmountHint"></div>
                     </div>
@@ -1619,7 +1619,7 @@ function getPureGoldPrice(){
 
 function recalcItem(idx){
     const {v,a,r,p,k} = getItemInputs(idx);
-    const price = (tradToGrams(v,a,r,p) / G_VORI) * (k / 24) * getPureGoldPrice();
+    const price = Math.round((tradToGrams(v,a,r,p) / G_VORI) * (k / 24) * getPureGoldPrice());
     const el = document.getElementById('itemPreview_' + idx);
     if (el) el.textContent = 'আইটেমের দাম: ' + fmtBDT(price);
     recalcSummary();
@@ -1642,7 +1642,7 @@ function recalcSummary(){
     for (let i = 0; i < ITEM_COUNT; i++){
         const {v,a,r,p,k} = getItemInputs(i);
         const grams = tradToGrams(v,a,r,p);
-        total += (grams / G_VORI) * (k / 24) * pg;
+        total += Math.round((grams / G_VORI) * (k / 24) * pg);
 
         const kKey = k.toFixed(2);
         newByPurity[kKey] = (newByPurity[kKey] || 0) + grams;

@@ -791,10 +791,10 @@ html, body {
 
                         <div class="summary-row">
                             <span class="s-label">মোট ক্ষতি</span>
-                            <span class="s-value" id="sumLoss">০ পয়েন্ট</span>
-                        </div>
-                        <div class="summary-row">
-                            <span class="text-secondary" id="sumLossTrad" style="font-size:0.75rem;">০ ভরি ০ আনা ০ রতি ০ পয়েন্ট</span>
+                            <span class="s-value">
+                                <span id="sumLossTrad" class="text-secondary" style="font-weight:400; font-size:12px;">(০ ভরি ০ আনা ০ রতি ০ পয়েন্ট)</span>
+                                <span id="sumLoss">০ পয়েন্ট</span>
+                            </span>
                         </div>
 
                         <div class="final-row mt-2">
@@ -1177,7 +1177,7 @@ function renderSummary() {
 
     document.getElementById('sumTotalPure').textContent = formatTraditional(gramsToTraditional(totalPureGrams));
     document.getElementById('sumLoss').textContent      = `${lossPointsCeil} পয়েন্ট`;
-    document.getElementById('sumLossTrad').textContent  = formatTraditional(gramsToTraditional(lossGrams));
+    document.getElementById('sumLossTrad').textContent  = '(' + formatTraditional(gramsToTraditional(lossGrams)) + ')';
     document.getElementById('sumFinalPure').textContent = formatTraditional(gramsToTraditional(finalPureGrams));
 
     // Stock status

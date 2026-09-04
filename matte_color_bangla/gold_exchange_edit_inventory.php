@@ -124,9 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lossRate = isset($_POST['loss_rate']) && $_POST['loss_rate'] !== ''
                     ? max(0.0, (float)$_POST['loss_rate']) : 1.0;
 
-        $errors    = [];
-        $calcItems = [];
-        $totalPure = 0.0;
+        $errors      = [];
+        $calcItems   = [];
+        $totalPure   = 0.0;
+        $totalImpure = 0.0;
 
         foreach ($rawItems as $i => $item) {
             $n     = $i + 1;
@@ -161,7 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'old_gold_purity'  => $purity,
                 'pure_gold_weight' => $grams * ($purity / 100),
             ];
-            $totalPure += $grams * ($purity / 100);
+            $totalPure   += $grams * ($purity / 100);
+            $totalImpure += $grams;
         }
 
         if (empty($calcItems) && empty($errors)) {
@@ -170,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             // Re-calculate summary
-            $lossPointsCeil = (int) ceil(($totalPure / G_VORI) * $lossRate);
+            $lossPointsCeil = (int) ceil(($totalImpure / G_VORI) * $lossRate);
             $lossGrams      = $lossPointsCeil * G_POINT;
             $finalPure      = max(0.0, $totalPure - $lossGrams);
 
@@ -1136,13 +1138,16 @@ function recalcAll() {
 
 function recalcSummary() {
     let totalPureGrams = 0;
+    let totalImpureGrams = 0;
     for (let i = 0; i < ITEM_COUNT; i++) {
         const {v, a, r, p, k} = getItemInputs(i);
-        totalPureGrams += tradToGrams(v, a, r, p) * (k / 24);
+        const grams = tradToGrams(v, a, r, p);
+        totalPureGrams += grams * (k / 24);
+        totalImpureGrams += grams;
     }
 
     const lossRate = getLossRate();
-    const lossPointsCeil = Math.ceil((totalPureGrams / G_VORI) * lossRate);
+    const lossPointsCeil = Math.ceil((totalImpureGrams / G_VORI) * lossRate);
     const lossGrams = lossPointsCeil * G_POINT;
     const finalPureGrams = Math.max(0, totalPureGrams - lossGrams);
 

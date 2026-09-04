@@ -15,9 +15,10 @@
  *     18/21/22/24 preset list.
  *   - Pure Gold per item = grams * (karat / 24)
  *   - Total Pure Gold     = sum of all items' pure gold (grams)
- *   - Loss                = customizable "Points of loss per Vori of pure
- *                            gold" rate (default 1), applied to the TOTAL
- *                            pure gold, not the original impure weight.
+ *   - Loss                = customizable "Points of loss per Vori of
+ *                            impure gold" rate (default 1), applied to the
+ *                            TOTAL original (impure) weight, not the
+ *                            converted pure gold.
  *   - Final Pure Gold     = Total Pure Gold - Loss
  *   - Everything is calculated in grams; traditional units are derived only
  *     for display, to avoid compounding rounding errors.
@@ -155,7 +156,8 @@ if ($isAjax || $action !== null) {
         }
 
         $calcItems = [];
-        $totalPureGrams = 0.0;
+        $totalPureGrams   = 0.0;
+        $totalImpureGrams = 0.0;
 
         foreach ($items as $i => $item) {
             $n = $i + 1;
@@ -197,7 +199,8 @@ if ($isAjax || $action !== null) {
             $purityPct = ($karat / 24) * 100;
             $pureGold  = $grams * ($karat / 24);
 
-            $totalPureGrams += $pureGold;
+            $totalPureGrams   += $pureGold;
+            $totalImpureGrams += $grams;
 
             $calcItems[] = [
                 'old_gold_weight'  => $grams,
@@ -206,8 +209,8 @@ if ($isAjax || $action !== null) {
             ];
         }
 
-        $totalPureVori   = $totalPureGrams / G_PER_VORI;
-        $lossPointsExact = $totalPureVori * $lossRate;
+        $totalImpureVori = $totalImpureGrams / G_PER_VORI;
+        $lossPointsExact = $totalImpureVori * $lossRate;
         $lossPointsCeil  = (int) ceil($lossPointsExact);
         $lossGrams       = $lossPointsCeil * G_PER_POINT;
 
@@ -1156,16 +1159,18 @@ async function loadStock24k() {
 
 function renderSummary() {
     let totalPureGrams = 0;
+    let totalImpureGrams = 0;
 
     itemsContainer.querySelectorAll('[data-item]').forEach(card => {
         const v = getItemValues(card);
-        const { pureGrams } = calcItemPure(v);
+        const { grams, pureGrams } = calcItemPure(v);
         totalPureGrams += pureGrams;
+        totalImpureGrams += grams;
     });
 
     const lossRate = parseFloat(document.getElementById('lossRateInput').value) || 0;
-    const totalPureVori   = totalPureGrams / G_PER_VORI;
-    const lossPointsExact = totalPureVori * lossRate;
+    const totalImpureVori = totalImpureGrams / G_PER_VORI;
+    const lossPointsExact = totalImpureVori * lossRate;
     const lossPointsCeil  = Math.ceil(lossPointsExact);
     const lossGrams       = lossPointsCeil * G_PER_POINT;
     const finalPureGrams  = Math.max(0, totalPureGrams - lossGrams);

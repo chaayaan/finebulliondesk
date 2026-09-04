@@ -1360,8 +1360,7 @@ tbody tr:hover {
                             <span class="input-group-text" style="background:var(--navy);color:#fff;border-color:var(--navy);">৳</span>
                             <input type="number" name="paid_amount" id="salePayAmountInput" class="form-control"
                                    min="1" max="<?= $dueAmount ?>" step="1" required
-                                   placeholder="পেমেন্টের পরিমাণ লিখুন"
-                                   value="<?= $dueAmount ?>">
+                                   placeholder="0">
                         </div>
                         <div class="form-text" id="salePayAmountHint"></div>
                     </div>

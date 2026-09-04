@@ -880,7 +880,7 @@ label, .form-label {
                         <div class="paid-row">
                             <span class="s-label">পরিশোধিত টাকা:</span>
                             <input type="number" class="form-control" id="paidAmount" name="paid_amount"
-                                   min="0" step="1" value="0" placeholder="0">
+                                   min="0" step="1" placeholder="0">
                         </div>
 
                         <div class="due-row">

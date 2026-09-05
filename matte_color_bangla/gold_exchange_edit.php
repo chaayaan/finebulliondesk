@@ -6,6 +6,10 @@
  * Pure PHP + mysqli. No AJAX. Page-load renders everything.
  * POST → PRG (Post/Redirect/Get) to prevent duplicate submit on refresh.
  * Admin: edit existing items only (no add/remove).
+ *
+ * This is a standalone calculation: no inventory is read, checked, or
+ * deducted anywhere in this flow. Loss is derived purely from the
+ * submitted items and the loss rate — see calc_loss_points().
  */
 
 require_once __DIR__ . '/auth.php';
@@ -45,6 +49,37 @@ function trad_to_grams(int $v, int $a, int $r, int $p): float {
 
 function loss_points(float $lossGrams): int {
     return (int) round($lossGrams / G_POINT);
+}
+
+/**
+ * Loss points for a given total impure weight (grams) and rate
+ * (points per whole Vori).
+ *
+ * Rounding rule:
+ *   - Split the impure weight into a whole-Vori count and a leftover
+ *     fraction (any Ana / Roti / Point above the whole Vori).
+ *   - Loss for the whole-Vori part = wholeVori * rate, taken as-is
+ *     (no rounding up) — e.g. exactly 15 Vori @ 1 pt/vori => 15 points,
+ *     exactly 30 Vori @ 1 pt/vori => 30 points.
+ *   - If there is ANY leftover fraction at all, one extra point is
+ *     added on top of the whole-Vori loss (floor(base) + 1) instead of
+ *     rounding the fractional loss up to its own next integer.
+ *     e.g. 15 Vori + 1 Ana @ 1 pt/vori => 16 points.
+ */
+function calc_loss_points(float $impureGrams, float $rate): int
+{
+    $EPS = 1e-9;
+    $totalVori   = $impureGrams / G_VORI;
+    $wholeVori   = (int) floor($totalVori + $EPS);
+    $hasFraction = ($totalVori - $wholeVori) > $EPS;
+
+    $basePoints = $wholeVori * $rate;
+
+    if ($hasFraction) {
+        return ((int) floor($basePoints + $EPS)) + 1;
+    }
+
+    return (int) round($basePoints);
 }
 
 function fmt_dt(?string $s): string {
@@ -100,9 +135,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lossRate = isset($_POST['loss_rate']) && $_POST['loss_rate'] !== ''
                     ? max(0.0, (float)$_POST['loss_rate']) : 1.0;
 
-        $errors    = [];
-        $calcItems = [];
-        $totalPure = 0.0;
+        $errors      = [];
+        $calcItems   = [];
+        $totalPure   = 0.0;
+        $totalImpure = 0.0;
 
         foreach ($rawItems as $i => $item) {
             $n     = $i + 1;
@@ -137,7 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'old_gold_purity'  => $purity,
                 'pure_gold_weight' => $grams * ($purity / 100),
             ];
-            $totalPure += $grams * ($purity / 100);
+            $totalPure   += $grams * ($purity / 100);
+            $totalImpure += $grams;
         }
 
         if (empty($calcItems) && empty($errors)) {
@@ -146,9 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             // Re-calculate summary
-            $lossPointsCeil = (int) ceil(($totalPure / G_VORI) * $lossRate);
-            $lossGrams      = $lossPointsCeil * G_POINT;
-            $finalPure      = max(0.0, $totalPure - $lossGrams);
+            $lossPoints = calc_loss_points($totalImpure, $lossRate);
+            $lossGrams  = $lossPoints * G_POINT;
+            $finalPure  = max(0.0, $totalPure - $lossGrams);
 
             mysqli_begin_transaction($conn);
             try {
@@ -285,275 +322,356 @@ $lossPointsVal = loss_points((float)$ex['loss']);
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 :root {
-    /* Brand Foundation */
-    --gold-deep: #c9973a;
-    --gold-mid: #dcb04a;
-    --gold-light: #e9cd7d;
-    --ivory: #fbf8f2;
-    --bronze-text: #3a2f1a;
-    --muted: #9a8f76;
-    --hairline: #ecdfb8;
+    --navy: #2F4156;
+    --teal: #567C8D;
+    --sky: #C8D9E6;
+    --beige: #F5EFEB;
+    --white: #FFFFFF;
 
-    /* Jewel Tone Financial Status Colors */
-    --status-paid-bg: #1b5238;      /* Deep Emerald (Paid / Impure / Loss) */
-    --status-paid-light: #eaf4ee;   /* Soft Emerald Tint */
-    --status-due-bg: #93292c;       /* Deep Ruby (Due / Pure / Outflow) */
-    --status-due-light: #fbeceb;    /* Soft Ruby Tint */
-    --status-total-bg: #b88328;     /* Rich Gold (Totals / Net Output) */
-    --status-total-light: #fdf6e2;  /* Soft Gold Tint */
-}
-body  { background: var(--ivory); font-family: 'Inter', system-ui, -apple-system, sans-serif; color: var(--bronze-text); }
-
-/* header */
-.exchange-header,
-.exchange-header.mb-4 {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
-    color: #ffffff !important;
-    border-radius: 0 0 20px 20px !important;
-    min-height: 60px !important;
-    max-height: 80px !important;
-    padding: 0.85rem 1.75rem !important;
-    margin: 0 !important;
-    top: 0;
-    width: 100% !important;
-    max-width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-.exchange-header h5,
-.exchange-header h5 * { color: #ffffff !important; }
-.exchange-header small { color: rgba(255,255,255,0.8) !important; }
-.exchange-header .btn-outline-light {
-    border-color: rgba(255,255,255,0.6);
-    color: #ffffff;
-}
-.exchange-header .btn-outline-light:hover {
-    background: rgba(255,255,255,0.15);
-    border-color: #ffffff;
-    color: #ffffff;
+    --text-primary: #2F4156;
+    --text-secondary: #567C8D;
+    --text-on-navy: #FFFFFF;
+    --border-default: #C8D9E6;
+    --border-strong: #567C8D;
+    --bg-app: #F5EFEB;
+    --bg-card: #FFFFFF;
+    --bg-hover: #EAF1F6;
+    --success: #3D7A5C;
+    --danger: #A6434B;
+    --shadow: 0 2px 8px rgba(47, 65, 86, 0.08);
 }
 
-/* Inset spacing for content below the flush full-width header */
-.page-inset { padding-left: 1.5rem; padding-right: 1.5rem; }
-
-/* customer / detail card */
-.detail-card {
-    background: #ffffff; border: none;
-    border-radius: 18px; padding: 1.25rem 1.5rem;
+body {
+    background: var(--bg-app);
+    font-family: 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
 }
+
+/* Page Header */
+.page-header {
+    background: var(--navy);
+    color: var(--text-on-navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem 1.75rem;
+    border-radius: 0 0 16px 16px;
+}
+.page-header h1, .page-header h5 {
+    color: var(--text-on-navy);
+    margin: 0;
+    font-weight: 700;
+    font-size: 22px;
+}
+.page-header small, .page-header .subtitle {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 13px;
+}
+
+/* Inset Container */
+.page-inset {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+/* Cards & Containers */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.25rem;
+}
+.card-header-custom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-default);
+}
+.card-title-custom {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Detail Labels */
 .detail-label {
-    font-size: 0.78rem; color: var(--muted); font-weight: 500;
-    white-space: nowrap;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--text-secondary);
 }
 .detail-val {
-    font-size: 0.97rem; font-weight: 600; color: var(--bronze-text);
-    word-break: break-word;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
 }
 
-/* item table badges */
-.badge-old   { background: var(--status-paid-light); color: var(--status-paid-bg); font-weight: 600; font-size: 0.82rem; }
-.badge-karat { background: var(--ivory); color: var(--muted); font-weight: 600; font-size: 0.82rem; border: 1px solid var(--hairline); }
-.badge-pure  { background: var(--status-due-light);  color: var(--status-due-bg);  font-weight: 600; font-size: 0.82rem; }
-
-/* ledger */
-.ledger { border: 1.5px solid var(--hairline); border-radius: 12px; overflow: hidden; }
-.ledger td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--hairline); vertical-align: middle; --bs-table-bg: transparent; }
-.ledger tr:last-child td { border-bottom: none; }
-.l-label { font-size: 0.83rem; color: var(--muted); width: 1%; white-space: nowrap; }
-.l-rate  { color: var(--muted); font-size: 0.78rem; font-weight: 400; }
-.l-val   { font-weight: 700; font-size: 0.95rem; text-align: right; letter-spacing: 0.01em; }
-.l-total td  { background-color: var(--status-due-light) !important; }
-.l-total .l-label, .l-total .l-val { color: var(--status-due-bg); }
-.l-total .l-label { font-weight: 600; }
-.l-loss  td  { background-color: #fdf1e0 !important; }
-.l-loss  .l-label { color: #7a5417; font-weight: 600; }
-.l-loss  .l-val   { color: #7a5417; }
-.l-final td  { background-color: var(--status-total-bg) !important; border-bottom: none; }
-.l-final .l-label { color: rgba(255,255,255,0.88); font-weight: 600; }
-.l-final .l-val   { color: #fff; font-size: 1.05rem; }
-.l-final .l-rate  { color: rgba(255,255,255,0.65); }
-
-/* Primary action buttons (pill, solid gold, white text) */
-.btn-gold, .btn-fb-primary {
-    background: var(--gold-deep);
-    border: 1.5px solid var(--gold-deep);
-    color: #ffffff !important;
-    font-weight: 700;
-    border-radius: 999px;
-}
-.btn-gold:hover, .btn-fb-primary:hover { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff !important; opacity: 0.92; }
-
-/* Secondary / cancel buttons (pill, white, hairline border) */
-.btn-secondary, .btn-fb-secondary {
-    background: #ffffff;
-    border: 1.5px solid var(--hairline);
-    color: var(--muted);
+/* Buttons */
+.btn {
+    border-radius: 8px;
     font-weight: 600;
-    border-radius: 999px;
+    font-size: 14px;
+    padding: 0.55rem 1.1rem;
 }
-.btn-secondary:hover, .btn-fb-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
-
-/* cards */
-.card {
-    background: #ffffff;
-    border: none;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 13px;
 }
-.card-header {
-    background: var(--ivory) !important;
-    border-bottom: 1px solid var(--hairline);
-    border-radius: 18px 18px 0 0 !important;
-    color: var(--bronze-text);
+.btn-primary {
+    background: var(--navy);
+    border: 1.5px solid var(--navy);
+    color: #fff;
 }
-
-/* tables */
-table.table thead.table-light th {
-    background: var(--ivory) !important;
-    color: var(--muted);
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.04em;
-    border-bottom: 1.5px solid var(--hairline);
+.btn-primary:hover, .btn-primary:focus {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
 }
-table.table td, table.table th { border-color: var(--hairline); }
-table.table-hover tbody tr:hover { background-color: #fdf7ec; }
-
-/* inputs */
-.form-control, .form-select, .input-group-text {
-    border: 1.5px solid var(--hairline);
-    border-radius: 10px;
-    color: var(--bronze-text);
+.btn-secondary {
     background: #fff;
+    border: 1.5px solid var(--border-default);
+    color: var(--navy);
 }
-.form-control:focus, .form-select:focus { border-color: var(--gold-deep); box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18); }
+.btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--teal);
+    color: var(--navy);
+}
+.btn-ghost-light {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+}
+.btn-ghost-light:hover {
+    background: #fff;
+    color: var(--navy);
+    border-color: #fff;
+}
 
-/* modals */
-.modal-content { border-radius: 18px; overflow: hidden; border: none; }
-.modal-header { background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important; color: #fff !important; }
-.modal-header .modal-title { color: #ffffff; font-weight: 800; }
-.modal-header .btn-close, .modal-header .btn-close-white { filter: brightness(0) invert(1); }
+/* Status Chips / Badges */
+.chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.chip-paid { background: #EAF3EE; color: var(--success); }
+.chip-due { background: #FBECEC; color: var(--danger); }
+.chip-total { background: var(--sky); color: var(--navy); }
 
-/* alerts */
-.alert-success { background: var(--status-paid-light); border: none; color: var(--status-paid-bg); border-radius: 12px; }
-.alert-danger  { background: var(--status-due-light);  border: none; color: var(--status-due-bg);  border-radius: 12px; }
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+thead th {
+    background: var(--beige) !important;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-bottom: 1.5px solid var(--border-default) !important;
+    padding: 0.65rem 0.75rem;
+}
+tbody td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+    font-size: 13.5px;
+    color: var(--text-primary);
+}
+tbody tr:hover {
+    background: var(--bg-hover);
+}
 
-/* edit modal item cards */
+/* Summary Ledger */
+.ledger {
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.ledger td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border-default);
+}
+.l-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    width: 1%;
+    white-space: nowrap;
+}
+.l-rate {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 400;
+}
+.l-val {
+    font-weight: 700;
+    font-size: 14px;
+    text-align: right;
+    color: var(--text-primary);
+}
+.l-total td { background-color: var(--bg-hover); }
+.l-total .l-label, .l-total .l-val { color: var(--navy); }
+.l-loss td { background-color: #FBECEC; }
+.l-loss .l-label, .l-loss .l-val { color: var(--danger); }
+.l-final td { background-color: var(--sky); border-bottom: none; }
+.l-final .l-label, .l-final .l-val { color: var(--navy); font-size: 15px; }
+
+/* Input Fields */
+.form-control, .form-select {
+    background: #fff;
+    border: 1.5px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: 0.55rem 0.75rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(86, 124, 141, 0.15);
+    outline: none;
+}
+label, .form-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.3rem;
+}
+
+/* Modals */
+#editModal .modal-dialog {
+    max-height: calc(100vh - 3.5rem);
+    margin-top: 1.75rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+}
+
+#editModal .modal-content {
+    border-radius: 14px;
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    max-height: calc(100vh - 3.5rem);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#editModal .modal-header {
+    background: var(--navy);
+    color: var(--text-on-navy);
+    padding: 1rem 1.25rem;
+    flex-shrink: 0;
+}
+
+#editModal form {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+#editModal .modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    padding: 1rem 1.25rem;
+}
+
+#editModal .modal-footer {
+    flex-shrink: 0;
+    background: #fff;
+    border-top: 1px solid var(--border-default);
+}
+
+.modal-title {
+    color: var(--text-on-navy);
+    font-weight: 700;
+    font-size: 18px;
+}
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+/* Edit Modal Cards */
 .edit-item-card {
-    border: 1.5px solid var(--hairline); border-radius: 14px;
-    padding: 1rem 1.1rem; margin-bottom: 1rem;
-    background: #ffffff; position: relative;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #fff;
+    position: relative;
 }
 .edit-item-badge {
-    position: absolute; top: -10px; left: 14px;
-    background: var(--gold-deep); color: #ffffff;
-    font-size: 0.72rem; font-weight: 700;
-    padding: 0.1rem 0.6rem; border-radius: 999px;
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    background: var(--navy);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
 }
 .item-pure-preview {
-    background: var(--status-paid-light); border: 1px dashed var(--status-paid-bg);
-    border-radius: 10px; padding: 0.5rem 0.8rem;
-    font-size: 0.88rem; color: var(--status-paid-bg); font-weight: 600;
+    background: var(--sky);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 13px;
+    color: var(--navy);
+    font-weight: 600;
 }
 
-/* Vori / Ana / Roti / Point grid */
 .item-fields-row {
-    display:grid;
-    grid-template-columns:repeat(4, 1fr);
-    gap:.5rem;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.35rem;
 }
 .item-fields-row .field-col label {
-    display:block; font-size:.72rem;
-    margin-bottom:.15rem; color:var(--muted); white-space:nowrap;
+    display: block;
+    font-size: 11px;
+    margin-bottom: 0.15rem;
+    white-space: nowrap;
 }
 .item-fields-row .field-col input {
-    text-align:center; padding-left:.25rem; padding-right:.25rem;
-}
-.item-fields-row input.form-control.is-valid,
-.item-fields-row input.form-control.is-invalid,
-.karat-row input.form-control.is-valid,
-.karat-row input.form-control.is-invalid {
-    background-image:none !important;
-    padding-right:.25rem !important;
-}
-.karat-row { margin-top:.6rem; }
-.karat-row label {
-    display:block; font-size:.72rem;
-    margin-bottom:.15rem; color:var(--muted);
+    text-align: center;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
 }
 
-@media (max-width: 767.98px) {
-    html, body { height:100%; overflow:hidden; }
-    .page-content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
-    .page-content .container-fluid { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
-    .page-inset {
-        padding:.45rem .5rem !important; display:flex; flex-direction:column;
-        gap:.45rem; flex:1; min-height:0; overflow:hidden;
+/* Mobile Overrides */
+@media (max-width: 576px) {
+    #editModal .modal-dialog {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        max-height: calc(100vh - 1rem);
     }
-
-    .page-inset > .alert { padding:.4rem .65rem; font-size:.75rem; margin-bottom:0!important; }
-
-    .exchange-header {
-        min-height: 60px !important;
-        max-height: 70px !important;
-        padding: 0.75rem 1rem !important;
-        border-radius: 0 0 16px 16px !important;
+    #editModal .modal-content {
+        max-height: calc(100vh - 1rem);
     }
-    .exchange-header h5 { font-size: 0.95rem; }
-    .exchange-header small { display: none; }
-    .exchange-header .text-end { display: none; }
-    .exchange-header .btn-outline-light { padding: 0.15rem 0.42rem; font-size: 0.8rem; }
-
-    .detail-card-wrap { margin-bottom:0!important; }
-    .detail-card-wrap .card-header { padding:.4rem .6rem; }
-    .detail-card-wrap .card-header.fw-semibold,
-    .detail-card-wrap .card-header { font-size:.85rem; }
-    .detail-card { padding:.55rem .7rem; }
-    .detail-card .row.g-0 { display:flex; flex-wrap:wrap; }
-    .detail-card .col-md-7,
-    .detail-card .col-md-4 { flex:1 1 100%; max-width:100%; padding:0!important; }
-    .detail-card .col-md-1 { display:none!important; }
-    .detail-card hr { margin:.35rem 0!important; }
-    .detail-card .row.g-2 { row-gap:.1rem!important; }
-    .detail-label { font-size:.74rem; flex:0 0 auto; }
-    .detail-val { font-size:.85rem; }
-    .detail-card .row.g-2 > .col-12 {
-        display:flex; align-items:baseline; gap:.3rem; flex-wrap:nowrap;
+    .page-header {
+        padding: 0.85rem 1.1rem;
+        border-radius: 0 0 14px 14px;
     }
-    .detail-val[style*="font-weight:400"] {
-        flex:1 1 auto; overflow:hidden; text-overflow:ellipsis;
-        white-space:nowrap; min-width:0;
-    }
-
-    .card { border-radius: 14px; margin-bottom: 0 !important; }
-    .card-header { padding:.4rem .6rem; }
-    .card-header .fw-semibold { font-size:.85rem; }
-    .card-header .badge { font-size:.68rem; }
-    .card-header .btn-sm { padding:.15rem .45rem; font-size:.74rem; }
-    .card-header .btn-sm i { margin-right:.2rem!important; }
-
-    table.table { font-size:.8rem; margin-bottom:0; }
-    table.table th, table.table td { padding:.32rem .38rem; }
-    .badge-old, .badge-karat, .badge-pure { font-size:.74rem; padding:.32em .52em; }
-
-    .ledger td { padding:.38rem .6rem; font-size:.8rem; }
-    .l-label { font-size:.76rem; }
-    .l-rate { font-size:.66rem; }
-    .l-val { font-size:.85rem; }
-    .l-final .l-val { font-size:.92rem; }
-
-    .card.note-card { display:none!important; }
-
-    .exchange-header, .detail-card-wrap, .card { flex:0 0 auto; }
-    .card:last-of-type { margin-bottom:0!important; }
-
-    .edit-item-card { padding:.75rem .75rem .6rem; margin-bottom:.6rem; border-radius:12px; }
-    .edit-item-badge { top:-9px; left:12px; font-size:.65rem; padding:.08rem .5rem; }
-    .edit-item-card .form-control-sm { font-size:.82rem; padding:.28rem .4rem; }
-    .item-fields-row { gap:.4rem; }
-    .item-pure-preview { padding:.35rem .6rem; font-size:.76rem; margin-top:.5rem!important; }
+    .page-header h1, .page-header h5 { font-size: 18px; }
+    .page-header small { font-size: 12px; }
+    .page-inset { padding-left: 1rem; padding-right: 1rem; }
+    .card { padding: 0.85rem; }
+    .btn { font-size: 13.5px; padding: 0.6rem 1rem; }
+    .form-control, .form-select { font-size: 16px; padding: 0.6rem 0.8rem; }
 }
 </style>
 </head>
@@ -567,228 +685,188 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 <!-- ================================================================
      PAGE HEADER
 ================================================================ -->
-<div class="exchange-header">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="width:100%;">
+<div class="page-header mb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="width:100%;">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <a href="gold_exchange_list.php" class="btn btn-sm btn-outline-light py-0 px-2">
+                <a href="gold_exchange_list.php" class="btn btn-sm btn-ghost-light">
                     <i class="bi bi-arrow-left"></i>
                 </a>
                 <h5 class="mb-0">
                     <i class="bi bi-arrow-left-right me-1"></i>
-                    সোনা বদল
-                    <span style="opacity:.65;">&nbsp;#<?= $exchangeId ?></span>
+                    সোনা এক্সচেঞ্জ
+                    <span style="opacity:.75;">&nbsp;#<?= $exchangeId ?></span>
                 </h5>
             </div>
-            <small>সোনা বদল বিস্তারিত — ফাইনবুলিয়ন ডেস্ক</small>
+            <small class="subtitle">সোনা এক্সচেঞ্জ বিস্তারিত — ফাইনবুলিয়ন ডেস্ক</small>
         </div>
         <div class="text-end">
-            <div style="font-size:.75rem;color:rgba(255,255,255,.6);letter-spacing:.03em;">তৈরি করেছেন</div>
-            <div class="fw-semibold" style="font-size:.97rem;">
+            <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,.75); font-weight:700;">তৈরি করেছেন</div>
+            <div class="fw-semibold" style="font-size:14px;">
                 <i class="bi bi-person-circle me-1"></i><?= h($ex['created_by_username'] ?? '—') ?>
             </div>
-            <div style="font-size:.8rem;color:rgba(255,255,255,.65);">
+            <div style="font-size:12px; color:rgba(255,255,255,.75);">
                 <?= h(fmt_dt($ex['created_at'])) ?>
             </div>
         </div>
     </div>
 </div>
 
-<div class="page-inset py-4">
+<div class="page-inset">
 
 <?php if ($postSuccess): ?>
-<div class="alert alert-success alert-dismissible fade show" role="alert">
+<div class="alert alert-success alert-dismissible fade show border-0 text-white mb-3" style="background:var(--success); border-radius:8px;" role="alert">
     <i class="bi bi-check-circle-fill me-2"></i><?= h($postSuccess) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
 <?php if ($postError): ?>
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
+<div class="alert alert-danger alert-dismissible fade show border-0 text-white mb-3" style="background:var(--danger); border-radius:8px;" role="alert">
     <i class="bi bi-exclamation-triangle-fill me-2"></i><?= $postError ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
 
 <!-- ================================================================
      CUSTOMER + DETAIL
 ================================================================ -->
-<div class="card shadow-sm mb-4 detail-card-wrap">
-    <div class="card-header fw-semibold d-md-none">
-        <i class="bi bi-person-fill me-1" style="color:var(--gold-deep);"></i>
-        কাস্টমার
-    </div>
-    <div class="detail-card">
-
-    <div class="row g-2 d-md-none">
-        <div class="col-12">
-            <span class="detail-label">তারিখ ও সময়:</span>
-            <span class="detail-val ms-1"><?= h(fmt_dt($ex['created_at'])) ?></span>
-        </div>
-        <div class="col-12">
-            <span class="detail-label">কাস্টমারের নাম:</span>
-            <span class="detail-val ms-1"><?= h($ex['customer_name']) ?></span>
-        </div>
-        <div class="col-12">
-            <span class="detail-label">ফোন নম্বর:</span>
-            <span class="detail-val ms-1"><?= h($ex['customer_phone'] ?: '—') ?></span>
-        </div>
-        <div class="col-12">
-            <span class="detail-label">ঠিকানা:</span>
-            <span class="detail-val ms-1" style="font-weight:400;color:#555;">
-                <?= h($ex['customer_address'] ?: '—') ?>
-            </span>
-        </div>
+<div class="card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-person-fill me-1" style="color:var(--teal);"></i>
+            কাস্টমার বিস্তারিত
+        </h2>
     </div>
 
-    <div class="row g-0 d-none d-md-flex">
-        <div class="col-md-7 pe-md-4">
-            <div class="row g-2">
-                <div class="col-12">
-                    <span class="detail-label">কাস্টমারের নাম:</span>
-                    <span class="detail-val ms-1"><?= h($ex['customer_name']) ?></span>
-                </div>
-                <div class="col-12">
-                    <span class="detail-label">ফোন নম্বর:</span>
-                    <span class="detail-val ms-1"><?= h($ex['customer_phone'] ?: '—') ?></span>
-                </div>
-                <div class="col-12">
-                    <span class="detail-label">ঠিকানা:</span>
-                    <span class="detail-val ms-1" style="font-weight:400;color:#555;">
-                        <?= h($ex['customer_address'] ?: '—') ?>
-                    </span>
-                </div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="mb-2">
+                <div class="detail-label">কাস্টমারের নাম:&ensp;&ensp;<span class="detail-val"><?= h($ex['customer_name']) ?></span></div>
+                
+            </div>
+            <div class="mb-2">
+                <div class="detail-label">ফোন নম্বর:&ensp;&ensp;<span class="detail-val"><?= h($ex['customer_phone'] ?: '—') ?></span></div>
+            </div>
+            <div>
+                <div class="detail-label">ঠিকানা:&ensp;&ensp;<span class="detail-val"><?= h($ex['customer_address'] ?: '—') ?></span></div>
             </div>
         </div>
 
-        <div class="col-md-1 d-none d-md-flex justify-content-center">
-            <div style="width:1px;background:var(--hairline);min-height:100%;"></div>
-        </div>
-
-        <div class="col-md-4 ps-md-3">
-            <div class="row g-2">
-                <div class="col-12">
-                    <span class="detail-label">তারিখ ও সময়:</span>
-                    <span class="detail-val ms-1"><?= h(fmt_dt($ex['created_at'])) ?></span>
-                </div>
-                <div class="col-12">
-                    <span class="detail-label">তৈরি করেছেন:</span>
-                    <span class="detail-val ms-1"><?= h($ex['created_by_username'] ?? '—') ?></span>
-                </div>
-                <?php if ($ex['updated_at'] && $ex['updated_at'] !== $ex['created_at']): ?>
-                <div class="col-12">
-                    <span class="detail-label">সর্বশেষ আপডেট:</span>
-                    <span class="ms-1" style="font-size:.88rem;color:#888;">
-                        <?= h(fmt_dt($ex['updated_at'])) ?>
-                    </span>
-                </div>
-                <?php endif; ?>
+        <div class="col-md-6 border-start-md ps-md-4">
+            <div class="mb-2">
+                <div class="detail-label">তারিখ ও সময়:&ensp;&ensp;<span class="detail-val"><?= h(fmt_dt($ex['created_at'])) ?></span></div>
             </div>
+            <div class="mb-2">
+                <div class="detail-label">তৈরি করেছেন:&ensp;&ensp;<span class="detail-val"><?= h($ex['created_by_username'] ?? '—') ?></span></div>
+            </div>
+            <?php if ($ex['updated_at'] && $ex['updated_at'] !== $ex['created_at']): ?>
+            <div>
+                <div class="detail-label">সর্বশেষ আপডেট:&ensp;&ensp;<span class="detail-val"><?= h(fmt_dt($ex['updated_at'])) ?></span></div>
+            </div>
+            <?php endif; ?>
         </div>
-    </div>
     </div>
 </div>
 
 <!-- ================================================================
      GOLD ITEMS TABLE
 ================================================================ -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold">
-            <i class="bi bi-gem me-1" style="color:var(--gold-deep);"></i>
-            পুরাতন সোনার আইটেমসমূহ
-            <span class="badge bg-secondary ms-1"><?= count($items) ?></span>
-        </span>
+<div class="card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-gem me-1" style="color:var(--teal);"></i>
+            পুরাতন আইটেমসমূহ
+            <span class="chip chip-total ms-1"><?= count($items) ?></span>
+        </h2>
         <?php if ($isAdmin): ?>
-        <button type="button" class="btn btn-sm btn-gold"
+        <button type="button" class="btn btn-sm btn-primary"
                 data-bs-toggle="modal" data-bs-target="#editModal">
-            <i class="bi bi-pencil-square me-1"></i> আইটেম এডিট করুন
+            <i class="bi bi-pencil-square me-1"></i> এডিট করুন
         </button>
         <?php endif; ?>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:38px;">#</th>
-                        <th>পুরাতন সোনার ওজন (ভ-আ-র-প)</th>
-                        <th style="width:90px;">সোনার মান</th>
-                        <th>পাকা সোনার ওজন</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($items)): ?>
-                    <tr><td colspan="4" class="text-center text-muted py-3">কোনো তথ্য পাওয়া যায়নি।</td></tr>
-                <?php else: ?>
-                    <?php foreach ($items as $idx => $it):
-                        $karat    = round(((float)$it['old_gold_purity'] / 100) * 24, 2);
-                    ?>
-                    <tr>
-                        <td class="text-muted small"><?= $idx + 1 ?></td>
-                        <td><span class="badge badge-old"><?= h(fmt_trad((float)$it['old_gold_weight'])) ?></span></td>
-                        <td><span class="badge badge-karat"><?= h($karat) ?> ক্যারেট</span></td>
-                        <td><span class="badge badge-pure"><?= h(fmt_trad((float)$it['pure_gold_weight'])) ?></span></td>
-                    </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- ================================================================
-     EXCHANGE SUMMARY
-================================================================ -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header fw-semibold">
-        <i class="bi bi-calculator me-1" style="color:var(--gold-deep);"></i>
-        হিসাব বিবরণী
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-sm mb-0 ledger" style="border-radius:0;">
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th style="width:20px;">#</th>
+                    <th>জমা (ভ-আ-র-প)</th>
+                    <th style="width: 80px;">ক্যারেট</th>
+                    <th>পাকা (ভ-আ-র-প)</th>
+                </tr>
+            </thead>
             <tbody>
-                <tr class="l-total">
-                    <td class="l-label">মোট পাকা সোনা</td>
-                    <td class="l-val"><?= h(fmt_trad((float)$ex['total_pure_gold'])) ?></td>
+            <?php if (empty($items)): ?>
+                <tr><td colspan="4" class="text-center text-muted py-3">কোনো তথ্য পাওয়া যায়নি।</td></tr>
+            <?php else: ?>
+                <?php foreach ($items as $idx => $it):
+                    $karat = round(((float)$it['old_gold_purity'] / 100) * 24, 2);
+                ?>
+                <tr>
+                    <td class="text-secondary small"><?= $idx + 1 ?></td>
+                    <td><span class="chip chip-paid"><?= h(fmt_trad((float)$it['old_gold_weight'])) ?></span></td>
+                    <td><span class="chip chip-total"><?= h($karat) ?> K</span></td>
+                    <td><span class="chip chip-due"><?= h(fmt_trad((float)$it['pure_gold_weight'])) ?></span></td>
                 </tr>
-                <tr class="l-loss">
-                    <td class="l-label">
-                        লস
-                        <span class="l-rate">
-                            (<?= $lossPointsVal ?> পয়েন্ট @ <?= h($lossRate) ?> প/ভ)
-                        </span>
-                    </td>
-                    <td class="l-val"><?= h(fmt_trad((float)$ex['loss'])) ?></td>
-                </tr>
-                <tr class="l-final">
-                    <td class="l-label">চূড়ান্ত পাকা সোনা</td>
-                    <td class="l-val"><?= h(fmt_trad((float)$ex['final_pure_gold'])) ?></td>
-                </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
 
 <!-- ================================================================
+     EXCHANGE SUMMARY
+================================================================ -->
+<div class="card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-calculator me-1" style="color:var(--teal);"></i>
+            হিসাব বিবরণী
+        </h2>
+    </div>
+    <table class="table table-sm ledger">
+        <tbody>
+            <tr class="l-total">
+                <td class="l-label">মোট পাকা সোনা</td>
+                <td class="l-val"><?= h(fmt_trad((float)$ex['total_pure_gold'])) ?></td>
+            </tr>
+            <tr class="l-loss">
+                <td class="l-label">
+                    লস
+                    <span class="l-rate">
+                        (<?= $lossPointsVal ?> পয়েন্ট @ <?= h($lossRate) ?> প/ভ)
+                    </span>
+                </td>
+                <td class="l-val"><?= h(fmt_trad((float)$ex['loss'])) ?></td>
+            </tr>
+            <tr class="l-final">
+                <td class="l-label">চূড়ান্ত পাকা সোনা</td>
+                <td class="l-val"><?= h(fmt_trad((float)$ex['final_pure_gold'])) ?></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ================================================================
      NOTE
 ================================================================ -->
-<div class="card shadow-sm mb-4 note-card">
-    <div class="card-header fw-semibold">
-        <i class="bi bi-pencil-square me-1" style="color:var(--gold-deep);"></i>
-        নোট / মন্তব্য
+<div class="card">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">
+            <i class="bi bi-pencil-square me-1" style="color:var(--teal);"></i>
+            নোট / মন্তব্য
+        </h2>
     </div>
-    <div class="card-body">
-        <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>">
-            <input type="hidden" name="action"     value="save_note">
-            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-            <textarea class="form-control mb-2" name="note" rows="3"
-                      placeholder="ঐচ্ছিক নোট…"><?= h($ex['note'] ?? '') ?></textarea>
-            <button type="submit" class="btn btn-gold btn-sm">
-                <i class="bi bi-save-fill me-1"></i> নোট সংরক্ষণ করুন
-            </button>
-        </form>
-    </div>
+    <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>">
+        <input type="hidden" name="action"     value="save_note">
+        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+        <textarea class="form-control mb-3" name="note" rows="3"
+                  placeholder="ঐচ্ছিক নোট…"><?= h($ex['note'] ?? '') ?></textarea>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-save-fill me-1"></i> নোট সংরক্ষণ করুন
+        </button>
+    </form>
 </div>
 
 </div><!-- /page-inset -->
@@ -796,17 +874,16 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 <?php if ($isAdmin): ?>
 <!-- ================================================================
      EDIT ITEMS MODAL (admin only)
-     Standardized UI/UX pattern matching Gold Buy modal exactly.
 ================================================================ -->
 <div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="background:linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);color:#fff;">
+            <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="bi bi-pencil-square me-2"></i>
                     আইটেম এডিট করুন — #<?= $exchangeId ?>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <form method="POST" action="gold_exchange_edit.php?id=<?= $exchangeId ?>" id="editItemsForm">
@@ -816,17 +893,15 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                 <div class="modal-body">
 
                     <!-- Loss rate -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-sm-12">
-                            <label class="form-label small fw-semibold mb-1">
-                                লসের হার
-                                <small class="text-muted fw-normal">(ভরি প্রতি পয়েন্ট)</small>
-                            </label>
-                            <input type="number" name="loss_rate" id="lossRateInput"
-                                   min="0" step="0.001" value="<?= h($lossRate) ?>"
-                                   class="form-control form-control-sm"
-                                   oninput="recalcSummary()">
-                        </div>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            লসের হার
+                            <span class="text-secondary fw-normal" style="text-transform:none;">(ভরি প্রতি পয়েন্ট)</span>
+                        </label>
+                        <input type="number" name="loss_rate" id="lossRateInput"
+                               min="0" step="0.001" value="<?= h($lossRate) ?>"
+                               class="form-control"
+                               oninput="recalcSummary()">
                     </div>
 
                     <!-- Existing items -->
@@ -844,9 +919,18 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 
                             <div class="item-fields-row mt-2">
                                 <div class="field-col">
+                                    <label>ক্যারেট</label>
+                                    <input type="number" name="items[<?= $idx ?>][karat]"
+                                           class="form-control"
+                                           min="0.01" max="24" step="0.01"
+                                           placeholder="যেমন: ২২"
+                                           value="<?= h($karat) ?>"
+                                           oninput="recalcItem(<?= $idx ?>)">
+                                </div>
+                                <div class="field-col">
                                     <label>ভরি</label>
                                     <input type="number" name="items[<?= $idx ?>][vori]"
-                                           class="form-control form-control-sm"
+                                           class="form-control"
                                            min="0" step="1" inputmode="numeric"
                                            value="<?= $trad['v'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
@@ -854,7 +938,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 <div class="field-col">
                                     <label>আনা</label>
                                     <input type="number" name="items[<?= $idx ?>][ana]"
-                                           class="form-control form-control-sm"
+                                           class="form-control"
                                            min="0" max="15" step="1" inputmode="numeric"
                                            value="<?= $trad['a'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
@@ -862,7 +946,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 <div class="field-col">
                                     <label>রতি</label>
                                     <input type="number" name="items[<?= $idx ?>][roti]"
-                                           class="form-control form-control-sm"
+                                           class="form-control"
                                            min="0" max="5" step="1" inputmode="numeric"
                                            value="<?= $trad['r'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
@@ -870,21 +954,11 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 <div class="field-col">
                                     <label>পয়েন্ট</label>
                                     <input type="number" name="items[<?= $idx ?>][point]"
-                                           class="form-control form-control-sm"
+                                           class="form-control"
                                            min="0" max="9" step="1" inputmode="numeric"
                                            value="<?= $trad['p'] ?>"
                                            oninput="recalcItem(<?= $idx ?>)">
                                 </div>
-                            </div>
-
-                            <div class="karat-row">
-                                <label>সোনার মান (ক্যারেট)</label>
-                                <input type="number" name="items[<?= $idx ?>][karat]"
-                                       class="form-control form-control-sm"
-                                       min="0.01" max="24" step="0.01"
-                                       placeholder="যেমন: ২২"
-                                       value="<?= h($karat) ?>"
-                                       oninput="recalcItem(<?= $idx ?>)">
                             </div>
 
                             <div class="item-pure-preview mt-2" id="itemPreview_<?= $idx ?>">
@@ -896,9 +970,8 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 
                     <!-- Live summary preview -->
                     <div class="mt-3 pt-3 border-top">
-                        <div class="text-muted small fw-semibold text-uppercase mb-2"
-                             style="letter-spacing:.04em;">সারসংক্ষেপ প্রিভিউ</div>
-                        <table class="table table-sm mb-0 ledger">
+                        <div class="detail-label mb-2">সারসংক্ষেপ প্রিভিউ</div>
+                        <table class="table table-sm ledger">
                             <tbody>
                                 <tr class="l-total">
                                     <td class="l-label">মোট পাকা সোনা</td>
@@ -917,6 +990,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                                 </tr>
                             </tbody>
                         </table>
+
                     </div>
 
                 </div><!-- /modal-body -->
@@ -925,7 +999,7 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="bi bi-x-lg me-1"></i> বাতিল
                     </button>
-                    <button type="submit" class="btn btn-gold btn-sm">
+                    <button type="submit" class="btn btn-primary btn-sm" id="btnSaveItems">
                         <i class="bi bi-save-fill me-1"></i> পরিবর্তন সংরক্ষণ করুন
                     </button>
                 </div>
@@ -939,6 +1013,28 @@ table.table-hover tbody tr:hover { background-color: #fdf7ec; }
 'use strict';
 const G_VORI = 11.664, G_ANA = 0.729, G_ROTI = 0.1215, G_POINT = 0.01215;
 const ITEM_COUNT = <?= count($items) ?>;
+
+/**
+ * Loss points for a given total impure weight (grams) and rate
+ * (points per whole Vori). Mirrors calc_loss_points() in PHP.
+ *
+ * Whole Vori amounts are NOT rounded up. A round-up (base + 1) only
+ * happens when there is an additional Ana/Roti/Point fraction above
+ * the whole Vori total.
+ */
+function calcLossPoints(impureGrams, rate) {
+    const EPS = 1e-9;
+    const totalVori  = impureGrams / G_VORI;
+    const wholeVori   = Math.floor(totalVori + EPS);
+    const hasFraction = (totalVori - wholeVori) > EPS;
+
+    const basePoints = wholeVori * rate;
+
+    if (hasFraction) {
+        return Math.floor(basePoints + EPS) + 1;
+    }
+    return Math.round(basePoints);
+}
 
 function tradToGrams(v, a, r, p) {
     return v * G_VORI + a * G_ANA + r * G_ROTI + p * G_POINT;
@@ -989,14 +1085,17 @@ function recalcAll() {
 
 function recalcSummary() {
     let totalPureGrams = 0;
+    let totalImpureGrams = 0;
     for (let i = 0; i < ITEM_COUNT; i++) {
         const {v, a, r, p, k} = getItemInputs(i);
-        totalPureGrams += tradToGrams(v, a, r, p) * (k / 24);
+        const grams = tradToGrams(v, a, r, p);
+        totalPureGrams += grams * (k / 24);
+        totalImpureGrams += grams;
     }
 
-    const lossRate = getLossRate();
-    const lossPointsCeil = Math.ceil((totalPureGrams / G_VORI) * lossRate);
-    const lossGrams = lossPointsCeil * G_POINT;
+    const lossRate   = getLossRate();
+    const lossPoints  = calcLossPoints(totalImpureGrams, lossRate);
+    const lossGrams   = lossPoints * G_POINT;
     const finalPureGrams = Math.max(0, totalPureGrams - lossGrams);
 
     const elTotal = document.getElementById('previewTotal');
@@ -1006,11 +1105,13 @@ function recalcSummary() {
 
     if (elTotal) elTotal.textContent = gramsToTrad(totalPureGrams);
     if (elLoss) elLoss.textContent = gramsToTrad(lossGrams);
-    if (elLossRate) elLossRate.textContent = `(${lossPointsCeil} পয়েন্ট @ ${lossRate} প/ভ)`;
+    if (elLossRate) elLossRate.textContent = `(${lossPoints} পয়েন্ট @ ${lossRate} প/ভ)`;
     if (elFinal) elFinal.textContent = gramsToTrad(finalPureGrams);
 }
 
-document.getElementById('editModal').addEventListener('shown.bs.modal', recalcAll);
+document.getElementById('editModal').addEventListener('shown.bs.modal', () => {
+    recalcAll();
+});
 </script>
 
 <?php else: ?>

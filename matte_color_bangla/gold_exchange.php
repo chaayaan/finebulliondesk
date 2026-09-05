@@ -15,12 +15,19 @@
  *     18/21/22/24 preset list.
  *   - Pure Gold per item = grams * (karat / 24)
  *   - Total Pure Gold     = sum of all items' pure gold (grams)
- *   - Loss                = customizable "Points of loss per Vori of pure
- *                            gold" rate (default 1), applied to the TOTAL
- *                            pure gold, not the original impure weight.
+ *   - Loss                = customizable "Points of loss per Vori of
+ *                            impure gold" rate (default 1), applied to the
+ *                            TOTAL original (impure) weight, not the
+ *                            converted pure gold.
+ *                            Whole Vori amounts are NOT rounded up — a
+ *                            round-up only happens when there is an
+ *                            additional Ana/Roti/Point fraction above the
+ *                            whole Vori total. See calc_loss_points().
  *   - Final Pure Gold     = Total Pure Gold - Loss
  *   - Everything is calculated in grams; traditional units are derived only
  *     for display, to avoid compounding rounding errors.
+ *   - This is a standalone calculation: no inventory is read, checked, or
+ *     deducted anywhere in this flow.
  */
 
 require_once __DIR__ . '/auth.php';
@@ -91,6 +98,38 @@ function format_traditional(array $t): string
     return "{$t['vori']} ভরি {$t['ana']} আনা {$t['roti']} রতি {$t['point']} পয়েন্ট";
 }
 
+/**
+ * Loss points for a given total impure weight (grams) and rate
+ * (points per whole Vori).
+ *
+ * Rounding rule:
+ *   - Split the impure weight into a whole-Vori count and a leftover
+ *     fraction (any Ana / Roti / Point above the whole Vori).
+ *   - Loss for the whole-Vori part = wholeVori * rate, taken as-is
+ *     (no rounding up) — e.g. exactly 15 Vori @ 1 pt/vori => 15 points,
+ *     exactly 30 Vori @ 1 pt/vori => 30 points.
+ *   - If there is ANY leftover fraction at all, one extra point is
+ *     added on top of the whole-Vori loss (floor(base) + 1) instead of
+ *     rounding the fractional loss up to its own next integer.
+ *     e.g. 15 Vori + 1 Ana @ 1 pt/vori => 16 points (not 15 + ceil(tiny) 
+ *     miscalculated some other way — just base + 1).
+ */
+function calc_loss_points(float $impureGrams, float $rate): int
+{
+    $EPS = 1e-9;
+    $totalVori  = $impureGrams / G_PER_VORI;
+    $wholeVori  = (int) floor($totalVori + $EPS);
+    $hasFraction = ($totalVori - $wholeVori) > $EPS;
+
+    $basePoints = $wholeVori * $rate;
+
+    if ($hasFraction) {
+        return ((int) floor($basePoints + $EPS)) + 1;
+    }
+
+    return (int) round($basePoints);
+}
+
 // -----------------------------------------------------------------------
 // AJAX actions
 // -----------------------------------------------------------------------
@@ -136,7 +175,8 @@ if ($isAjax || $action !== null) {
         }
 
         $calcItems = [];
-        $totalPureGrams = 0.0;
+        $totalPureGrams   = 0.0;
+        $totalImpureGrams = 0.0;
 
         foreach ($items as $i => $item) {
             $n = $i + 1;
@@ -178,7 +218,8 @@ if ($isAjax || $action !== null) {
             $purityPct = ($karat / 24) * 100;
             $pureGold  = $grams * ($karat / 24);
 
-            $totalPureGrams += $pureGold;
+            $totalPureGrams   += $pureGold;
+            $totalImpureGrams += $grams;
 
             $calcItems[] = [
                 'old_gold_weight'  => $grams,
@@ -187,10 +228,8 @@ if ($isAjax || $action !== null) {
             ];
         }
 
-        $totalPureVori   = $totalPureGrams / G_PER_VORI;
-        $lossPointsExact = $totalPureVori * $lossRate;
-        $lossPointsCeil  = (int) ceil($lossPointsExact);
-        $lossGrams       = $lossPointsCeil * G_PER_POINT;
+        $lossPoints = calc_loss_points($totalImpureGrams, $lossRate);
+        $lossGrams  = $lossPoints * G_PER_POINT;
 
         $finalPureGrams = $totalPureGrams - $lossGrams;
         if ($finalPureGrams < 0) $finalPureGrams = 0.0;
@@ -245,35 +284,38 @@ if ($isAjax || $action !== null) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>সোনা বদল — FineBullion Desk</title>
+<title>সোনা এক্সচেঞ্জ — FineBullion Desk</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-    --gold-deep: #c9973a;
-    --gold-mid: #dcb04a;
-    --gold-light: #e9cd7d;
-    --ivory: #fbf8f2;
-    --bronze-text: #3a2f1a;
-    --muted: #9a8f76;
-    --hairline: #ecdfb8;
+    --navy: #2F4156;
+    --teal: #567C8D;
+    --sky: #C8D9E6;
+    --beige: #F5EFEB;
+    --white: #FFFFFF;
 
-    --status-paid-bg: #1b5238;
-    --status-paid-light: #eaf4ee;
-    --status-due-bg: #93292c;
-    --status-due-light: #fbeceb;
-    --status-total-bg: #b88328;
-    --status-total-light: #fdf6e2;
+    --text-primary: #2F4156;
+    --text-secondary: #567C8D;
+    --text-on-navy: #FFFFFF;
+    --border-default: #C8D9E6;
+    --border-strong: #567C8D;
+    --bg-app: #F5EFEB;
+    --bg-card: #FFFFFF;
+    --bg-hover: #EAF1F6;
+    --success: #3D7A5C;
+    --danger: #A6434B;
+    --shadow: 0 2px 8px rgba(47, 65, 86, 0.08);
 }
 
 /* Global Reset */
 html, body {
     margin: 0 !important;
     padding: 0 !important;
-    background: var(--ivory);
-    font-family: 'Noto Sans Bengali', 'Inter', system-ui, -apple-system, sans-serif;
-    color: var(--bronze-text);
+    background: var(--bg-app);
+    font-family: 'Inter', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    color: var(--text-primary);
 }
 
 .page-content {
@@ -289,11 +331,11 @@ html, body {
 /* Page Header */
 .ge-header,
 .ge-header.d-flex {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%) !important;
-    color: #ffffff !important;
+    background: var(--navy) !important;
+    color: var(--text-on-navy) !important;
     min-height: 60px !important;
     max-height: 80px !important;
-    padding: 0.85rem 1.75rem !important;
+    padding: 1rem 1.75rem !important;
     margin: 0 0 1.5rem 0 !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -301,9 +343,9 @@ html, body {
     top: 0;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
-    border-bottom-left-radius: 20px !important;
-    border-bottom-right-radius: 20px !important;
-    box-shadow: 0 6px 24px rgba(201, 151, 58, 0.22);
+    border-bottom-left-radius: 16px !important;
+    border-bottom-right-radius: 16px !important;
+    box-shadow: none;
     box-sizing: border-box;
     display: flex !important;
     align-items: center !important;
@@ -314,32 +356,36 @@ html, body {
 }
 
 .ge-header h4 {
-    color: #ffffff !important;
-    font-weight: 800;
+    color: var(--text-on-navy) !important;
+    font-weight: 700;
     letter-spacing: 0.02em;
     margin: 0 !important;
     text-align: left !important;
-    font-size: 1.25rem;
+    font-size: 22px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .ge-header i {
-    color: #ffffff !important;
+    color: var(--text-on-navy) !important;
 }
 
 .ge-header .btn-history {
-    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
     color: #ffffff;
-    border-radius: 999px;
+    border-radius: 8px;
     font-weight: 600;
     flex-shrink: 0;
+    font-size: 13px;
+    padding: 0.4rem 0.8rem;
 }
 
 .ge-header .btn-history:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: #ffffff;
+    color: var(--navy);
+    border-color: #ffffff;
 }
 
 .page-inset { padding: 0 1.5rem; }
@@ -347,27 +393,27 @@ html, body {
 .customer-result-item {
     cursor: pointer;
     padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--border-default);
 }
-.customer-result-item:hover { background: #fdf7ec; }
+.customer-result-item:hover { background: var(--bg-hover); }
 .customer-result-item:last-child { border-bottom: none; }
 .customer-result-photo {
     width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
-    border: 1px solid var(--hairline); flex-shrink: 0;
+    border: 1px solid var(--border-default); flex-shrink: 0;
 }
 .customer-result-photo-fallback {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-    background: var(--gold-deep); color: #fff; font-size: 0.8rem; font-weight: 700;
+    background: var(--navy); color: #fff; font-size: 0.8rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
 }
 
 .customer-results-box {
     position: absolute;
     z-index: 20;
-    background: #fff;
-    border: 1px solid var(--hairline);
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.18);
+    box-shadow: var(--shadow);
     width: 100%;
     max-height: 260px;
     overflow-y: auto;
@@ -375,8 +421,8 @@ html, body {
 }
 
 .selected-customer-card {
-    border: 1.5px solid var(--gold-deep);
-    background: var(--status-total-light);
+    border: 1.5px solid var(--teal);
+    background: var(--sky);
     border-radius: 14px;
     padding: 0.75rem 1rem;
     display: none;
@@ -385,59 +431,65 @@ html, body {
 }
 
 .gold-item-card {
-    border: 1.5px solid var(--hairline);
-    border-radius: 18px;
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
     padding: 1rem 1.1rem;
     margin-bottom: 1rem;
-    background: #fff;
+    background: var(--bg-card);
     position: relative;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.08);
+    box-shadow: var(--shadow);
 }
 .gold-item-card .item-index {
     position: absolute;
     top: -10px;
     left: 14px;
-    background: var(--gold-deep);
+    background: var(--navy);
     color: #fff;
-    font-size: 0.72rem;
+    font-size: 11px;
     font-weight: 700;
     padding: 0.1rem 0.6rem;
-    border-radius: 999px;
+    border-radius: 8px;
 }
 .gold-item-card .btn-remove-item {
     position: absolute;
     top: 10px;
     right: 10px;
-    border-radius: 999px;
-    border: 1.5px solid var(--hairline);
+    border-radius: 8px;
+    border: 1.5px solid var(--danger);
     background: #fff;
-    color: var(--status-due-bg);
+    color: var(--danger);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 0.25rem 0.6rem;
 }
-.gold-item-card .btn-remove-item:hover { background: var(--status-due-light); }
+.gold-item-card .btn-remove-item:hover {
+    background: var(--danger);
+    color: #fff;
+}
 
 .item-pure-result {
-    background: var(--status-paid-light);
-    border: 1px dashed var(--status-paid-bg);
-    border-radius: 10px;
+    background: #EAF3EE;
+    border: 1px dashed var(--success);
+    border-radius: 8px;
     padding: 0.5rem 0.8rem;
-    font-size: 0.88rem;
-    color: var(--status-paid-bg);
+    font-size: 13.5px;
+    color: var(--success);
     font-weight: 600;
 }
 
-/* ---- Gold Sale Style Summary Card ---- */
+/* Summary Card */
 .summary-card {
-    background: #fff;
-    border: none;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(180,140,50,0.12);
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
     overflow: hidden;
 }
 .summary-card .sum-header {
-    background: linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-mid) 55%, var(--gold-light) 100%);
+    background: var(--navy);
     color: #fff;
     padding: 0.75rem 1.2rem;
-    font-size: 0.85rem;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -448,24 +500,25 @@ html, body {
     justify-content: space-between;
     align-items: center;
     padding: 0.45rem 0;
-    border-bottom: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--border-default);
 }
 .summary-row:last-of-type { border-bottom: none; }
-.summary-row .s-label { font-size: 0.85rem; color: var(--muted); }
-.summary-row .s-value { font-weight: 700; font-size: 0.95rem; color: var(--bronze-text); }
+.summary-row .s-label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
+.summary-row .s-value { font-weight: 700; font-size: 14px; color: var(--text-primary); }
 
 .loss-rate-input {
-    border: 1.5px solid var(--hairline);
+    border: 1.5px solid var(--border-default);
     text-align: right;
     border-radius: 8px;
     font-weight: 700;
     padding: 0.2rem 0.4rem;
-    color: var(--bronze-text);
+    color: var(--text-primary);
+    background: #fff;
 }
 .loss-rate-input:focus {
     outline: none;
-    border-color: var(--gold-deep);
-    box-shadow: 0 0 0 0.15rem rgba(201,151,58,0.18);
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(86,124,141,.15);
 }
 
 .final-row {
@@ -473,77 +526,94 @@ html, body {
     justify-content: space-between;
     align-items: baseline;
     padding: 0.6rem 0 0.2rem;
-    border-top: 2px solid var(--gold-deep);
+    border-top: 2px solid var(--navy);
     margin-top: 0.4rem;
 }
-.final-row .s-label { font-size: 0.92rem; font-weight: 700; color: var(--bronze-text); }
-.final-row .s-value { font-size: 1.15rem; font-weight: 800; color: var(--status-total-bg); }
+.final-row .s-label { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.final-row .s-value { font-size: 16px; font-weight: 800; color: var(--navy); }
 
 .btn-gold, .btn-fb-primary {
-    background: var(--gold-deep);
-    border: 1.5px solid var(--gold-deep);
+    background: var(--navy);
+    border: 1.5px solid var(--navy);
     color: #ffffff;
-    font-weight: 700;
-    border-radius: 999px;
+    font-weight: 600;
+    border-radius: 8px;
 }
 .btn-gold:hover, .btn-gold:focus,
-.btn-fb-primary:hover, .btn-fb-primary:focus { background: var(--gold-deep); border-color: var(--gold-deep); color: #ffffff; opacity: 0.92; }
+.btn-fb-primary:hover, .btn-fb-primary:focus {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #ffffff;
+}
 
 .btn-fb-secondary {
     background: #ffffff;
-    border: 1.5px solid var(--hairline);
-    color: var(--muted);
+    border: 1.5px solid var(--border-default);
+    color: var(--navy);
     font-weight: 600;
-    border-radius: 999px;
+    border-radius: 8px;
 }
-.btn-fb-secondary:hover { background: #fdf7ec; border-color: var(--hairline); color: var(--bronze-text); }
+.btn-fb-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--teal);
+    color: var(--navy);
+}
 
 .btn-outline-danger {
-    border-radius: 999px !important;
-    border: 1.5px solid var(--hairline) !important;
-    color: var(--status-due-bg) !important;
+    border-radius: 8px !important;
+    border: 1.5px solid var(--danger) !important;
+    color: var(--danger) !important;
     background: #ffffff !important;
+    font-weight: 600;
 }
 .btn-outline-danger:hover {
-    background: var(--status-due-light) !important;
-    border-color: var(--status-due-bg) !important;
-    color: var(--status-due-bg) !important;
+    background: var(--danger) !important;
+    border-color: var(--danger) !important;
+    color: #ffffff !important;
 }
 
 .card {
-    background: #ffffff;
-    border: none;
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(180, 140, 50, 0.12);
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
 }
 .card-header {
-    background: var(--ivory) !important;
-    border-bottom: 1px solid var(--hairline);
-    border-radius: 18px 18px 0 0 !important;
-    color: var(--bronze-text);
+    background: var(--beige) !important;
+    border-bottom: 1px solid var(--border-default);
+    border-radius: 14px 14px 0 0 !important;
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .form-control {
-    border: 1.5px solid var(--hairline);
-    border-radius: 10px;
-    color: var(--bronze-text);
-    background: #ffffff;
+    background: #fff;
+    border: 1.5px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    padding: .55rem .75rem;
+    transition: border-color .15s, box-shadow .15s;
 }
 .form-control:focus {
-    border-color: var(--gold-deep);
-    box-shadow: 0 0 0 0.15rem rgba(201, 151, 58, 0.18);
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(86,124,141,.15);
+    outline: none;
 }
 
 .item-fields-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.5rem;
 }
 .item-fields-row .field-col label {
     display: block;
-    font-size: 0.72rem;
-    margin-bottom: 0.15rem;
-    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.3rem;
+    color: var(--text-secondary);
     white-space: nowrap;
 }
 .item-fields-row .field-col input {
@@ -553,65 +623,58 @@ html, body {
 }
 
 .item-fields-row input.form-control.is-valid,
-.item-fields-row input.form-control.is-invalid,
-.karat-row input.form-control.is-valid,
-.karat-row input.form-control.is-invalid {
+.item-fields-row input.form-control.is-invalid {
     background-image: none !important;
     padding-right: 0.25rem !important;
 }
-.karat-row {
-    margin-top: 0.6rem;
-}
-.karat-row label {
-    display: block;
-    font-size: 0.72rem;
-    margin-bottom: 0.15rem;
-    color: var(--muted);
+.item-fields-row input.form-control.is-invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(166,67,75,.12);
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 576px) {
     .page-content .container-fluid { padding: 0 !important; }
-    .page-inset { padding: 0 0.8rem; }
+    .page-inset { padding: 0 1rem; }
 
-    .ge-header { 
-        min-height: 60px !important;
-        max-height: 70px !important;
-        padding: 0.75rem 1rem !important; 
-        border-radius: 0 0 16px 16px !important;
-        margin-bottom: 0.8rem !important;
+    .ge-header {
+        min-height: auto !important;
+        max-height: none !important;
+        padding: 0.85rem 1.1rem !important;
+        border-radius: 0 0 14px 14px !important;
+        margin-bottom: 1rem !important;
     }
-    .ge-header h4 { font-size: 0.95rem !important; }
-    .ge-header .btn-history { padding: 0.22rem 0.55rem !important; font-size: 0.72rem !important; }
+    .ge-header h4 { font-size: 18px !important; }
+    .ge-header .btn-history { padding: 0.3rem 0.6rem !important; font-size: 12px !important; }
 
-    .row.g-4 { --bs-gutter-y: 0.6rem; }
+    .row.g-4 { --bs-gutter-y: 0.8rem; }
 
-    .card { margin-bottom: 0.6rem !important; border-radius: 14px; }
-    .card-header { padding: 0.45rem 0.75rem; font-size: 0.82rem; border-radius: 14px 14px 0 0 !important; }
-    .card-body { padding: 0.6rem 0.75rem; }
+    .card { margin-bottom: 0.8rem !important; border-radius: 14px; }
+    .card-header { padding: 0.55rem 0.85rem; font-size: 14px; border-radius: 14px 14px 0 0 !important; }
+    .card-body { padding: 0.85rem; }
 
-    #customerSearch { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
-    .selected-customer-card { padding: 0.5rem 0.7rem; }
+    #customerSearch { font-size: 16px; padding: 0.6rem 0.8rem; }
+    .selected-customer-card { padding: 0.6rem 0.8rem; }
 
-    .gold-item-card { padding: 0.75rem 0.75rem 0.6rem; margin-bottom: 0; border-radius: 14px; }
-    .gold-item-card .item-index { top: -9px; left: 12px; font-size: 0.65rem; padding: 0.08rem 0.5rem; }
-    .gold-item-card .btn-remove-item { top: 6px; right: 6px; padding: 0.15rem 0.4rem; }
-    .gold-item-card .form-control-sm { font-size: 0.82rem; padding: 0.28rem 0.4rem; }
-    .item-fields-row { gap: 0.4rem; }
-    .item-pure-result { padding: 0.35rem 0.6rem; font-size: 0.76rem; margin-top: 0.5rem !important; }
+    .gold-item-card { padding: 0.85rem; margin-bottom: 0; border-radius: 14px; }
+    .gold-item-card .item-index { top: -9px; left: 12px; font-size: 10px; padding: 0.08rem 0.5rem; }
+    .gold-item-card .btn-remove-item { top: 6px; right: 6px; padding: 0.2rem 0.5rem; font-size: 12px; }
+    .gold-item-card .form-control-sm { font-size: 16px; padding: 0.6rem 0.8rem; }
+    .item-fields-row { gap: 0.25rem; }
+    .item-pure-result { padding: 0.4rem 0.7rem; font-size: 12.5px; margin-top: 0.5rem !important; }
 
-    #note { min-height: 44px; }
+    #note { min-height: 44px; font-size: 16px; padding: 0.6rem 0.8rem; }
 
     .summary-card { border-radius: 14px; }
-    .summary-card .sum-header { font-size: 0.78rem; padding: 0.6rem 0.9rem; }
-    .summary-card .sum-body { padding: 0.7rem 0.9rem; }
+    .summary-card .sum-header { font-size: 11px; padding: 0.6rem 0.9rem; }
+    .summary-card .sum-body { padding: 0.85rem; }
     .summary-row { padding: 0.35rem 0; }
-    .summary-row .s-label { font-size: 0.78rem; }
-    .summary-row .s-value { font-size: 0.88rem; }
-    .final-row .s-label { font-size: 0.85rem; }
-    .final-row .s-value { font-size: 1.05rem; }
-    .loss-rate-input { width: 55px !important; padding: 0.2rem 0.35rem; }
+    .summary-row .s-label { font-size: 12px; }
+    .summary-row .s-value { font-size: 13.5px; }
+    .final-row .s-label { font-size: 13.5px; }
+    .final-row .s-value { font-size: 15px; }
+    .loss-rate-input { width: 55px !important; padding: 0.2rem 0.35rem; font-size: 14px; }
 
-    #btnSave { padding: 0.5rem; font-size: 0.9rem; margin-top: 0.6rem !important; }
+    #btnSave { padding: 0.6rem 1rem; font-size: 13.5px; margin-top: 0.6rem !important; }
     #noteCard { display: none !important; }
 }
 </style>
@@ -627,10 +690,10 @@ html, body {
     <div class="ge-header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-arrow-left-right text-white fs-4"></i>
-            <h4 class="m-0 text-white fw-bold">সোনা বদল</h4>
+            <h4 class="m-0 text-white fw-bold">সোনা এক্সচেঞ্জ</h4>
         </div>
         <div>
-            <a href="gold_exchange_list.php" class="btn btn-outline-light btn-history btn-sm d-inline-flex align-items-center gap-1">
+            <a href="gold_exchange_list.php" class="btn btn-history d-inline-flex align-items-center gap-1">
                 <i class="bi bi-list-ul"></i>
                 <span>এক্সচেঞ্জ ইতিহাস</span>
             </a>
@@ -645,7 +708,7 @@ html, body {
                 <!-- Customer -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white fw-semibold">
-                        <i class="bi bi-person-fill me-1 text-success"></i>কাস্টমার খুঁজুন
+                        <i class="bi bi-person-fill me-1 text-teal"></i>কাস্টমার খুঁজুন
                     </div>
                     <div class="card-body">
                         <div class="position-relative">
@@ -658,7 +721,7 @@ html, body {
                         <div class="selected-customer-card mt-3" id="selectedCustomerCard">
                             <div>
                                 <div class="fw-semibold" id="selectedCustomerName">—</div>
-                                <small class="text-muted" id="selectedCustomerPhone">—</small>
+                                <small class="text-secondary" id="selectedCustomerPhone">—</small>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center" id="btnClearCustomer">
                                 <i class="bi bi-x-lg"></i> <span class="d-none d-sm-inline ms-1">মুছে ফেলুন</span>
@@ -670,7 +733,7 @@ html, body {
                 <!-- Old gold items -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold"><i class="bi bi-gem me-1 text-warning"></i> পুরাতন / অপাকা সোনা</span>
+                        <span class="fw-semibold"><i class="bi bi-gem me-1 text-teal"></i> পুরাতন / অপাকা সোনা</span>
                         <button type="button" class="btn btn-sm btn-gold d-inline-flex align-items-center" id="btnAddItem">
                             <i class="bi bi-plus-lg me-1"></i> <span>আইটেম যোগ করুন</span>
                         </button>
@@ -683,7 +746,7 @@ html, body {
                 <!-- Note -->
                 <div class="card shadow-sm mb-4" id="noteCard">
                     <div class="card-header bg-white fw-semibold">
-                        <i class="bi bi-pencil-square me-1"></i> নোট / মন্তব্য
+                        <i class="bi bi-pencil-square me-1 text-teal"></i> নোট / মন্তব্য
                     </div>
                     <div class="card-body">
                         <textarea class="form-control" id="note" name="note" rows="2" placeholder="ঐচ্ছিক নোট…"></textarea>
@@ -707,22 +770,23 @@ html, body {
                             <span class="d-flex align-items-center gap-1">
                                 <input type="number" id="lossRateInput" min="0" step="0.001" value="1"
                                        class="form-control form-control-sm loss-rate-input" style="width:70px;">
-                                <small class="text-muted">পয়েন্ট/ভরি</small>
+                                <small class="text-secondary">পয়েন্ট/ভরি</small>
                             </span>
                         </div>
 
                         <div class="summary-row">
                             <span class="s-label">মোট ক্ষতি</span>
-                            <span class="s-value" id="sumLoss">০ পয়েন্ট</span>
-                        </div>
-                        <div class="summary-row">
-                            <span class="text-muted" id="sumLossTrad" style="font-size:0.75rem;">০ ভরি ০ আনা ০ রতি ০ পয়েন্ট</span>
+                            <span class="s-value">
+                                <span id="sumLossTrad" class="text-secondary" style="font-weight:400; font-size:12px;">(০ ভরি ০ আনা ০ রতি ০ পয়েন্ট)</span>
+                                <span id="sumLoss">০ পয়েন্ট</span>
+                            </span>
                         </div>
 
                         <div class="final-row mt-2">
                             <span class="s-label">অবশিষ্ট পাকা সোনা</span>
                             <span class="s-value" id="sumFinalPure">০ ভরি ০ আনা ০ রতি ০ পয়েন্ট</span>
                         </div>
+
                     </div>
 
                     <div class="px-3 pb-3 mt-1">
@@ -747,30 +811,30 @@ html, body {
         </button>
         <div class="item-fields-row mt-2">
             <div class="field-col">
+                <label>ক্যারেট</label>
+                <input type="number" min="0.01" max="24" step="0.01" class="form-control form-control-sm" data-field="karat" value="22" placeholder="যেমন: ১৯.০০">
+                <div class="invalid-feedback" data-error="karat"></div>
+            </div>
+            <div class="field-col">
                 <label>ভরি</label>
-                <input type="number" min="0" step="1" class="form-control form-control-sm" data-field="vori" value="0" inputmode="numeric">
+                <input type="number" min="0" step="1" class="form-control form-control-sm" data-field="vori" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="vori"></div>
             </div>
             <div class="field-col">
                 <label>আনা</label>
-                <input type="number" min="0" max="15" step="1" class="form-control form-control-sm" data-field="ana" value="0" inputmode="numeric">
+                <input type="number" min="0" max="15" step="1" class="form-control form-control-sm" data-field="ana" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="ana"></div>
             </div>
             <div class="field-col">
                 <label>রতি</label>
-                <input type="number" min="0" max="5" step="1" class="form-control form-control-sm" data-field="roti" value="0" inputmode="numeric">
+                <input type="number" min="0" max="5" step="1" class="form-control form-control-sm" data-field="roti" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="roti"></div>
             </div>
             <div class="field-col">
                 <label>পয়েন্ট</label>
-                <input type="number" min="0" max="9" step="1" class="form-control form-control-sm" data-field="point" value="0" inputmode="numeric">
+                <input type="number" min="0" max="9" step="1" class="form-control form-control-sm" data-field="point" placeholder="0" inputmode="numeric">
                 <div class="invalid-feedback" data-error="point"></div>
             </div>
-        </div>
-        <div class="karat-row">
-            <label>ক্যারেট</label>
-            <input type="number" min="0.01" max="24" step="0.01" class="form-control form-control-sm" data-field="karat" value="22" placeholder="যেমন: ১৯.০০">
-            <div class="invalid-feedback" data-error="karat"></div>
         </div>
         <div class="item-pure-result mt-2" data-pure-result>
             পাকা সোনা: ০ ভরি ০ আনা ০ রতি ০ পয়েন্ট
@@ -872,7 +936,7 @@ customerSearch.addEventListener('input', function () {
                         : `<div class="customer-result-photo-fallback">${escHtml((c.name || '?').charAt(0).toUpperCase())}</div>`}
                     <div class="flex-grow-1">
                         <div class="fw-semibold">${escHtml(c.name)}</div>
-                        <small class="text-muted">${escHtml(c.phone)}${c.address ? ' · ' + escHtml(c.address) : ''}</small>
+                        <small class="text-secondary">${escHtml(c.phone)}${c.address ? ' · ' + escHtml(c.address) : ''}</small>
                     </div>
                 </div>
             `).join('');
@@ -1043,25 +1107,47 @@ document.getElementById('btnAddItem').addEventListener('click', addItem);
 
 document.getElementById('lossRateInput').addEventListener('input', renderSummary);
 
+/**
+ * Loss points for a given total impure weight (grams) and rate
+ * (points per whole Vori). Mirrors calc_loss_points() in PHP.
+ *
+ * Whole Vori amounts are NOT rounded up. A round-up (base + 1) only
+ * happens when there is an additional Ana/Roti/Point fraction above
+ * the whole Vori total.
+ */
+function calcLossPoints(impureGrams, rate) {
+    const EPS = 1e-9;
+    const totalVori   = impureGrams / G_PER_VORI;
+    const wholeVori    = Math.floor(totalVori + EPS);
+    const hasFraction  = (totalVori - wholeVori) > EPS;
+
+    const basePoints = wholeVori * rate;
+
+    if (hasFraction) {
+        return Math.floor(basePoints + EPS) + 1;
+    }
+    return Math.round(basePoints);
+}
+
 function renderSummary() {
     let totalPureGrams = 0;
+    let totalImpureGrams = 0;
 
     itemsContainer.querySelectorAll('[data-item]').forEach(card => {
         const v = getItemValues(card);
-        const { pureGrams } = calcItemPure(v);
+        const { grams, pureGrams } = calcItemPure(v);
         totalPureGrams += pureGrams;
+        totalImpureGrams += grams;
     });
 
-    const lossRate = parseFloat(document.getElementById('lossRateInput').value) || 0;
-    const totalPureVori   = totalPureGrams / G_PER_VORI;
-    const lossPointsExact = totalPureVori * lossRate;
-    const lossPointsCeil  = Math.ceil(lossPointsExact);
-    const lossGrams       = lossPointsCeil * G_PER_POINT;
+    const lossRate       = parseFloat(document.getElementById('lossRateInput').value) || 0;
+    const lossPoints      = calcLossPoints(totalImpureGrams, lossRate);
+    const lossGrams       = lossPoints * G_PER_POINT;
     const finalPureGrams  = Math.max(0, totalPureGrams - lossGrams);
 
     document.getElementById('sumTotalPure').textContent = formatTraditional(gramsToTraditional(totalPureGrams));
-    document.getElementById('sumLoss').textContent      = `${lossPointsCeil} পয়েন্ট`;
-    document.getElementById('sumLossTrad').textContent  = formatTraditional(gramsToTraditional(lossGrams));
+    document.getElementById('sumLoss').textContent      = `${lossPoints} পয়েন্ট`;
+    document.getElementById('sumLossTrad').textContent  = '(' + formatTraditional(gramsToTraditional(lossGrams)) + ')';
     document.getElementById('sumFinalPure').textContent = formatTraditional(gramsToTraditional(finalPureGrams));
 }
 

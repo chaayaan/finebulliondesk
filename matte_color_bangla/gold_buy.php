@@ -704,7 +704,7 @@ label, .form-label {
                 <i class="bi bi-cash-coin me-2 d-none d-md-inline"></i>
                 <span>পুরাতন সোনা কেনা</span>
             </h4>
-            <small>কাস্টমারের কাছ থেকে পুরাতন / খাদযুক্ত সোনা ক্রয় করুন</small>
+            <small>কাস্টমারের কাছ থেকে সোনা ক্রয় করুন</small>
         </div>
         <div class="header-right">
             <a href="gold_buy_list.php" class="header-action-btn">

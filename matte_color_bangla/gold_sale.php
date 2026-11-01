@@ -690,7 +690,7 @@ label, .form-label {
                 <i class="bi bi-bag-check-fill me-2 d-none d-md-inline"></i>
                 <span>নতুন সোনা বিক্রি</span>
             </h4>
-            <small>কাস্টমারের কাছে সোনা বিক্রি ও ইনভেন্টরি ম্যানেজ করুন</small>
+            <small>কাস্টমারের কাছে সোনা বিক্রি</small>
         </div>
         <div class="header-right">
             <a href="gold_sale_list.php" class="header-action-btn">

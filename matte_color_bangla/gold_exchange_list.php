@@ -313,66 +313,52 @@ body {
   padding: 0;
 }
 
-/* Page Header System */
-.page-header {
-  background: var(--navy);
-  color: var(--text-on-navy);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1rem 1.75rem;
-  border-radius: 0 0 16px 16px;
-  box-shadow: var(--shadow);
+/* ---- page header (same as buy / sale list) ---- */
+.fb-header {
+    background: var(--navy) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.page-header .header-left {
-  display: flex;
-  flex-direction: column;
-  gap: .2rem;
-  min-width: 0;
+.fb-header h4, .fb-header h4 i { color: var(--text-on-navy) !important; }
+.fb-header small { color: rgba(255,255,255,0.78) !important; }
+.fb-header .header-title-block { min-width: 0; }
+.fb-header .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+.fb-header .btn-fb-primary {
+    background: var(--navy);
+    border: 1.5px solid #ffffff;
+    color: #ffffff !important;
+    font-weight: 700;
+    border-radius: 8px;
 }
-.page-header .header-right {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  flex-wrap: wrap;
-}
-.page-header h1 {
-  font-size: 22px;
-  color: var(--text-on-navy);
-  margin: 0;
-  font-weight: 700;
-  line-height: 1.3;
-}
-.page-header small, .page-header .subtitle {
-  color: rgba(255,255,255,.78);
-  font-size: 13px;
-  font-weight: 500;
+.fb-header .btn-fb-primary:hover, .fb-header .btn-fb-primary:focus {
+    opacity: 1;
+    background: var(--teal);
+    border-color: #ffffff;
+    color: #ffffff !important;
 }
 
-/* Header Action Button */
-.header-action-btn {
-  background: var(--navy);
-  border: 1.5px solid #fff;
-  color: #fff;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 13px;
-  padding: .45rem .9rem;
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: all .15s ease-in-out;
+@media (max-width: 767.98px) {
+    .fb-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
+        
+    }
+    .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .fb-header small { display: none; }
 }
-.header-action-btn:hover, .header-action-btn:focus {
-  background: var(--teal);
-  border-color: #fff;
-  color: #fff;
-}
-.header-action-btn i, .header-action-btn svg { color: #fff; }
 
 /* Inset Container */
 .page-inset {
@@ -1031,17 +1017,6 @@ table.table-hover tbody tr:hover {
   .page-inset {
     padding: 1rem;
   }
-  .page-header {
-    padding: .85rem 1.1rem;
-    border-radius: 0 0 14px 14px;
-  }
-  .page-header h1 {
-    font-size: 18px;
-  }
-  .header-action-btn {
-    padding: .4rem .75rem;
-    font-size: 12.5px;
-  }
   .card, .sc-card {
     padding: .85rem;
     border-radius: 14px;
@@ -1069,19 +1044,23 @@ table.table-hover tbody tr:hover {
 
 <div class="page-content">
   <!-- Page Header -->
-  <div class="page-header">
-    <div class="header-left">
-      <h1>
-        <i class="bi bi-arrow-left-right me-1"></i>
-        <span class="d-none d-md-inline">সোনা এক্সচেঞ্জের ইতিহাস</span>
-        <span class="d-md-none">সোনা এক্সচেঞ্জের তালিকা</span>
-      </h1>
-      <small class="subtitle">FineBullion Desk</small>
-    </div>
-    <div class="header-right">
-      <a href="gold_exchange_inventory.php" class="header-action-btn">
-        <i class="bi bi-plus-lg"></i> <span>নতুন সোনা এক্সচেঞ্জ</span>
-      </a>
+  <div class="container-fluid px-0">
+    <div class="fb-header">
+      <div class="header-title-block">
+        <h4 class="mb-0">
+          <i class="bi bi-arrow-left-right me-2"></i>
+          <span class="d-none d-md-inline">সোনা এক্সচেঞ্জের ইতিহাস</span>
+          <span class="d-md-none">সোনা এক্সচেঞ্জের তালিকা</span>
+        </h4>
+        <small>ফাইনবুলিয়ন ডায়াল</small>
+      </div>
+      <div class="header-actions">
+        <a href="gold_exchange_inventory.php" class="btn btn-fb-primary btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>
+          <span class="d-none d-sm-inline">নতুন সোনা এক্সচেঞ্জ</span>
+          <span class="d-sm-none">নতুন এক্সচেঞ্জ</span>
+        </a>
+      </div>
     </div>
   </div>
 

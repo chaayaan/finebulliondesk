@@ -531,53 +531,52 @@ html, body {
 .page-content { margin-top: 0 !important; padding-top: 0 !important; }
 .page-content > .container-fluid:first-child { margin-top: 0 !important; padding-top: 0 !important; }
 
-/* Page Header (§3) */
-.page-header {
-    background: var(--navy);
-    color: var(--text-on-navy);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem 1.75rem;
-    border-radius: 0 0 16px 16px;
-    margin-bottom: 1.5rem;
+/* ---- page header (same as buy / sale list) ---- */
+.fb-header {
+    background: var(--navy) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 1rem !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+    padding: 0.85rem 1.75rem !important;
+    margin: 0 0 1.5rem !important;
+    width: 100% !important;
+    border-radius: 0 0 20px 20px !important;
 }
-.page-header .header-left { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
-.page-header .header-right { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-.page-header h1 {
-    color: var(--text-on-navy);
-    margin: 0;
-    font-size: 22px;
+.fb-header h4, .fb-header h4 i { color: var(--text-on-navy) !important; }
+.fb-header small { color: rgba(255,255,255,0.78) !important; }
+.fb-header .header-title-block { min-width: 0; }
+.fb-header .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+.fb-header .btn-fb-primary {
+    background: var(--navy);
+    border: 1.5px solid #ffffff;
+    color: #ffffff !important;
     font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: .5rem;
+    border-radius: 8px;
+}
+.fb-header .btn-fb-primary:hover, .fb-header .btn-fb-primary:focus {
+    opacity: 1;
+    background: var(--teal);
+    border-color: #ffffff;
+    color: #ffffff !important;
 }
 
-/* Header Action Button (§3) */
-.header-action-btn {
-    background: var(--navy);
-    border: 1.5px solid #fff;
-    color: #fff;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 13px;
-    padding: .45rem .9rem;
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
+@media (max-width: 767.98px) {
+    .fb-header {
+        min-height: 60px !important;
+        max-height: 70px !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 0 0 16px 16px !important;
+        justify-content: space-between !important;
+        margin-bottom: 1rem !important;
+    }
+    .fb-header h4 { font-size: 1rem; margin-bottom: 0; }
+    .fb-header small { display: none; }
 }
-.header-action-btn:hover, .header-action-btn:focus {
-    background: var(--teal);
-    border-color: #fff;
-    color: #fff;
-}
-.header-action-btn i { color: #fff; }
 
 .page-inset { padding: 0 1.5rem 2rem; }
 
@@ -861,10 +860,6 @@ label, .form-label {
 @media (max-width: 576px) {
     .page-content .container-fluid { padding: 0 !important; }
     .page-inset { padding: 0 1rem 1.5rem; }
-    .page-header { padding: .85rem 1.1rem; border-radius: 0 0 14px 14px; margin-bottom: 1rem; }
-    .page-header h1 { font-size: 18px; }
-    .page-header .header-left, .page-header .header-right { width: 100%; }
-    .header-action-btn { font-size: 12.5px; padding: .4rem .75rem; width: 100%; justify-content: center; }
 
     .summary-grid { grid-template-columns: repeat(2, 1fr); gap: .5rem; }
     .summary-card { padding: .85rem; }
@@ -888,18 +883,19 @@ label, .form-label {
 <div class="page-content">
 <div class="container-fluid px-0">
 
-    <!-- Page Header (§3) -->
-    <div class="page-header">
-        <div class="header-left">
-            <h1><i class="bi bi-boxes"></i> ইনভেন্টরি</h1>
-            <div class="header-meta">
-                <span>ক্যারেট অনুযায়ী সোনার মজুদের তথ্য</span>
-            </div>
+    <!-- Page Header -->
+    <div class="fb-header">
+        <div class="header-title-block">
+            <h4 class="mb-0">
+                <i class="bi bi-boxes me-2"></i>ইনভেন্টরি
+            </h4>
+            <small>ক্যারেট অনুযায়ী সোনার মজুদের তথ্য</small>
         </div>
-        <div class="header-right">
-            <button type="button" class="header-action-btn" id="btnOpenStockIn">
-                <i class="bi bi-plus-lg"></i>
-                <span>নতুন স্টক যোগ করুন</span>
+        <div class="header-actions">
+            <button type="button" class="btn btn-fb-primary btn-sm" id="btnOpenStockIn">
+                <i class="bi bi-plus-lg me-1"></i>
+                <span class="d-none d-sm-inline">নতুন স্টক যোগ করুন</span>
+                <span class="d-sm-none">নতুন স্টক</span>
             </button>
         </div>
     </div>

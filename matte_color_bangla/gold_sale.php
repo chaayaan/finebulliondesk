@@ -16,6 +16,7 @@
  */
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/customer_auto_suggest.php';
 
 // -----------------------------------------------------------------------
 // Conversion constants (grams)
@@ -713,22 +714,7 @@ label, .form-label {
                         <span class="card-icon-chip"><i class="bi bi-person-fill"></i></span> কাস্টমার খুঁজুন
                     </div>
                     <div class="card-body">
-                        <div class="position-relative">
-                            <input type="text" class="form-control" id="customerSearch"
-                                   placeholder="নাম বা ফোন নম্বর দিয়ে খুঁজুন">
-                            <div class="customer-results-box" id="customerResults"></div>
-                        </div>
-                        <input type="hidden" id="customerId" name="customer_id">
-
-                        <div class="selected-customer-card mt-3" id="selectedCustomerCard">
-                            <div>
-                                <div class="fw-semibold" id="selectedCustomerName">—</div>
-                                <small class="text-muted" id="selectedCustomerPhone">—</small>
-                            </div>
-                            <button type="button" class="btn btn-icon-round" id="btnClearCustomer" title="মুছে ফেলুন">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </div>
+                        <?php customer_suggest_render(); ?>
                     </div>
                 </div>
 
@@ -914,78 +900,7 @@ function formatBDT(n) {
     return '৳' + Math.round(n).toLocaleString('en-BD');
 }
 
-// ── Customer search ──
-const customerSearch  = document.getElementById('customerSearch');
-const customerResults = document.getElementById('customerResults');
 const customerIdInput = document.getElementById('customerId');
-const selectedCard    = document.getElementById('selectedCustomerCard');
-const selectedName    = document.getElementById('selectedCustomerName');
-const selectedPhone   = document.getElementById('selectedCustomerPhone');
-
-function escAttr(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-function escHtml(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-let searchTimer = null;
-
-customerSearch.addEventListener('input', function () {
-    const q = this.value.trim();
-    clearTimeout(searchTimer);
-    if (q.length < 2) { customerResults.style.display = 'none'; customerResults.innerHTML = ''; return; }
-
-    searchTimer = setTimeout(async () => {
-        try {
-            const res  = await fetch('customer_search.php?q=' + encodeURIComponent(q), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            const data = await res.json();
-            if (!data.success) {
-                customerResults.innerHTML = '<div class="p-2 text-danger small">অনুসন্ধান ব্যর্থ হয়েছে।</div>';
-                customerResults.style.display = 'block'; return;
-            }
-            const list = data.data || [];
-            if (list.length === 0) {
-                customerResults.innerHTML = '<div class="p-2 text-muted small">কোনো কাস্টমার পাওয়া যায়নি।</div>';
-                customerResults.style.display = 'block'; return;
-            }
-            customerResults.innerHTML = list.map(c => `
-                <div class="customer-result-item d-flex align-items-center gap-2"
-                     data-id="${c.id}" data-name="${escAttr(c.name)}" data-phone="${escAttr(c.phone)}">
-                    ${c.photo_path
-                        ? `<img src="${escAttr(c.photo_path)}" class="customer-result-photo" alt="">`
-                        : `<div class="customer-result-photo-fallback">${escHtml((c.name||'?').charAt(0).toUpperCase())}</div>`}
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold">${escHtml(c.name)}</div>
-                        <small class="text-muted">${escHtml(c.phone)}${c.address ? ' · ' + escHtml(c.address) : ''}</small>
-                    </div>
-                </div>`).join('');
-            customerResults.style.display = 'block';
-        } catch {
-            customerResults.innerHTML = '<div class="p-2 text-danger small">অনুসন্ধান ব্যর্থ হয়েছে।</div>';
-            customerResults.style.display = 'block';
-        }
-    }, 300);
-});
-
-customerResults.addEventListener('click', function (e) {
-    const item = e.target.closest('.customer-result-item');
-    if (!item) return;
-    customerIdInput.value     = item.dataset.id;
-    selectedName.textContent  = item.dataset.name;
-    selectedPhone.textContent = item.dataset.phone;
-    selectedCard.style.display = 'flex';
-    customerSearch.value = '';
-    customerResults.style.display = 'none';
-    customerResults.innerHTML = '';
-});
-
-document.getElementById('btnClearCustomer').addEventListener('click', () => {
-    customerIdInput.value = '';
-    selectedCard.style.display = 'none';
-});
-
-document.addEventListener('click', e => {
-    if (!e.target.closest('#customerSearch') && !e.target.closest('#customerResults')) {
-        customerResults.style.display = 'none';
-    }
-});
 
 // ── Pure gold price ──
 const pureGoldPriceInput = document.getElementById('pureGoldPrice');

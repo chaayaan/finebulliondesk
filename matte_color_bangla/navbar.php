@@ -39,11 +39,11 @@ $isInventoryActive    = in_array($navCurrentPage, ['inventory.php', 'inventory_l
 $isExpenseActive      = ($navCurrentPage === 'expenses.php');
 $isUserActive         = ($navCurrentPage === 'users.php');
 
-$isExchangeActive     = in_array($navCurrentPage, ['gold_exchange_inventory.php', 'gold_exchange_list.php', 'gold_exchange_edit_inventory.php']);
-$isExchangeEditActive = ($navCurrentPage === 'gold_exchange_edit_inventory.php');
+$isExchangeActive     = in_array($navCurrentPage, ['gold_exchange.php', 'gold_exchange_list.php', 'gold_exchange_edit.php']);
+$isExchangeEditActive = ($navCurrentPage === 'gold_exchange_edit.php');
 
-$isSaleActive         = in_array($navCurrentPage, ['gold_sale_inventory.php', 'gold_sale_list.php', 'gold_sale_edit_inventory.php']);
-$isSaleEditActive     = ($navCurrentPage === 'gold_sale_edit_inventory.php');
+$isSaleActive         = in_array($navCurrentPage, ['gold_sale.php', 'gold_sale_list.php', 'gold_sale_edit.php']);
+$isSaleEditActive     = ($navCurrentPage === 'gold_sale_edit.php');
 
 $isBuyActive          = in_array($navCurrentPage, ['gold_buy.php', 'gold_buy_list.php', 'gold_buy_edit.php']);
 $isBuyEditActive      = ($navCurrentPage === 'gold_buy_edit.php');
@@ -56,8 +56,8 @@ function nav_is_active(string $href, string $current): bool {
 
 // Preserve current URI for Edit routes (handles ?id=X)
 $currentQueryString = $_SERVER['QUERY_STRING'] ?? '';
-$exchangeEditUrl = 'gold_exchange_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
-$saleEditUrl     = 'gold_sale_edit_inventory.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+$exchangeEditUrl = 'gold_exchange_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
+$saleEditUrl     = 'gold_sale_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 $buyEditUrl      = 'gold_buy_edit.php' . ($currentQueryString ? '?' . htmlspecialchars($currentQueryString) : '');
 
 /* Dynamic Menu Icon Logic for Mobile 3-Dot Menu */
@@ -579,7 +579,7 @@ if ($licenseConn) {
                 <i class="bi bi-chevron-down chevron-icon"></i>
             </button>
             <div class="nav-submenu">
-                <a href="gold_exchange_inventory.php" class="nav-sub-item<?= nav_is_active('gold_exchange_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
+                <a href="gold_exchange.php" class="nav-sub-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
                     <i class="bi bi-plus-circle"></i><span>নতুন এক্সচেঞ্জ</span>
                 </a>
                 <a href="gold_exchange_list.php" class="nav-sub-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -602,7 +602,7 @@ if ($licenseConn) {
                 <i class="bi bi-chevron-down chevron-icon"></i>
             </button>
             <div class="nav-submenu">
-                <a href="gold_sale_inventory.php" class="nav-sub-item<?= nav_is_active('gold_sale_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
+                <a href="gold_sale.php" class="nav-sub-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
                     <i class="bi bi-plus-circle"></i><span>নতুন বিক্রয়</span>
                 </a>
                 <a href="gold_sale_list.php" class="nav-sub-item<?= nav_is_active('gold_sale_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -707,7 +707,7 @@ if ($licenseConn) {
     <div class="bottom-sheet-drag-handle"></div>
     <div class="bottom-sheet-title">এক্সচেঞ্জ মডিউল</div>
     <div class="bottom-sheet-options">
-        <a href="gold_exchange_inventory.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
+        <a href="gold_exchange.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-plus-circle"></i><span>নতুন এক্সচেঞ্জ</span>
         </a>
         <a href="gold_exchange_list.php" class="bottom-sheet-item<?= nav_is_active('gold_exchange_list.php', $navCurrentPage) ? ' active' : '' ?>">
@@ -720,7 +720,7 @@ if ($licenseConn) {
     <div class="bottom-sheet-drag-handle"></div>
     <div class="bottom-sheet-title">বিক্রয় মডিউল</div>
     <div class="bottom-sheet-options">
-        <a href="gold_sale_inventory.php" class="bottom-sheet-item<?= nav_is_active('gold_sale_inventory.php', $navCurrentPage) ? ' active' : '' ?>">
+        <a href="gold_sale.php" class="bottom-sheet-item<?= nav_is_active('gold_sale.php', $navCurrentPage) ? ' active' : '' ?>">
             <i class="bi bi-plus-circle"></i><span>নতুন সোনা বিক্রয়</span>
         </a>
         <a href="gold_sale_list.php" class="bottom-sheet-item<?= nav_is_active('gold_sale_list.php', $navCurrentPage) ? ' active' : '' ?>">
